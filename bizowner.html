@@ -446,8 +446,7 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 // ── CONFIG ─────────────────────────────────────────────────
 const APP_NAME = 'MonieMatch';  // ← Change platform name here
 
-// Formspree endpoint — sign up at formspree.io, create a form, paste your URL here
-const FORM_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID';
+const FORM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwxW2QP9XjIiAWhXhVcgxJb_EY-UTS3H38eEiJoUBj0oxkOKB_FITcCdwk7iMOhMEE/exec';
 // ────────────────────────────────────────────────────────────
 
 const CATS = ['Bakery','Fashion Design','Hair Salon','Barber Shop','Photography','Catering','Event Planning','Tailoring','Shoe Making','Makeup & Beauty','Food Vendor','Graphic Design','Printing Services','Tech / IT Services','Transport / Logistics','Retail / Trading','Agriculture','Cleaning Services','Laundry','Furniture Making','Auto Repair','Electronics Repair','Jewellery Making','Interior Decoration','Music / Entertainment','Content Creation','Skincare / Cosmetics','Childcare / Nursery','Gym / Fitness','Book Shop / Stationery','Perfume / Fragrance','Wedding Planning','Cake Making','Suya / Food Stand','Video Production'];
@@ -546,7 +545,7 @@ async function handleSubmit() {
   const amtRange = amin && amax ? `${amin} – ${amax}` : amin || amax || '';
 
   const payload = {
-    _subject: `New Business Profile: ${g('bn') || 'Unnamed Business'}`,
+    form_type: 'business_owner',
     business_name: g('bn'),
     category: g('bc'),
     description: g('bd'),
@@ -566,15 +565,14 @@ async function handleSubmit() {
     submitted_at: today(),
   };
 
-  let submitted = false;
-  if (FORM_ENDPOINT && !FORM_ENDPOINT.includes('YOUR_FORM_ID')) {
+  if (FORM_ENDPOINT) {
     try {
-      const res = await fetch(FORM_ENDPOINT, {
+      await fetch(FORM_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      submitted = res.ok;
     } catch (e) { console.warn('Submission error:', e); }
   }
 
@@ -622,9 +620,6 @@ async function handleSubmit() {
     setTimeout(() => previewEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   }
 
-  if (!submitted && FORM_ENDPOINT.includes('YOUR_FORM_ID')) {
-    console.info('Form endpoint not configured — set FORM_ENDPOINT to save responses.');
-  }
 }
 
 function enableEdit() {

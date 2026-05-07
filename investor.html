@@ -311,7 +311,7 @@ input::placeholder, textarea::placeholder { color: var(--t4); }
 
 <script>
 const APP_NAME = 'MonieMatch';
-const FORM_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID';
+const FORM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwxW2QP9XjIiAWhXhVcgxJb_EY-UTS3H38eEiJoUBj0oxkOKB_FITcCdwk7iMOhMEE/exec';
 
 const retSel = new Set();
 const repSel = new Set();
@@ -373,7 +373,7 @@ async function handleSubmit() {
   const amtRange = imin && imax ? `${imin} – ${imax}` : imin || imax || '';
 
   const payload = {
-    _subject: `New Investor Profile: ${g('invname') || 'Anonymous'}`,
+    form_type: 'investor',
     investor_name: g('invname'),
     email: g('invemail'),
     phone: g('invphone'),
@@ -386,11 +386,12 @@ async function handleSubmit() {
     submitted_at: today(),
   };
 
-  if (FORM_ENDPOINT && !FORM_ENDPOINT.includes('YOUR_FORM_ID')) {
+  if (FORM_ENDPOINT) {
     try {
       await fetch(FORM_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
     } catch (e) { console.warn('Submission error:', e); }
