@@ -187,7 +187,15 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 @media (max-width: 400px) {
   .pgrid { grid-template-columns: 1fr; }
 }
+.dl-btn { flex: 1; padding: 10px 8px; background: var(--brand); color: var(--white); border: none; border-radius: var(--r); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 5px; transition: background .18s; }
+.dl-btn:hover { background: var(--brand-m); }
+.dl-btn.img-btn { background: var(--brand-d); }
+.dl-btn.img-btn:hover { background: #043424; }
+.dl-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.dl-btn.loading { opacity: .7; pointer-events: none; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -384,6 +392,7 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <!-- ══ PREVIEW ══ -->
     <div class="preview-col">
       <div class="preview-card" id="preview-card">
+        <div id="snap-export">
         <div class="prev-head">
           <p class="meta" id="prev-meta">MonieMatch · Business Snapshot</p>
           <h2 id="prev-name">Business name</h2>
@@ -429,10 +438,15 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
             <div class="tag-row" id="prev-rep"><span class="ptxt ph" style="font-size:12px;">None selected yet</span></div>
           </div>
         </div>
+        </div><!-- end snap-export -->
         <div class="prev-footer" id="prev-footer" style="display:none;">
-          <button class="dl-btn" onclick="window.print()">
+          <button class="dl-btn" id="pdf-btn" onclick="downloadPDF()">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-            Download my Snapshot
+            PDF
+          </button>
+          <button class="dl-btn img-btn" id="img-btn" onclick="downloadImage()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Image
           </button>
           <button class="edit-btn" onclick="enableEdit()">Edit</button>
         </div>
@@ -570,7 +584,7 @@ async function handleSubmit() {
       await fetch(FORM_ENDPOINT, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload),
       });
     } catch (e) { console.warn('Submission error:', e); }
@@ -620,6 +634,48 @@ async function handleSubmit() {
     setTimeout(() => previewEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   }
 
+}
+
+function snapName() {
+  return (g('bn') || 'business').replace(/\s+/g, '-').toLowerCase();
+}
+
+async function captureCard() {
+  const el = document.getElementById('snap-export');
+  return await html2canvas(el, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    logging: false,
+  });
+}
+
+async function downloadImage() {
+  const btn = document.getElementById('img-btn');
+  if (btn) btn.classList.add('loading');
+  try {
+    const canvas = await captureCard();
+    const link = document.createElement('a');
+    link.download = `${snapName()}-snapshot.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) { console.warn('Image download error:', e); }
+  if (btn) btn.classList.remove('loading');
+}
+
+async function downloadPDF() {
+  const btn = document.getElementById('pdf-btn');
+  if (btn) btn.classList.add('loading');
+  try {
+    const canvas = await captureCard();
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = 190;
+    const imgH = (canvas.height * pageW) / canvas.width;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, pageW, Math.min(imgH, 277));
+    pdf.save(`${snapName()}-snapshot.pdf`);
+  } catch(e) { console.warn('PDF download error:', e); }
+  if (btn) btn.classList.remove('loading');
 }
 
 function enableEdit() {
