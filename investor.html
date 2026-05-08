@@ -172,7 +172,7 @@ input::placeholder{color:var(--t4);font-size:13px;}
 </div></div>
 <script>
 const APP_NAME='MonieMatch';
-const FORM_ENDPOINT='https://formspree.io/f/YOUR_FORM_ID';
+const FORM_ENDPOINT='https://formspree.io/f/mrejakbl';
 const retSel=new Set(),repSel=new Set();
 function g(id){const el=document.getElementById(id);return el?el.value.trim():'';}
 function tcb(el){if(!el)return;const val=el.dataset.val,box=el.querySelector('.cbbox'),isRet=['Revenue share','Fixed return','Equity stake'].includes(val),set=isRet?retSel:repSel;if(set.has(val)){set.delete(val);el.classList.remove('on');if(box)box.classList.remove('on');}else{set.add(val);el.classList.add('on');if(box)box.classList.add('on');}}
