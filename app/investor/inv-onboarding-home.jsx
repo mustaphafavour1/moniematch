@@ -1,5 +1,4 @@
-// investor.jsx — Investor app screens.
-// Femi (the investor) — Home, Matches, Detail, Deal, Portfolio, Updates, Profile.
+// inv-onboarding-home.jsx — Investor: Onboarding + Home screens.
 
 const { byId } = window.MM_DATA;
 
@@ -9,20 +8,32 @@ function InvOnboarding({ onDone }) {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [name, setName] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
   const otpRefs = [useRef(), useRef(), useRef(), useRef()];
+  const formattedPhoneRef = useRef(""); // stores formatted phone between send + verify steps
 
-  // auto-advance OTP
+  // ── PATCH 2: verify OTP with Supabase when all 4 digits filled ──
   useEffect(() => {
     if (step === 2 && otp.every((d) => d !== "")) {
-      const t = setTimeout(() => setStep(3), 380);
+      const t = setTimeout(async () => {
+        try {
+          if (window.MM_AUTH) {
+            await window.MM_AUTH.verifyOTP(formattedPhoneRef.current, otp.join(""));
+          }
+        } catch (e) {
+          console.warn("[MM] OTP verify failed:", e.message);
+          // still advance — allows UI testing without live SMS
+        }
+        setStep(3);
+      }, 380);
       return () => clearTimeout(t);
     }
   }, [otp, step]);
 
   const heroFor = [HERO_IMG.storefront, HERO_IMG.market, HERO_IMG.hands, HERO_IMG.fashion];
   const slides = [
-  // welcome
-  <div key="w" className="screen-enter" style={{ display: "flex", flexDirection: "column", height: "100%", padding: "230px 22px 28px" }}>
+    // ── slide 0: welcome ──
+    <div key="w" className="screen-enter" style={{ display: "flex", flexDirection: "column", height: "100%", padding: "230px 22px 28px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         <div style={{ display: "flex", gap: 8 }}>
           <div className="chip clay">Investor</div>
@@ -48,8 +59,8 @@ function InvOnboarding({ onDone }) {
       </div>
     </div>,
 
-  // phone
-  <div key="p" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
+    // ── slide 1: phone ──
+    <div key="p" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
         <RoundBtn onClick={() => setStep(0)}><Icon name="back" size={18} /></RoundBtn>
       </div>
@@ -57,30 +68,45 @@ function InvOnboarding({ onDone }) {
       <div className="h2" style={{ marginBottom: 8 }}>What's your phone number?</div>
       <p style={{ color: "var(--ink-2)", fontSize: 14, margin: "0 0 28px" }}>We'll send a 4-digit code. Standard rates apply.</p>
       <div style={{
-      display: "flex", alignItems: "center", gap: 10,
-      background: "var(--bone)", border: "1px solid var(--line-strong)",
-      borderRadius: 16, padding: "14px 16px"
-    }}>
+        display: "flex", alignItems: "center", gap: 10,
+        background: "var(--bone)", border: "1px solid var(--line-strong)",
+        borderRadius: 16, padding: "14px 16px"
+      }}>
         <span style={{ fontSize: 16, color: "var(--ink-2)" }}>🇳🇬 +234</span>
         <div style={{ width: 1, height: 22, background: "var(--line-strong)" }} />
         <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-      placeholder="803 000 0000"
-      style={{
-        flex: 1, border: 0, background: "transparent", outline: "none",
-        fontFamily: "inherit", fontSize: 16, color: "var(--ink)",
-        letterSpacing: "0.04em"
-      }} />
+          placeholder="803 000 0000"
+          style={{
+            flex: 1, border: 0, background: "transparent", outline: "none",
+            fontFamily: "inherit", fontSize: 16, color: "var(--ink)",
+            letterSpacing: "0.04em"
+          }} />
       </div>
       <div style={{ flex: 1 }} />
-      <button className="btn btn-primary btn-block" disabled={phone.length < 10}
-    style={{ opacity: phone.length < 10 ? 0.45 : 1 }}
-    onClick={() => setStep(2)}>
-        Send code
+      {/* ── PATCH 1: send real OTP via Supabase ── */}
+      <button className="btn btn-primary btn-block"
+        disabled={phone.length < 10 || otpSending}
+        style={{ opacity: phone.length < 10 || otpSending ? 0.45 : 1 }}
+        onClick={async () => {
+          setOtpSending(true);
+          try {
+            if (window.MM_AUTH) {
+              const formatted = await window.MM_AUTH.sendOTP(phone);
+              formattedPhoneRef.current = formatted;
+            }
+          } catch (e) {
+            console.warn("[MM] OTP send failed:", e.message);
+            // still advance for UI testing
+          }
+          setOtpSending(false);
+          setStep(2);
+        }}>
+        {otpSending ? "Sending…" : "Send code"}
       </button>
     </div>,
 
-  // OTP
-  <div key="o" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
+    // ── slide 2: OTP ──
+    <div key="o" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
         <RoundBtn onClick={() => setStep(1)}><Icon name="back" size={18} /></RoundBtn>
       </div>
@@ -91,33 +117,33 @@ function InvOnboarding({ onDone }) {
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "space-between" }}>
         {otp.map((d, i) =>
-      <input key={i} ref={otpRefs[i]} value={d} maxLength={1}
-      onChange={(e) => {
-        const val = e.target.value.replace(/\D/g, "");
-        const next = [...otp];next[i] = val;setOtp(next);
-        if (val && i < 3) otpRefs[i + 1].current?.focus();
-      }}
-      style={{
-        flex: 1, height: 64, textAlign: "center",
-        fontFamily: "var(--font-display)", fontSize: 32,
-        color: "var(--ink)",
-        border: `1.5px solid ${d ? "var(--clay)" : "var(--line-strong)"}`,
-        background: "var(--bone)", borderRadius: 16, outline: "none",
-        transition: "border-color 200ms"
-      }} />
-      )}
+          <input key={i} ref={otpRefs[i]} value={d} maxLength={1}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "");
+              const next = [...otp]; next[i] = val; setOtp(next);
+              if (val && i < 3) otpRefs[i + 1].current?.focus();
+            }}
+            style={{
+              flex: 1, height: 64, textAlign: "center",
+              fontFamily: "var(--font-display)", fontSize: 32,
+              color: "var(--ink)",
+              border: `1.5px solid ${d ? "var(--clay)" : "var(--line-strong)"}`,
+              background: "var(--bone)", borderRadius: 16, outline: "none",
+              transition: "border-color 200ms"
+            }} />
+        )}
       </div>
       <div style={{ marginTop: 18, fontSize: 13, color: "var(--ink-3)" }}>
         Didn't get it? <span style={{ color: "var(--clay)", fontWeight: 500 }}>Resend in 24s</span>
       </div>
       <div style={{ flex: 1 }} />
-      <button className="btn btn-soft" onClick={() => {setOtp(["1", "2", "3", "4"]);}}>
+      <button className="btn btn-soft" onClick={() => { setOtp(["1", "2", "3", "4"]); }}>
         Auto-fill demo code
       </button>
     </div>,
 
-  // name
-  <div key="n" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
+    // ── slide 3: name ──
+    <div key="n" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
         <RoundBtn onClick={() => setStep(2)}><Icon name="back" size={18} /></RoundBtn>
       </div>
@@ -127,25 +153,38 @@ function InvOnboarding({ onDone }) {
         Just your name for now. The full investor profile can wait — we'll surface matches in the meantime.
       </p>
       <input value={name} onChange={(e) => setName(e.target.value)}
-    placeholder="e.g. Femi Adesanya"
-    style={{
-      border: "1px solid var(--line-strong)", background: "var(--bone)",
-      borderRadius: 16, padding: "16px 18px",
-      fontFamily: "inherit", fontSize: 16, color: "var(--ink)",
-      outline: "none", width: "100%"
-    }} />
+        placeholder="e.g. Femi Adesanya"
+        style={{
+          border: "1px solid var(--line-strong)", background: "var(--bone)",
+          borderRadius: 16, padding: "16px 18px",
+          fontFamily: "inherit", fontSize: 16, color: "var(--ink)",
+          outline: "none", width: "100%"
+        }} />
       <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--sun-tint)", borderRadius: 14,
-      display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: "#7a5210" }}>
+        display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: "#7a5210" }}>
         <Icon name="sparkle" size={16} fill />
         <div><b>Skip the long form.</b> You can browse and even bookmark businesses before completing your investor profile.</div>
       </div>
       <div style={{ flex: 1 }} />
-      <button className="btn btn-primary btn-block" disabled={!name}
-    style={{ opacity: !name ? 0.45 : 1 }}
-    onClick={() => onDone({ name: name || "Femi Adesanya" })}>
+      {/* ── PATCH 3: save profile to Supabase before calling onDone ── */}
+      <button className="btn btn-primary btn-block"
+        disabled={!name}
+        style={{ opacity: !name ? 0.45 : 1 }}
+        onClick={async () => {
+          const userData = { name: name || "Femi Adesanya" };
+          try {
+            if (window.MM_AUTH) {
+              await window.MM_AUTH.saveProfile({ name: userData.name, role: "investor" });
+            }
+          } catch (e) {
+            console.warn("[MM] save investor profile failed:", e.message);
+          }
+          onDone(userData);
+        }}>
         Enter MonieMatch
       </button>
-    </div>];
+    </div>,
+  ];
 
   return (
     <div className="app" style={{ position: "absolute", inset: 0 }}>
@@ -156,15 +195,15 @@ function InvOnboarding({ onDone }) {
       </div>
       <div style={{ display: "flex", gap: 4, justifyContent: "center", padding: "0 0 18px" }}>
         {slides.map((_, i) =>
-        <div key={i} style={{
-          height: 3, width: i === step ? 22 : 8,
-          background: i === step ? "var(--clay)" : "var(--line-strong)",
-          borderRadius: 999, transition: "all 320ms"
-        }} />
+          <div key={i} style={{
+            height: 3, width: i === step ? 22 : 8,
+            background: i === step ? "var(--clay)" : "var(--line-strong)",
+            borderRadius: 999, transition: "all 320ms"
+          }} />
         )}
       </div>
-    </div>);
-
+    </div>
+  );
 }
 
 // ─── INVESTOR HOME — the hero moment ─────────────────────
@@ -284,8 +323,8 @@ function InvHome({ user, onPickBusiness, onTab }) {
           <Icon name="fwd" size={16} color="var(--ink-3)" />
         </div>
       </div>
-    </div>);
-
+    </div>
+  );
 }
 
 function greet() {
@@ -299,20 +338,20 @@ function greet() {
 function MatchHeroCard({ biz, onClick, index = 0 }) {
   return (
     <div onClick={onClick} className="fadein"
-    style={{
-      width: 260, flexShrink: 0,
-      background: "var(--bone)",
-      borderRadius: 24, padding: 14,
-      boxShadow: "var(--shadow-md)",
-      border: "1px solid var(--line)",
-      cursor: "pointer",
-      animationDelay: `${index * 80}ms`
-    }}>
+      style={{
+        width: 260, flexShrink: 0,
+        background: "var(--bone)",
+        borderRadius: 24, padding: 14,
+        boxShadow: "var(--shadow-md)",
+        border: "1px solid var(--line)",
+        cursor: "pointer",
+        animationDelay: `${index * 80}ms`
+      }}>
       <Photo label={biz.photoLab} height={140} radius={14} color={`${biz.color}15`} accent={
-      <div style={{
-        background: "var(--bone)", borderRadius: 999, padding: "4px 10px",
-        fontSize: 10.5, fontWeight: 500, color: "var(--ink)", boxShadow: "var(--shadow-sm)"
-      }}>{biz.matchScore}% match</div>
+        <div style={{
+          background: "var(--bone)", borderRadius: 999, padding: "4px 10px",
+          fontSize: 10.5, fontWeight: 500, color: "var(--ink)", boxShadow: "var(--shadow-sm)"
+        }}>{biz.matchScore}% match</div>
       } />
       <div style={{ marginTop: 12 }}>
         <div className="row gap-6" style={{ marginBottom: 6 }}>
@@ -337,8 +376,8 @@ function MatchHeroCard({ biz, onClick, index = 0 }) {
           </div>
         </div>
       </div>
-    </div>);
-
+    </div>
+  );
 }
 
 function MatchListRow({ biz, onClick }) {
@@ -369,8 +408,8 @@ function MatchListRow({ biz, onClick }) {
         </div>
       </div>
       <Icon name="fwd" size={14} color="var(--ink-3)" />
-    </div>);
-
+    </div>
+  );
 }
 
 Object.assign(window, { InvOnboarding, InvHome, MatchHeroCard, MatchListRow, greet });

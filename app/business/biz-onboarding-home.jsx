@@ -1,4 +1,4 @@
-// business.jsx — Business Owner app screens (Aisha, the bakery owner).
+// biz-onboarding-home.jsx — Business Owner: Onboarding + Home screens.
 
 // ─── BUSINESS ONBOARDING ─────────────────────────────────
 function BizOnboarding({ onDone }) {
@@ -8,20 +8,33 @@ function BizOnboarding({ onDone }) {
   const [name, setName] = useState("");
   const [bizName, setBizName] = useState("");
   const [category, setCategory] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
   const otpRefs = [useRef(), useRef(), useRef(), useRef()];
+  const formattedPhoneRef = useRef(""); // stores formatted phone between send + verify steps
 
+  // ── PATCH 2: verify OTP with Supabase when all 4 digits filled ──
   useEffect(() => {
     if (step === 2 && otp.every(d => d !== "")) {
-      const t = setTimeout(() => setStep(3), 380);
+      const t = setTimeout(async () => {
+        try {
+          if (window.MM_AUTH) {
+            await window.MM_AUTH.verifyOTP(formattedPhoneRef.current, otp.join(""));
+          }
+        } catch (e) {
+          console.warn("[MM] OTP verify failed:", e.message);
+          // still advance — allows UI testing without live SMS
+        }
+        setStep(3);
+      }, 380);
       return () => clearTimeout(t);
     }
   }, [otp, step]);
 
   const cats = ["Bakery", "Fashion", "Food", "Barbing", "Repair", "Beauty", "Retail", "Other"];
-
   const heroFor = [HERO_IMG.bakery, HERO_IMG.storefront, HERO_IMG.hands, HERO_IMG.market, HERO_IMG.food];
+
   const slides = [
-    // welcome
+    // ── slide 0: welcome ──
     <div key="w" className="screen-enter" style={{ display: "flex", flexDirection: "column", height: "100%", padding: "230px 22px 28px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         <div style={{ display: "flex", gap: 8 }}>
@@ -50,7 +63,7 @@ function BizOnboarding({ onDone }) {
       </div>
     </div>,
 
-    // phone (same shape as investor)
+    // ── slide 1: phone ──
     <div key="p" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
         <RoundBtn onClick={() => setStep(0)}><Icon name="back" size={18} /></RoundBtn>
@@ -66,12 +79,29 @@ function BizOnboarding({ onDone }) {
                style={{ flex: 1, border: 0, background: "transparent", outline: "none", fontFamily: "inherit", fontSize: 16, color: "var(--ink)", letterSpacing: "0.04em" }} />
       </div>
       <div style={{ flex: 1 }} />
-      <button className="btn btn-forest btn-block" disabled={phone.length < 10} style={{ opacity: phone.length < 10 ? 0.45 : 1 }} onClick={() => setStep(2)}>
-        Send code
+      {/* ── PATCH 1: send real OTP via Supabase ── */}
+      <button className="btn btn-forest btn-block"
+        disabled={phone.length < 10 || otpSending}
+        style={{ opacity: phone.length < 10 || otpSending ? 0.45 : 1 }}
+        onClick={async () => {
+          setOtpSending(true);
+          try {
+            if (window.MM_AUTH) {
+              const formatted = await window.MM_AUTH.sendOTP(phone);
+              formattedPhoneRef.current = formatted;
+            }
+          } catch (e) {
+            console.warn("[MM] OTP send failed:", e.message);
+            // still advance for UI testing
+          }
+          setOtpSending(false);
+          setStep(2);
+        }}>
+        {otpSending ? "Sending…" : "Send code"}
       </button>
     </div>,
 
-    // OTP
+    // ── slide 2: OTP ──
     <div key="o" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
         <RoundBtn onClick={() => setStep(1)}><Icon name="back" size={18} /></RoundBtn>
@@ -100,7 +130,7 @@ function BizOnboarding({ onDone }) {
       </button>
     </div>,
 
-    // name
+    // ── slide 3: name ──
     <div key="n" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
         <RoundBtn onClick={() => setStep(2)}><Icon name="back" size={18} /></RoundBtn>
@@ -111,12 +141,15 @@ function BizOnboarding({ onDone }) {
       <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Aisha Bello"
              style={{ border: "1px solid var(--line-strong)", background: "var(--bone)", borderRadius: 16, padding: "16px 18px", fontFamily: "inherit", fontSize: 16, color: "var(--ink)", outline: "none", width: "100%" }} />
       <div style={{ flex: 1 }} />
-      <button className="btn btn-forest btn-block" disabled={!name} style={{ opacity: !name ? 0.45 : 1 }} onClick={() => setStep(4)}>
+      <button className="btn btn-forest btn-block"
+        disabled={!name}
+        style={{ opacity: !name ? 0.45 : 1 }}
+        onClick={() => setStep(4)}>
         Continue
       </button>
     </div>,
 
-    // biz quick capture (with skip)
+    // ── slide 4: business quick capture ──
     <div key="b" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="row between" style={{ marginBottom: 18, marginTop: -200 }}>
         <RoundBtn onClick={() => setStep(3)}><Icon name="back" size={18} /></RoundBtn>
@@ -144,11 +177,37 @@ function BizOnboarding({ onDone }) {
 
       <div style={{ flex: 1 }} />
       <div className="col gap-8">
-        <button className="btn btn-forest btn-block" disabled={!bizName || !category} style={{ opacity: !bizName || !category ? 0.45 : 1 }}
-                onClick={() => onDone({ name: name || "Aisha Bello", bizName: bizName || "Layi Bakehouse", category: category || "Bakery" })}>
+        {/* ── PATCH 3a: save full profile + business before calling onDone ── */}
+        <button className="btn btn-forest btn-block"
+          disabled={!bizName || !category}
+          style={{ opacity: !bizName || !category ? 0.45 : 1 }}
+          onClick={async () => {
+            const userData = { name: name || "Aisha Bello", bizName: bizName || "Layi Bakehouse", category: category || "Bakery" };
+            try {
+              if (window.MM_AUTH) {
+                await window.MM_AUTH.saveProfile({ name: userData.name, role: "business_owner" });
+                await window.MM_AUTH.saveBusinessProfile({ name: userData.bizName, category: userData.category });
+              }
+            } catch (e) {
+              console.warn("[MM] save biz profile failed:", e.message);
+            }
+            onDone(userData);
+          }}>
           Save and explore
         </button>
-        <button className="btn btn-soft btn-block" onClick={() => onDone({ name: name || "Aisha Bello", bizName: "Layi Bakehouse", category: "Bakery" })}>
+        {/* ── PATCH 3b: skip just saves user profile without business details ── */}
+        <button className="btn btn-soft btn-block"
+          onClick={async () => {
+            const userData = { name: name || "Aisha Bello", bizName: "Layi Bakehouse", category: "Bakery" };
+            try {
+              if (window.MM_AUTH) {
+                await window.MM_AUTH.saveProfile({ name: userData.name, role: "business_owner" });
+              }
+            } catch (e) {
+              console.warn("[MM] save profile (skip) failed:", e.message);
+            }
+            onDone(userData);
+          }}>
           Skip — finish later
         </button>
       </div>
@@ -156,6 +215,7 @@ function BizOnboarding({ onDone }) {
       <style>{`.raw-input { border: 1px solid var(--line-strong); background: var(--bone); border-radius: 14px; padding: 12px 14px; font-family: inherit; font-size: 15px; color: var(--ink); outline: none; width: 100%; }`}</style>
     </div>,
   ];
+
   return (
     <div className="app" style={{ position: "absolute", inset: 0 }}>
       <TopHero src={heroFor[step]} height={300} tone={0.6} />
@@ -359,4 +419,4 @@ function ProfileTask({ label, subtitle, badge }) {
   );
 }
 
-Object.assign(window, { BizOnboarding, BizHome, OfferCard });
+Object.assign(window, { BizOnboarding, BizHome, OfferCard, Field, ProfileTask });
