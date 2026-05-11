@@ -455,10 +455,59 @@ function hexA(hex, a) {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
-// ── Mount — only auto-mounts in demo mode (/app)
-// Individual entry points (investor/index.html, business/index.html)
-// set window.MM_CUSTOM_MOUNT = true before loading this file.
-if (!window.MM_CUSTOM_MOUNT) {
-  const root = ReactDOM.createRoot(document.getElementById("root"));
-  root.render(<Root />);
-}
+// ── URL-based routing ────────────────────────────────────
+// /app/investor  → InvestorApp with session check
+// /app/business  → BusinessApp with session check
+// /app           → Root (demo mode with IOSDevice frame)
+(async function mountApp() {
+  const path = window.location.pathname;
+  const isInvestor = path.includes("/investor");
+  const isBusiness = path.includes("/business");
+
+  if (isInvestor || isBusiness) {
+    // ── User-facing route: no demo chrome, no IOSDevice frame ──
+
+    // Mark body as app mode (not demo)
+    document.body.classList.remove("demo-mode");
+
+    // Apply default palette
+    const p = { forest:"#2D5D3F", clay:"#B45A3C", sun:"#E5A04A", cream:"#F7F1E8" };
+    const root = document.documentElement;
+    root.style.setProperty("--forest",      p.forest);
+    root.style.setProperty("--clay",        p.clay);
+    root.style.setProperty("--sun",         p.sun);
+    root.style.setProperty("--cream",       p.cream);
+    root.style.setProperty("--forest-tint", hexA(p.forest, 0.12));
+    root.style.setProperty("--clay-tint",   hexA(p.clay, 0.12));
+    root.style.setProperty("--sun-tint",    hexA(p.sun, 0.18));
+    root.style.setProperty("--cream-tab",   hexA(p.cream, 0.85));
+    root.style.setProperty("--font-display", '"Fraunces","EB Garamond",Georgia,serif');
+    window.MM_TWEAKS = { palette: "earth", displayFont: "fraunces" };
+
+    // Show splash while checking session
+    const appRoot = ReactDOM.createRoot(document.getElementById("root"));
+    appRoot.render(React.createElement(SplashScreen));
+
+    // Session check — existing users skip onboarding
+    let initialScreen = "onb";
+    try {
+      if (window.MM_AUTH) {
+        const session = await window.MM_AUTH.getSession();
+        if (session) initialScreen = "home";
+      }
+    } catch (e) {
+      // No session — start at onboarding
+    }
+
+    const App = isInvestor ? InvestorApp : BusinessApp;
+    appRoot.render(
+      React.createElement(App, { initialScreen, tweaks: window.MM_TWEAKS })
+    );
+
+  } else {
+    // ── Demo mode at /app ──
+    document.body.classList.add("demo-mode");
+    ReactDOM.createRoot(document.getElementById("root"))
+      .render(React.createElement(Root));
+  }
+})();

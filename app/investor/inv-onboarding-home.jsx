@@ -5,12 +5,13 @@ const { byId } = window.MM_DATA;
 // ─── INVESTOR ONBOARDING ─────────────────────────────────
 function InvOnboarding({ onDone }) {
   const [step, setStep] = useState(0);
+  const [wtIdx, setWtIdx] = useState(0); // walkthrough sub-slide 0,1,2
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [name, setName] = useState("");
   const [otpSending, setOtpSending] = useState(false);
   const otpRefs = [useRef(), useRef(), useRef(), useRef()];
-  const formattedPhoneRef = useRef(""); // stores formatted phone between send + verify steps
+  const formattedPhoneRef = useRef("");
 
   // ── PATCH 2: verify OTP with Supabase when all 4 digits filled ──
   useEffect(() => {
@@ -22,7 +23,6 @@ function InvOnboarding({ onDone }) {
           }
         } catch (e) {
           console.warn("[MM] OTP verify failed:", e.message);
-          // still advance — allows UI testing without live SMS
         }
         setStep(3);
       }, 380);
@@ -30,30 +30,69 @@ function InvOnboarding({ onDone }) {
     }
   }, [otp, step]);
 
-  const heroFor = [HERO_IMG.storefront, HERO_IMG.market, HERO_IMG.hands, HERO_IMG.fashion];
+  // Walkthrough content for step 0
+  const walkthrough = [
+    {
+      hero: HERO_IMG.storefront,
+      chip: "Investor",
+      chipStyle: "clay",
+      headline: <>Back the<br /><span style={{ fontStyle: "italic", color: "var(--clay)" }}>shop on your street.</span></>,
+      body: "MonieMatch connects you with verified small businesses raising small amounts. Real owners, real shops, structured deals.",
+      footnote: <div style={{ display: "flex", gap: 12, alignItems: "center", color: "var(--ink-3)", fontSize: 12.5 }}><Icon name="shield" size={16} /> Escrow-backed · SEC-aligned</div>,
+    },
+    {
+      hero: HERO_IMG.market,
+      chip: "Transparent",
+      chipStyle: "forest",
+      headline: <>Start from<br /><span style={{ fontStyle: "italic", color: "var(--clay)" }}>₦50,000.</span></>,
+      body: "No complex paperwork. No minimum wealth requirement. Just pick a business you believe in, agree on terms, and back it.",
+      footnote: <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><span className="chip outline">Revenue share</span><span className="chip outline">Fixed return</span><span className="chip outline">Equity</span></div>,
+    },
+    {
+      hero: HERO_IMG.hands,
+      chip: "Structured",
+      chipStyle: "sun",
+      headline: <>Monthly reports.<br /><span style={{ fontStyle: "italic", color: "var(--clay)" }}>Zero guesswork.</span></>,
+      body: "Every business you back sends structured monthly updates. Track performance, returns, and progress — all in one place.",
+      footnote: <div style={{ display: "flex", gap: 12, alignItems: "center", color: "var(--ink-3)", fontSize: 12.5 }}><Icon name="chart" size={16} /> Real-time portfolio dashboard</div>,
+    },
+  ];
+  const wt = walkthrough[wtIdx];
+
+  const heroFor = [wt.hero, HERO_IMG.market, HERO_IMG.hands, HERO_IMG.fashion];
   const slides = [
-    // ── slide 0: welcome ──
+    // ── slide 0: walkthrough (3 sub-slides) ──
     <div key="w" className="screen-enter" style={{ display: "flex", flexDirection: "column", height: "100%", padding: "230px 22px 28px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <div className="chip clay">Investor</div>
+          <div className={`chip ${wt.chipStyle}`}>{wt.chip}</div>
           <div className="chip outline">Beta · Lagos</div>
         </div>
-        <div className="h1" style={{ fontSize: 34 }}>
-          Back the<br />
-          <span style={{ fontStyle: "italic", color: "var(--clay)" }}>shop on your street.</span>
-        </div>
-        <p style={{ color: "var(--ink-2)", fontSize: 15, lineHeight: 1.5, margin: 0 }}>
-          MonieMatch connects you with verified small businesses raising small amounts. Real owners, real shops, structured deals.
-        </p>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", color: "var(--ink-3)", fontSize: 12.5 }}>
-          <Icon name="shield" size={16} /> Escrow-backed · SEC-aligned
-        </div>
+        <div className="h1" style={{ fontSize: 34 }}>{wt.headline}</div>
+        <p style={{ color: "var(--ink-2)", fontSize: 15, lineHeight: 1.5, margin: 0 }}>{wt.body}</p>
+        {wt.footnote}
+      </div>
+      {/* walkthrough dots */}
+      <div style={{ display: "flex", gap: 5, justifyContent: "center", margin: "24px 0 0" }}>
+        {walkthrough.map((_, i) => (
+          <div key={i} style={{ height: 3, width: i === wtIdx ? 20 : 7, borderRadius: 999, background: i === wtIdx ? "var(--clay)" : "var(--line-strong)", transition: "all 280ms" }} />
+        ))}
       </div>
       <div style={{ flex: 1 }} />
-      <button className="btn btn-primary btn-block" onClick={() => setStep(1)}>
-        Get started <Icon name="fwd" size={16} color="currentColor" />
-      </button>
+      {wtIdx < 2 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <button className="btn btn-primary btn-block" onClick={() => setWtIdx(wtIdx + 1)}>
+            Next <Icon name="fwd" size={16} color="currentColor" />
+          </button>
+          <button className="btn btn-soft btn-block" onClick={() => setStep(1)} style={{ fontSize: 13 }}>
+            Skip intro
+          </button>
+        </div>
+      ) : (
+        <button className="btn btn-primary btn-block" onClick={() => setStep(1)}>
+          Get started <Icon name="fwd" size={16} color="currentColor" />
+        </button>
+      )}
       <div style={{ textAlign: "center", marginTop: 12, fontSize: 12.5, color: "var(--ink-3)" }}>
         Already have an account? <span style={{ color: "var(--ink)", fontWeight: 500 }}>Sign in</span>
       </div>
@@ -188,7 +227,7 @@ function InvOnboarding({ onDone }) {
 
   return (
     <div className="app" style={{ position: "absolute", inset: 0 }}>
-      <TopHero src={heroFor[step]} height={300} tone={0.6} />
+      <TopHero src={step === 0 ? wt.hero : heroFor[step]} height={300} tone={0.6} />
       <div className="statusbar-spacer" />
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         {slides[step]}
@@ -207,7 +246,7 @@ function InvOnboarding({ onDone }) {
 }
 
 // ─── INVESTOR HOME — the hero moment ─────────────────────
-function InvHome({ user, onPickBusiness, onTab, onNotifications = () => {} }) {
+function InvHome({ user, onPickBusiness, onTab }) {
   const matches = window.MM_DATA.matchesToday.map((id) => window.MM_DATA.businesses.find((b) => b.id === id));
   const newThisWeek = window.MM_DATA.newThisWeek.map((id) => window.MM_DATA.businesses.find((b) => b.id === id));
 
@@ -222,7 +261,7 @@ function InvHome({ user, onPickBusiness, onTab, onNotifications = () => {} }) {
             <div style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{user.name.split(" ")[0]}</div>
           </div>
         </div>
-        <RoundBtn onClick={onNotifications}><Icon name="bell" size={18} /></RoundBtn>
+        <RoundBtn><Icon name="bell" size={18} /></RoundBtn>
       </div>
 
       {/* hero — today's matches headline card */}

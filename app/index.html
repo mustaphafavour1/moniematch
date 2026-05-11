@@ -11,11 +11,12 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Nunito:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600&family=DM+Serif+Display:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Nunito:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=DM+Serif+Display:ital@0;1&display=swap" />
 
   <link rel="stylesheet" href="/app/shared/styles.css" />
 
   <style>
+    /* ── Skeleton shimmer ─────────────────────────── */
     @keyframes shimmer {
       0%   { background-position: -600px 0; }
       100% { background-position:  600px 0; }
@@ -24,85 +25,164 @@
       background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 75%);
       background-size: 1200px 100%;
       animation: shimmer 1.5s infinite linear;
-      border-radius: 8px;
-      flex-shrink: 0;
+      border-radius: 8px; flex-shrink: 0;
     }
     .skel-light {
       background: linear-gradient(90deg, rgba(31,26,20,0.05) 25%, rgba(31,26,20,0.11) 50%, rgba(31,26,20,0.05) 75%);
       background-size: 1200px 100%;
       animation: shimmer 1.5s infinite linear;
-      border-radius: 8px;
-      flex-shrink: 0;
+      border-radius: 8px; flex-shrink: 0;
     }
+
+    /* ── Base reset + mobile-first layout ─────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html {
+      height: 100%;
+      /* Use dynamic viewport height on mobile so browser chrome is accounted for */
+      height: 100dvh;
+    }
+    body {
+      margin: 0; padding: 0;
+      height: 100%;
+      height: 100dvh;
+      background: #1c1813;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ── #root sizing ─────────────────────────────── */
+    /* Mobile: full screen */
+    #root {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      position: relative;   /* needed for .app { position:absolute; inset:0 } */
+      overflow: hidden;
+    }
+
+    /* Desktop: phone centred on dark canvas */
+    @media (min-width: 600px) {
+      body {
+        background:
+          radial-gradient(1000px 500px at 50% -100px, #2a2418 0%, transparent 70%),
+          repeating-linear-gradient(135deg, #1c1813 0 14px, #1f1b16 14px 15px);
+        padding: 32px 20px;
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+      }
+      #root {
+        width: 390px;
+        height: 844px;
+        border-radius: 50px;
+        overflow: hidden;
+        flex-shrink: 0;
+        box-shadow:
+          0 0 0 1px rgba(255,255,255,0.08),
+          0 40px 80px rgba(0,0,0,0.5),
+          0 80px 160px rgba(0,0,0,0.3);
+      }
+    }
+
+    /* ── Offline banner ───────────────────────────── */
     #offline-banner {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0;
-      background: #B45A3C;
-      color: #fff;
+      background: #B45A3C; color: #fff;
       font-family: -apple-system, 'Nunito', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      text-align: center;
-      padding: 10px 16px;
-      z-index: 9999;
+      font-size: 13px; font-weight: 600;
+      text-align: center; padding: 10px 16px; z-index: 9999;
     }
     #offline-banner.show { display: block; }
     .retry-btn {
       background: rgba(255,255,255,0.2);
       border: 1px solid rgba(255,255,255,0.4);
-      color: #fff;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 3px 10px;
-      margin-left: 10px;
-      cursor: pointer;
-      font-family: inherit;
+      color: #fff; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+      padding: 3px 10px; margin-left: 10px;
+      cursor: pointer; font-family: inherit;
+    }
+
+    /* ── Demo mode (at /app with IOSDevice frame) ─── */
+    /* When demo chrome is active, body shouldn't be flex-centered */
+    body.demo-mode {
+      display: block;
+      background:
+        radial-gradient(1200px 600px at 50% -200px, #2a2418 0%, transparent 70%),
+        repeating-linear-gradient(135deg, #1c1813 0 14px, #1f1b16 14px 15px);
+      height: auto;
+      min-height: 100vh;
+      overflow: auto;
+    }
+    body.demo-mode #root {
+      width: auto;
+      height: auto;
+      position: static;
+      overflow: visible;
+      border-radius: 0;
+      box-shadow: none;
     }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"
+    integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"
+    integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"
+    integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 </head>
+
 <body>
   <div id="offline-banner">
     No internet — some features may be limited
     <button class="retry-btn" onclick="window.location.reload()">Retry</button>
   </div>
-
   <div id="root"></div>
 
   <script src="/app/supabase.js"></script>
 
+  <!-- Shared -->
+  <script type="text/babel" src="/app/shared/auth.jsx"></script>
   <script type="text/babel" src="/app/shared/skeleton.jsx"></script>
   <script type="text/babel" src="/app/shared/ios-frame.jsx"></script>
   <script type="text/babel" src="/app/shared/tweaks-panel.jsx"></script>
   <script type="text/babel" src="/app/shared/ui.jsx"></script>
   <script type="text/babel" src="/app/shared/mock-data.jsx"></script>
+  <script type="text/babel" src="/app/shared/splash-error.jsx"></script>
+  <script type="text/babel" src="/app/shared/notifications.jsx"></script>
+  <script type="text/babel" src="/app/shared/settings.jsx"></script>
+  <script type="text/babel" src="/app/shared/report-history.jsx"></script>
+
+  <!-- Investor screens -->
   <script type="text/babel" src="/app/investor/inv-onboarding-home.jsx"></script>
   <script type="text/babel" src="/app/investor/inv-matches-detail.jsx"></script>
   <script type="text/babel" src="/app/investor/inv-deal-portfolio-profile.jsx"></script>
+  <script type="text/babel" src="/app/investor/inv-prefs-history.jsx"></script>
+
+  <!-- Business screens -->
   <script type="text/babel" src="/app/business/biz-onboarding-home.jsx"></script>
   <script type="text/babel" src="/app/business/biz-deal-reporting-profile.jsx"></script>
+  <script type="text/babel" src="/app/business/biz-edit-progress.jsx"></script>
+
+  <!-- Root (handles routing) -->
   <script type="text/babel" src="/app/app.jsx"></script>
 
   <script>
+    // Offline detection
     const banner = document.getElementById('offline-banner');
-    function syncNetwork() { banner.classList.toggle('show', !navigator.onLine); }
-    window.addEventListener('online',  syncNetwork);
-    window.addEventListener('offline', syncNetwork);
-    syncNetwork();
+    function syncNet() { if (banner) banner.classList.toggle('show', !navigator.onLine); }
+    window.addEventListener('online', syncNet);
+    window.addEventListener('offline', syncNet);
+    syncNet();
 
+    // Service worker
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('/app/sw.js', { scope: '/app/' })
-          .then(() => console.log('[MM] SW registered'))
-          .catch(e => console.warn('[MM] SW failed:', e));
-      });
+      navigator.serviceWorker.register('/app/sw.js', { scope: '/app/' }).catch(() => {});
     }
   </script>
 </body>

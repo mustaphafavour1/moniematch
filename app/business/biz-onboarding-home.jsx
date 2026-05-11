@@ -31,35 +31,66 @@ function BizOnboarding({ onDone }) {
   }, [otp, step]);
 
   const cats = ["Bakery", "Fashion", "Food", "Barbing", "Repair", "Beauty", "Retail", "Other"];
-  const heroFor = [HERO_IMG.bakery, HERO_IMG.storefront, HERO_IMG.hands, HERO_IMG.market, HERO_IMG.food];
+
+  // Walkthrough content for step 0
+  const [wtIdx, setWtIdx] = useState(0);
+  const walkthrough = [
+    {
+      hero: HERO_IMG.bakery, chip: "Owner", chipStyle: "forest",
+      headline: <>Capital, on terms<br /><span style={{ fontStyle:"italic", color:"var(--forest)" }}>that fit your shop.</span></>,
+      body: "MonieMatch finds you investors who already want to back businesses like yours. You stay in control of the terms.",
+      footnote: <div className="row gap-8" style={{ flexWrap:"wrap" }}><span className="chip outline">Revenue share</span><span className="chip outline">Fixed return</span><span className="chip outline">No daily standing order</span></div>,
+    },
+    {
+      hero: HERO_IMG.storefront, chip: "Fair terms", chipStyle: "forest",
+      headline: <>No daily<br /><span style={{ fontStyle:"italic", color:"var(--forest)" }}>standing orders.</span></>,
+      body: "Your repayments move with your income. Good month? Pay more. Slow month? Pay less. No penalties for breathing.",
+      footnote: <div style={{ display:"flex", gap:12, alignItems:"center", color:"var(--ink-3)", fontSize:12.5 }}><Icon name="shield" size={16} /> Escrow-backed · SEC-aligned</div>,
+    },
+    {
+      hero: HERO_IMG.market, chip: "Simple reporting", chipStyle: "sun",
+      headline: <>Speak it.<br /><span style={{ fontStyle:"italic", color:"var(--forest)" }}>We'll write it.</span></>,
+      body: "Send a 60-second voice note each month. MonieMatch turns it into a structured investor report automatically.",
+      footnote: <div style={{ display:"flex", gap:12, alignItems:"center", color:"var(--ink-3)", fontSize:12.5 }}><Icon name="mic" size={16} /> Voice-to-report in under 2 minutes</div>,
+    },
+  ];
+  const wt = walkthrough[wtIdx];
+  const heroFor = [wt.hero, HERO_IMG.storefront, HERO_IMG.hands, HERO_IMG.market, HERO_IMG.food];
 
   const slides = [
-    // ── slide 0: welcome ──
-    <div key="w" className="screen-enter" style={{ display: "flex", flexDirection: "column", height: "100%", padding: "230px 22px 28px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <div className="chip forest">Owner</div>
+    // ── slide 0: walkthrough (3 sub-slides) ──
+    <div key="w" className="screen-enter" style={{ display:"flex", flexDirection:"column", height:"100%", padding:"230px 22px 28px" }}>
+      <div style={{ display:"flex", flexDirection:"column", gap:22 }}>
+        <div style={{ display:"flex", gap:8 }}>
+          <div className={`chip ${wt.chipStyle}`}>{wt.chip}</div>
           <div className="chip outline">Beta</div>
         </div>
-        <div className="h1" style={{ fontSize: 34 }}>
-          Capital, on terms<br />
-          <span style={{ fontStyle: "italic", color: "var(--forest)" }}>that fit your shop.</span>
-        </div>
-        <p style={{ color: "var(--ink-2)", fontSize: 15, lineHeight: 1.5, margin: 0 }}>
-          MonieMatch finds you investors who already want to back businesses like yours. You stay in control of the terms.
-        </p>
-        <div className="row gap-8" style={{ flexWrap: "wrap" }}>
-          <span className="chip outline">Revenue share</span>
-          <span className="chip outline">Fixed return</span>
-          <span className="chip outline">No daily standing order</span>
-        </div>
+        <div className="h1" style={{ fontSize:34 }}>{wt.headline}</div>
+        <p style={{ color:"var(--ink-2)", fontSize:15, lineHeight:1.5, margin:0 }}>{wt.body}</p>
+        {wt.footnote}
       </div>
-      <div style={{ flex: 1 }} />
-      <button className="btn btn-forest btn-block" onClick={() => setStep(1)}>
-        Get started <Icon name="fwd" size={16} />
-      </button>
-      <div style={{ textAlign: "center", marginTop: 12, fontSize: 12.5, color: "var(--ink-3)" }}>
-        Already have an account? <span style={{ color: "var(--ink)", fontWeight: 500 }}>Sign in</span>
+      <div style={{ display:"flex", gap:5, justifyContent:"center", margin:"24px 0 0" }}>
+        {walkthrough.map((_, i) => (
+          <div key={i} style={{ height:3, width:i===wtIdx?20:7, borderRadius:999, background:i===wtIdx?"var(--forest)":"var(--line-strong)", transition:"all 280ms" }} />
+        ))}
+      </div>
+      <div style={{ flex:1 }} />
+      {wtIdx < 2 ? (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          <button className="btn btn-forest btn-block" onClick={() => setWtIdx(wtIdx+1)}>
+            Next <Icon name="fwd" size={16} />
+          </button>
+          <button className="btn btn-soft btn-block" onClick={() => setStep(1)} style={{ fontSize:13 }}>
+            Skip intro
+          </button>
+        </div>
+      ) : (
+        <button className="btn btn-forest btn-block" onClick={() => setStep(1)}>
+          Get started <Icon name="fwd" size={16} />
+        </button>
+      )}
+      <div style={{ textAlign:"center", marginTop:12, fontSize:12.5, color:"var(--ink-3)" }}>
+        Already have an account? <span style={{ color:"var(--ink)", fontWeight:500 }}>Sign in</span>
       </div>
     </div>,
 
@@ -218,7 +249,7 @@ function BizOnboarding({ onDone }) {
 
   return (
     <div className="app" style={{ position: "absolute", inset: 0 }}>
-      <TopHero src={heroFor[step]} height={300} tone={0.6} />
+      <TopHero src={step === 0 ? wt.hero : heroFor[step]} height={300} tone={0.6} />
       <div className="statusbar-spacer" />
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         {slides[step]}
@@ -243,7 +274,7 @@ function Field({ label, children }) {
 }
 
 // ─── BUSINESS HOME — hero moment ─────────────────────────
-function BizHome({ user, onPickInvestor, onTab, onStartReport, onNotifications = () => {}, onFundingProgress = () => {} }) {
+function BizHome({ user, onPickInvestor, onTab, onStartReport }) {
   const interested = window.MM_DATA.interested;
   const aisha = window.MM_DATA.businesses.find(b => b.id === "aisha");
   const profilePct = 78;
@@ -258,7 +289,7 @@ function BizHome({ user, onPickInvestor, onTab, onStartReport, onNotifications =
             <div style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{user.name.split(" ")[0]}</div>
           </div>
         </div>
-        <RoundBtn onClick={onNotifications}><Icon name="bell" size={18} /></RoundBtn>
+        <RoundBtn><Icon name="bell" size={18} /></RoundBtn>
       </div>
 
       {/* hero — investor interest */}
