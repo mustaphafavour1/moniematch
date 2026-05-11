@@ -65,6 +65,12 @@ function InvestorApp({ initialScreen, tweaks }) {
       {screen === "deal" && (
         <InvDeal bizId={activeBiz} onBack={() => setScreen("biz")} onComplete={() => { setTab("portfolio"); setScreen("portfolio"); }} />
       )}
+
+      {screen === "notifications" && <InvNotifications onBack={() => setScreen(tab === "home" ? "home" : tab)} />}
+      {screen === "settings"      && <InvSettings user={user} onBack={() => setScreen("invProfile")} onSignOut={async () => { await window.MM_AUTH?.signOut(); setScreen("onb"); }} />}
+      {screen === "matchPrefs"    && <InvMatchPrefs user={user} onBack={() => setScreen("home")} onSave={u => { setUser({...user,...u}); setScreen("home"); }} />}
+      {screen === "dealHistory"   && <InvDealHistory onBack={() => setScreen("portfolio")} />}
+
       {screen === "investment" && (
         <InvPortfolio onOpenInvestment={() => setScreen("portfolio")} />
       )}
@@ -120,6 +126,14 @@ function BusinessApp({ initialScreen, tweaks }) {
                      onBack={() => setScreen("investorDetail")}
                      onComplete={() => { setTab("home"); setScreen("home"); }} />
       )}
+
+      {screen === "notifications"    && <BizNotifications onBack={() => setScreen("home")} />}
+      {screen === "settings"         && <BizSettings user={user} onBack={() => setScreen("profile")} onSignOut={async () => { await window.MM_AUTH?.signOut(); setScreen("onb"); }} />}
+      {screen === "profileEdit"      && <BizProfileEdit user={user} onBack={() => setScreen("profile")} onSave={u => { setUser({...user,...u}); setScreen("profile"); }} />}
+      {screen === "fundingProgress"  && <BizFundingProgress user={user} onBack={() => setScreen("home")} />}
+      {screen === "dealHistory"      && <BizDealHistory onBack={() => setScreen("investors")} />}
+
+
       {screen === "report" && (
         <BizReporting onBack={() => setScreen("home")} onSent={() => { setTab("home"); setScreen("home"); }} />
       )}
@@ -346,5 +360,7 @@ function hexA(hex, a) {
 }
 
 // mount
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<Root />);
+if (!window.MM_CUSTOM_MOUNT) {
+  const root = ReactDOM.createRoot(document.getElementById("root"));
+  root.render(<Root />);
+}
