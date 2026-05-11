@@ -243,7 +243,7 @@ function Field({ label, children }) {
 }
 
 // ─── BUSINESS HOME — hero moment ─────────────────────────
-function BizHome({ user, onPickInvestor, onTab, onStartReport }) {
+function BizHome({ user, onPickInvestor, onTab, onStartReport, onNotifications = () => {}, onFundingProgress = () => {} }) {
   const interested = window.MM_DATA.interested;
   const aisha = window.MM_DATA.businesses.find(b => b.id === "aisha");
   const profilePct = 78;
@@ -258,7 +258,7 @@ function BizHome({ user, onPickInvestor, onTab, onStartReport }) {
             <div style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{user.name.split(" ")[0]}</div>
           </div>
         </div>
-        <RoundBtn><Icon name="bell" size={18} /></RoundBtn>
+        <RoundBtn onClick={onNotifications}><Icon name="bell" size={18} /></RoundBtn>
       </div>
 
       {/* hero — investor interest */}

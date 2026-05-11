@@ -207,7 +207,7 @@ function InvOnboarding({ onDone }) {
 }
 
 // ─── INVESTOR HOME — the hero moment ─────────────────────
-function InvHome({ user, onPickBusiness, onTab }) {
+function InvHome({ user, onPickBusiness, onTab, onNotifications = () => {} }) {
   const matches = window.MM_DATA.matchesToday.map((id) => window.MM_DATA.businesses.find((b) => b.id === id));
   const newThisWeek = window.MM_DATA.newThisWeek.map((id) => window.MM_DATA.businesses.find((b) => b.id === id));
 
@@ -222,7 +222,7 @@ function InvHome({ user, onPickBusiness, onTab }) {
             <div style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{user.name.split(" ")[0]}</div>
           </div>
         </div>
-        <RoundBtn><Icon name="bell" size={18} /></RoundBtn>
+        <RoundBtn onClick={onNotifications}><Icon name="bell" size={18} /></RoundBtn>
       </div>
 
       {/* hero — today's matches headline card */}
