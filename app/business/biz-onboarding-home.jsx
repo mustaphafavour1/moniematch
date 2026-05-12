@@ -60,6 +60,19 @@ function BizOnboarding({ onDone }) {
   const slides = [
     // ── slide 0: walkthrough (3 sub-slides) ──
     <div key="w" className="screen-enter" style={{ display:"flex", flexDirection:"column", height:"100%", padding:"230px 22px 28px" }}>
+      {wtIdx > 0 && (
+        <button onClick={() => setWtIdx(wtIdx-1)} style={{
+          position:"absolute", top:56, left:22,
+          appearance:"none", border:"none",
+          background:"rgba(255,255,255,0.22)", backdropFilter:"blur(8px)",
+          width:36, height:36, borderRadius:999, cursor:"pointer",
+          display:"flex", alignItems:"center", justifyContent:"center", zIndex:10,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M10 3L5 8L10 13" stroke="var(--ink)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      )}
       <div style={{ display:"flex", flexDirection:"column", gap:22 }}>
         <div style={{ display:"flex", gap:8 }}>
           <div className={`chip ${wt.chipStyle}`}>{wt.chip}</div>
@@ -71,7 +84,7 @@ function BizOnboarding({ onDone }) {
       </div>
       <div style={{ display:"flex", gap:5, justifyContent:"center", margin:"24px 0 0" }}>
         {walkthrough.map((_, i) => (
-          <div key={i} style={{ height:3, width:i===wtIdx?20:7, borderRadius:999, background:i===wtIdx?"var(--forest)":"var(--line-strong)", transition:"all 280ms" }} />
+          <div key={i} onClick={() => setWtIdx(i)} style={{ height:3, width:i===wtIdx?20:7, borderRadius:999, background:i===wtIdx?"var(--forest)":"var(--line-strong)", transition:"all 280ms", cursor:"pointer" }} />
         ))}
       </div>
       <div style={{ flex:1 }} />
@@ -90,7 +103,8 @@ function BizOnboarding({ onDone }) {
         </button>
       )}
       <div style={{ textAlign:"center", marginTop:12, fontSize:12.5, color:"var(--ink-3)" }}>
-        Already have an account? <span style={{ color:"var(--ink)", fontWeight:500 }}>Sign in</span>
+        Already have an account?{" "}
+        <a href="/signin" style={{ color:"var(--ink)", fontWeight:500, textDecoration:"none" }}>Sign in</a>
       </div>
     </div>,
 

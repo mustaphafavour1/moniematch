@@ -63,7 +63,7 @@ function InvestorApp({ initialScreen, tweaks }) {
       <div className="statusbar-spacer" />
 
       {screen === "onb" && (
-        <InvOnboarding onDone={(u) => { setUser({ ...user, ...u }); setScreen("home"); setTab("home"); }} />
+        <InvOnboarding onDone={(u) => { setUser({ ...user, ...u }); setScreen("prefsSetup"); setTab("home"); }} />
       )}
       {screen === "home" && tab === "home" && (
         <InvHome
@@ -119,6 +119,18 @@ function InvestorApp({ initialScreen, tweaks }) {
       )}
       {screen === "reportsReceived" && (
         <InvReportsReceived bizId={activeBiz} onBack={() => setScreen("biz")} />
+      )}
+      {screen === "prefsSetup" && (
+        <InvPrefsSetup user={user} onDone={(prefs) => { setUser({...user,...prefs}); setScreen("home"); }} />
+      )}
+      {screen === "kyc" && (
+        <KYCScreen role="investor" onBack={goBack} onVerified={() => setScreen("invProfile")} />
+      )}
+      {screen === "search" && (
+        <InvSearch onPickBusiness={(id) => { setActiveBiz(id); setScreen("biz"); }} onBack={() => setScreen("matches")} />
+      )}
+      {screen === "referral" && (
+        <ReferralScreen user={user} role="investor" onBack={goBack} />
       )}
 
       {showTabBar && <TabBar active={tab} onChange={goTab} variant="investor" />}
@@ -228,6 +240,15 @@ function BusinessApp({ initialScreen, tweaks }) {
       )}
       {screen === "dealHistory" && (
         <BizDealHistory onBack={() => setScreen("profile")} />
+      )}
+      {screen === "kyc" && (
+        <KYCScreen role="business" onBack={goBack} onVerified={() => setScreen("profile")} />
+      )}
+      {screen === "documents" && (
+        <BizDocuments onBack={() => setScreen("profile")} />
+      )}
+      {screen === "referral" && (
+        <ReferralScreen user={user} role="business" onBack={goBack} />
       )}
 
       {showTabBar && <TabBar active={tab} onChange={goTab} variant="business" />}
