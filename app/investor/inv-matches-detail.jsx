@@ -122,10 +122,49 @@ function BizListCard({ biz, onClick }) {
 }
 
 // ─── BUSINESS DETAIL (the pitch page) ────────────────────
-function InvBusinessDetail({ bizId, onBack, onProceed }) {
-  const biz = window.MM_DATA.businesses.find(b => b.id === bizId);
-  if (!biz) return null;
-  const pct = Math.round((biz.raised / biz.target) * 100);
+function InvBusinessDetail({ bizId, onBack, onProceed, onInvest, onReports }) {
+  const [biz, setBiz] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!bizId) { setLoading(false); return; }
+
+    // If it's a short mock ID (like "aisha"), use mock data
+    const isMockId = bizId.length < 20;
+    if (isMockId) {
+      const mock = window.MM_DATA?.businesses?.find(b => b.id === bizId);
+      setBiz(mock || null);
+      setLoading(false);
+      return;
+    }
+
+    // Real UUID — fetch from DB
+    (async () => {
+      try {
+        const data = await window.DB.getBusinessById(bizId);
+        setBiz(data);
+      } catch (e) {
+        console.warn("[MM] biz detail load:", e);
+        setBiz(null);
+      }
+      setLoading(false);
+    })();
+  }, [bizId]);
+
+  if (loading) {
+    const S = window.MM_SKEL;
+    return S ? <S.SkeletonDetail /> : null;
+  }
+  if (!biz) return (
+    <div className="app cream-bg" style={{ display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ textAlign:"center", padding:32 }}>
+        <p style={{ fontFamily:"var(--font-display)", fontSize:20, color:"var(--ink)", marginBottom:8 }}>Business not found</p>
+        <button onClick={onBack} style={{ appearance:"none", border:"1.5px solid var(--line-strong)", background:"none", padding:"10px 20px", borderRadius:10, cursor:"pointer", fontFamily:"inherit" }}>Go back</button>
+      </div>
+    </div>
+  );
+
+  const pct = biz.target > 0 ? Math.round((biz.raised / biz.target) * 100) : 0;
 
   return (
     <div className="app" style={{ background: "var(--cream)" }}>

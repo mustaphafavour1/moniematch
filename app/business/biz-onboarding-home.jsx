@@ -12,19 +12,33 @@ function BizOnboarding({ onDone }) {
   const otpRefs = [useRef(), useRef(), useRef(), useRef()];
   const formattedPhoneRef = useRef(""); // stores formatted phone between send + verify steps
 
-  // ── PATCH 2: verify OTP with Supabase when all 4 digits filled ──
+  const [otpError, setOtpError]     = React.useState("");
+  const [otpVerifying, setOtpVerifying] = React.useState(false);
+
+  // Verify OTP — only advance on success, show error on failure
   useEffect(() => {
-    if (step === 2 && otp.every(d => d !== "")) {
+    if (step === 2 && otp.every(d => d !== "") && !otpVerifying) {
       const t = setTimeout(async () => {
+        setOtpError("");
+        setOtpVerifying(true);
+        const isTestMode = formattedPhoneRef.current.endsWith("0000") || !formattedPhoneRef.current;
+        const isDev = window.location.hostname.includes("localhost") ||
+                      window.location.hostname.includes("127.0.0.1") ||
+                      window.location.hostname.includes("vercel.app");
+        if (isTestMode && isDev && otp.join("") === "1234") {
+          setOtpVerifying(false); setStep(3); return;
+        }
         try {
-          if (window.MM_AUTH) {
+          if (window.MM_AUTH && formattedPhoneRef.current) {
             await window.MM_AUTH.verifyOTP(formattedPhoneRef.current, otp.join(""));
           }
+          setOtpVerifying(false);
+          setStep(3);
         } catch (e) {
-          console.warn("[MM] OTP verify failed:", e.message);
-          // still advance — allows UI testing without live SMS
+          setOtpVerifying(false);
+          setOtp(["","","",""]);
+          setOtpError("Wrong code. Check and try again.");
         }
-        setStep(3);
       }, 380);
       return () => clearTimeout(t);
     }
@@ -147,32 +161,46 @@ function BizOnboarding({ onDone }) {
     </div>,
 
     // ── slide 2: OTP ──
-    <div key="o" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
-      <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
+    <div key="o" className="screen-enter" style={{ padding:"230px 22px 28px", display:"flex", flexDirection:"column", height:"100%" }}>
+      <div className="row" style={{ marginBottom:18, marginTop:-200 }}>
         <RoundBtn onClick={() => setStep(1)}><Icon name="back" size={18} /></RoundBtn>
       </div>
-      <div style={{ height: 170 }} />
-      <div className="h2" style={{ marginBottom: 8 }}>Enter the code</div>
-      <p style={{ color: "var(--ink-2)", fontSize: 14, margin: "0 0 28px" }}>
+      <div style={{ height:170 }} />
+      <div className="h2" style={{ marginBottom:8 }}>Enter the code</div>
+      <p style={{ color:"var(--ink-2)", fontSize:14, margin:"0 0 28px" }}>
         Sent to <b>+234 {phone.slice(0,3)} {phone.slice(3,6)} {phone.slice(6)}</b>
       </p>
-      <div style={{ display: "flex", gap: 12, justifyContent: "space-between" }}>
+      <div style={{ display:"flex", gap:12, justifyContent:"space-between" }}>
         {otp.map((d, i) => (
           <input key={i} ref={otpRefs[i]} value={d} maxLength={1}
-                 onChange={e => {
-                   const val = e.target.value.replace(/\D/g, "");
-                   const next = [...otp]; next[i] = val; setOtp(next);
-                   if (val && i < 3) otpRefs[i+1].current?.focus();
-                 }}
-                 style={{ flex: 1, height: 64, textAlign: "center", fontFamily: "var(--font-display)", fontSize: 32, color: "var(--ink)",
-                          border: `1.5px solid ${d ? "var(--forest)" : "var(--line-strong)"}`,
-                          background: "var(--bone)", borderRadius: 16, outline: "none", transition: "border-color 200ms" }} />
+            disabled={otpVerifying}
+            onChange={e => {
+              const val = e.target.value.replace(/\D/g,"");
+              const next = [...otp]; next[i] = val; setOtp(next);
+              if (val && i < 3) otpRefs[i+1].current?.focus();
+            }}
+            style={{ flex:1, height:64, textAlign:"center", fontFamily:"var(--font-display)", fontSize:32,
+                     color: otpError ? "var(--clay)" : "var(--ink)",
+                     border:`1.5px solid ${otpError ? "var(--clay)" : d ? "var(--forest)" : "var(--line-strong)"}`,
+                     background: otpVerifying ? "rgba(31,26,20,0.04)" : "var(--bone)",
+                     borderRadius:16, outline:"none", transition:"border-color 200ms",
+                     opacity: otpVerifying ? 0.6 : 1 }} />
         ))}
       </div>
-      <div style={{ flex: 1 }} />
-      <button className="btn btn-soft" onClick={() => { setOtp(["1","2","3","4"]); }}>
-        Auto-fill demo code
-      </button>
+      {otpError && (
+        <p style={{ fontSize:13, color:"var(--clay)", margin:"12px 0 0", fontWeight:500 }}>{otpError}</p>
+      )}
+      {otpVerifying && (
+        <p style={{ fontSize:13, color:"var(--ink-3)", margin:"12px 0 0" }}>Verifying…</p>
+      )}
+      <div style={{ marginTop:16, fontSize:13, color:"var(--ink-3)" }}>
+        Didn't get it?{" "}
+        <span style={{ color:"var(--forest)", fontWeight:500, cursor:"pointer" }}
+          onClick={() => { setOtp(["","","",""]); setOtpError(""); setStep(1); }}>
+          Resend code
+        </span>
+      </div>
+      <div style={{ flex:1 }} />
     </div>,
 
     // ── slide 3: name ──

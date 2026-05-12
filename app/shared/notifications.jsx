@@ -80,132 +80,170 @@ function NotifEmpty() {
 }
 
 // ─── Investor notifications ───────────────────────────────
-function InvNotifications({ onBack }) {
-  const [notifs, setNotifs] = React.useState([
-    { id: 1, type: "match",    title: "New match found",             body: "Aisha's Bakehouse matches your investment preferences.",      time: "2h ago",  read: false },
-    { id: 2, type: "report",   title: "Report received",             body: "Layi Bakehouse submitted their April revenue report.",        time: "14h ago", read: false },
-    { id: 3, type: "deal",     title: "Counter-offer received",      body: "Zara's Fashion has responded to your proposed terms.",        time: "1d ago",  read: false },
-    { id: 4, type: "signed",   title: "Deal signed",                 body: "Your investment in Mama's Kitchen is now active. ₦500,000 held in escrow.", time: "2d ago", read: true },
-    { id: 5, type: "payment",  title: "Revenue share received",      body: "₦24,000 from Layi Bakehouse — April revenue share.",         time: "3d ago",  read: true },
-    { id: 6, type: "verified", title: "Profile verified",            body: "Your investor profile has been verified. You can now invest.", time: "5d ago", read: true },
-    { id: 7, type: "reminder", title: "Portfolio check-in",          body: "Zara's Fashion report is 2 days overdue. Consider following up.", time: "6d ago", read: true },
-  ]);
+// Shared hook — loads real notifications from Supabase
+function useNotifications(accentColor) {
+  const [notifs, setNotifs] = React.useState(null); // null = loading
+  const [loading, setLoading] = React.useState(true);
 
-  const unreadCount = notifs.filter(n => !n.read).length;
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const data = await window.DB.getNotifications();
+        if (data && data.length > 0) {
+          // Transform DB rows to UI shape
+          setNotifs(data.map(n => ({
+            id:        n.id,
+            type:      n.type || "match",
+            title:     n.title,
+            body:      n.body,
+            time:      relTimeFromISO(n.created_at),
+            read:      n.is_read,
+            actionScreen: n.action_screen,
+            actionId:  n.action_id,
+          })));
+        } else {
+          setNotifs([]); // empty — show empty state
+        }
+      } catch (e) {
+        console.warn("[MM] notifs load:", e);
+        setNotifs([]); // don't show mock, show empty
+      }
+      setLoading(false);
+    })();
+  }, []);
 
-  const markAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, read: true })));
-  const markRead = (id) => setNotifs(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
+  const markRead = async (id) => {
+    setNotifs(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
+    try { await window.DB.markNotificationRead(id); } catch (e) {}
+  };
 
-  const today = notifs.filter((_, i) => i < 3);
-  const earlier = notifs.filter((_, i) => i >= 3);
+  const markAllRead = async () => {
+    setNotifs(ns => ns.map(n => ({ ...n, read: true })));
+    // Mark all in DB
+    if (notifs) {
+      for (const n of notifs.filter(n => !n.read)) {
+        try { await window.DB.markNotificationRead(n.id); } catch (e) {}
+      }
+    }
+  };
+
+  return { notifs, loading, markRead, markAllRead };
+}
+
+function relTimeFromISO(iso) {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)   return "just now";
+  if (m < 60)  return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24)  return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7)   return `${d}d ago`;
+  return new Date(iso).toLocaleDateString("en-NG", { day:"numeric", month:"short" });
+}
+
+// Shared notification list renderer
+function NotifList({ notifs, loading, markRead, markAllRead, accentColor }) {
+  if (loading) {
+    const S = window.MM_SKEL;
+    return S ? <S.SkeletonNotifications light /> : null;
+  }
+
+  const unreadCount = (notifs || []).filter(n => !n.read).length;
+  const today   = (notifs || []).filter(n => {
+    const d = new Date(Date.now() - 24*60*60*1000);
+    return new Date(n.createdAt || Date.now()) >= d;
+  });
+  // Simpler split: first 3 are "today", rest are "earlier"
+  const firstThree = (notifs || []).slice(0, 3);
+  const rest       = (notifs || []).slice(3);
 
   return (
-    <div className="app cream-bg" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <AppHeader
-        title="Notifications"
-        leading={<RoundBtn onClick={onBack}><Icon name="back" size={18} /></RoundBtn>}
-        trailing={
-          unreadCount > 0 && (
-            <button onClick={markAllRead} style={{
-              appearance: "none", border: 0, background: "none",
-              fontSize: 12, color: "var(--clay)", fontWeight: 600,
-              cursor: "pointer", fontFamily: "inherit", padding: "4px 0",
-            }}>
-              Mark all read
-            </button>
-          )
-        }
-        sticky
-      />
-
-      <div className="scroll" style={{ flex: 1 }}>
-        {notifs.length === 0 ? (
+    <>
+      {unreadCount > 0 && (
+        <button onClick={markAllRead} style={{
+          appearance:"none", border:0, background:"none",
+          fontSize:12, color:accentColor || "var(--clay)", fontWeight:600,
+          cursor:"pointer", fontFamily:"inherit", padding:"4px 0",
+        }}>
+          Mark all read
+        </button>
+      )}
+      <div className="scroll" style={{ flex:1 }}>
+        {!notifs || notifs.length === 0 ? (
           <div className="pad"><NotifEmpty /></div>
         ) : (
-          <div className="pad" style={{ paddingTop: 8 }}>
-            {/* Today */}
-            {today.length > 0 && (
+          <div className="pad" style={{ paddingTop:8 }}>
+            {firstThree.length > 0 && (
               <>
-                <div className="eyebrow" style={{ marginBottom: 0, paddingBottom: 0 }}>Today</div>
-                {today.map(n => (
+                <div className="eyebrow" style={{ marginBottom:0 }}>Recent</div>
+                {firstThree.map(n => (
                   <NotifItem key={n.id} {...n} onPress={() => markRead(n.id)} />
                 ))}
               </>
             )}
-            {/* Earlier */}
-            {earlier.length > 0 && (
+            {rest.length > 0 && (
               <>
-                <div className="eyebrow" style={{ marginTop: 20, marginBottom: 0, paddingBottom: 0 }}>Earlier</div>
-                {earlier.map(n => (
+                <div className="eyebrow" style={{ marginTop:20, marginBottom:0 }}>Earlier</div>
+                {rest.map(n => (
                   <NotifItem key={n.id} {...n} onPress={() => markRead(n.id)} />
                 ))}
               </>
             )}
           </div>
         )}
-        <div style={{ height: 40 }} />
+        <div style={{ height:40 }} />
       </div>
+    </>
+  );
+}
+
+function InvNotifications({ onBack, onNavigate }) {
+  const { notifs, loading, markRead, markAllRead } = useNotifications("var(--clay)");
+
+  return (
+    <div className="app cream-bg" style={{ display:"flex", flexDirection:"column", height:"100%" }}>
+      <AppHeader
+        title="Notifications"
+        leading={<RoundBtn onClick={onBack}><Icon name="back" size={18} /></RoundBtn>}
+        trailing={
+          <button onClick={markAllRead} style={{ appearance:"none", border:0, background:"none", fontSize:12, color:"var(--clay)", fontWeight:600, cursor:"pointer", fontFamily:"inherit", padding:"4px 0" }}>
+            Mark all read
+          </button>
+        }
+        sticky
+      />
+      <NotifList
+        notifs={notifs} loading={loading}
+        markRead={markRead} markAllRead={markAllRead}
+        accentColor="var(--clay)"
+      />
     </div>
   );
 }
 
 // ─── Business owner notifications ─────────────────────────
-function BizNotifications({ onBack }) {
-  const [notifs, setNotifs] = React.useState([
-    { id: 1, type: "match",    title: "New investor interested",     body: "Femi Adesanya (Software Engineer, Lagos) wants to invest ₦800k in your business.", time: "2h ago",  read: false },
-    { id: 2, type: "reminder", title: "Report due in 2 days",        body: "Your April revenue report is due on May 10. Tap to start.",  time: "14h ago", read: false },
-    { id: 3, type: "match",    title: "Another investor interested",  body: "Ngozi Okeke (Doctor, Abuja) is considering a ₦500k investment.", time: "1d ago", read: false },
-    { id: 4, type: "signed",   title: "Deal signed — funded!",        body: "₦500,000 from Ngozi Okeke is now held in escrow. Funds release in 24hrs.", time: "3d ago", read: true },
-    { id: 5, type: "verified", title: "Business profile verified",    body: "Your business is now visible to all verified investors on MonieMatch.", time: "4d ago", read: true },
-    { id: 6, type: "alert",    title: "Complete your profile",        body: "Add your monthly revenue range to improve match quality.",    time: "5d ago",  read: true },
-  ]);
-
-  const unreadCount = notifs.filter(n => !n.read).length;
-  const markAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, read: true })));
-  const markRead = (id) => setNotifs(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
-
-  const today = notifs.filter((_, i) => i < 3);
-  const earlier = notifs.filter((_, i) => i >= 3);
+function BizNotifications({ onBack, onNavigate }) {
+  const { notifs, loading, markRead, markAllRead } = useNotifications("var(--forest)");
 
   return (
-    <div className="app cream-bg" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div className="app cream-bg" style={{ display:"flex", flexDirection:"column", height:"100%" }}>
       <AppHeader
         title="Notifications"
         leading={<RoundBtn onClick={onBack}><Icon name="back" size={18} /></RoundBtn>}
         trailing={
-          unreadCount > 0 && (
-            <button onClick={markAllRead} style={{
-              appearance: "none", border: 0, background: "none",
-              fontSize: 12, color: "var(--forest)", fontWeight: 600,
-              cursor: "pointer", fontFamily: "inherit", padding: "4px 0",
-            }}>
-              Mark all read
-            </button>
-          )
+          <button onClick={markAllRead} style={{ appearance:"none", border:0, background:"none", fontSize:12, color:"var(--forest)", fontWeight:600, cursor:"pointer", fontFamily:"inherit", padding:"4px 0" }}>
+            Mark all read
+          </button>
         }
         sticky
       />
-      <div className="scroll" style={{ flex: 1 }}>
-        {notifs.length === 0 ? (
-          <div className="pad"><NotifEmpty /></div>
-        ) : (
-          <div className="pad" style={{ paddingTop: 8 }}>
-            {today.length > 0 && (
-              <>
-                <div className="eyebrow" style={{ marginBottom: 0 }}>Today</div>
-                {today.map(n => <NotifItem key={n.id} {...n} onPress={() => markRead(n.id)} />)}
-              </>
-            )}
-            {earlier.length > 0 && (
-              <>
-                <div className="eyebrow" style={{ marginTop: 20, marginBottom: 0 }}>Earlier</div>
-                {earlier.map(n => <NotifItem key={n.id} {...n} onPress={() => markRead(n.id)} />)}
-              </>
-            )}
-          </div>
-        )}
-        <div style={{ height: 40 }} />
-      </div>
+      <NotifList
+        notifs={notifs} loading={loading}
+        markRead={markRead} markAllRead={markAllRead}
+        accentColor="var(--forest)"
+      />
     </div>
   );
 }

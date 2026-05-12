@@ -329,9 +329,36 @@ function EscrowAnim() {
 
 // ─── INVESTOR PORTFOLIO ─────────────────────
 function InvPortfolio({ onPickPosition }) {
-  const items = window.MM_DATA.portfolio;
-  const total = items.reduce((s, p) => s + p.invested, 0);
-  const repaid = items.reduce((s, p) => s + p.paidBack, 0);
+  const [deals, setDeals]     = React.useState(null); // null = loading
+  const [error, setError]     = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const data = await window.DB.getMyPortfolio();
+        setDeals(data || []);
+      } catch (e) {
+        console.warn("[MM] portfolio load:", e);
+        setDeals([]);
+        setError(true);
+      }
+    })();
+  }, []);
+
+  // Fallback to mock while loading or if empty
+  const useMock   = deals === null || (deals.length === 0 && !error);
+  const mockItems = window.MM_DATA?.portfolio || [];
+  const items     = useMock ? mockItems : deals;
+
+  const total  = items.reduce((s, p) => s + (p.invested || p.amount || 0), 0);
+  const repaid = items.reduce((s, p) => s + (p.paidBack || 0), 0);
+  const active = items.filter(p => p.status === "active" || !p.status).length;
+
+  if (deals === null) {
+    const S = window.MM_SKEL;
+    return S ? <S.SkeletonPortfolio light /> : null;
+  }
+
   return (
     <div className="scroll" style={{ paddingBottom: 16 }}>
       <div className="pad" style={{ paddingTop: 14 }}>
@@ -357,26 +384,32 @@ function InvPortfolio({ onPickPosition }) {
           </div>
           <div className="hr" style={{ background: "rgba(255,252,245,0.1)", margin: "16px 0" }} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <MiniStat dark label="Active" value="3" />
-            <MiniStat dark label="Avg return" value="11.2%" />
-            <MiniStat dark label="Watch" value="1" warn />
+            <MiniStat dark label="Active" value={String(active)} />
+            <MiniStat dark label="Avg return" value={total > 0 ? "—" : "0%"} />
+            <MiniStat dark label="Watch" value="0" />
           </div>
         </div>
       </div>
 
       <div className="pad" style={{ marginTop: 18 }}>
         <div className="eyebrow" style={{ marginBottom: 10 }}>Positions</div>
-        <div className="col gap-10">
-          {items.map((p, i) => {
-            const biz = window.MM_DATA.businesses.find(b => b.id === p.businessId);
-            return (
-              <div key={p.id} onClick={() => onPickPosition(p)} className="fadein"
-                   style={{ animationDelay: `${i * 80}ms` }}>
-                <PositionCard pos={p} biz={biz} />
-              </div>
-            );
-          })}
-        </div>
+        {items.length === 0 ? (
+          window.EmptyPortfolio
+            ? <EmptyPortfolio onExplore={() => {}} />
+            : <div style={{ padding:"32px 0", textAlign:"center", color:"var(--ink-3)", fontSize:14 }}>No active investments yet.</div>
+        ) : (
+          <div className="col gap-10">
+            {items.map((p, i) => {
+              const biz = p.biz || window.MM_DATA?.businesses?.find(b => b.id === p.businessId);
+              return (
+                <div key={p.dealId || p.id} onClick={() => onPickPosition(p)} className="fadein"
+                     style={{ animationDelay: `${i * 80}ms` }}>
+                  <PositionCard pos={p} biz={biz} />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
