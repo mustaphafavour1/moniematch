@@ -170,21 +170,26 @@ function BizOnboarding({ onDone }) {
       <p style={{ color:"var(--ink-2)", fontSize:14, margin:"0 0 28px" }}>
         Sent to <b>+234 {phone.slice(0,3)} {phone.slice(3,6)} {phone.slice(6)}</b>
       </p>
-      <div style={{ display:"flex", gap:12, justifyContent:"space-between" }}>
+      <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
         {otp.map((d, i) => (
           <input key={i} ref={otpRefs[i]} value={d} maxLength={1}
+            inputMode="numeric"
             disabled={otpVerifying}
             onChange={e => {
               const val = e.target.value.replace(/\D/g,"");
               const next = [...otp]; next[i] = val; setOtp(next);
               if (val && i < 3) otpRefs[i+1].current?.focus();
             }}
-            style={{ flex:1, height:64, textAlign:"center", fontFamily:"var(--font-display)", fontSize:32,
+            onKeyDown={e => {
+              if (e.key === "Backspace" && !d && i > 0) otpRefs[i-1].current?.focus();
+            }}
+            style={{ width:64, height:68, flexShrink:0, textAlign:"center",
+                     fontFamily:"var(--font-display)", fontSize:30,
                      color: otpError ? "var(--clay)" : "var(--ink)",
                      border:`1.5px solid ${otpError ? "var(--clay)" : d ? "var(--forest)" : "var(--line-strong)"}`,
                      background: otpVerifying ? "rgba(31,26,20,0.04)" : "var(--bone)",
-                     borderRadius:16, outline:"none", transition:"border-color 200ms",
-                     opacity: otpVerifying ? 0.6 : 1 }} />
+                     borderRadius:14, outline:"none", transition:"border-color 200ms",
+                     opacity: otpVerifying ? 0.6 : 1, WebkitAppearance:"none" }} />
         ))}
       </div>
       {otpError && (
@@ -318,9 +323,10 @@ function Field({ label, children }) {
 // ─── BUSINESS HOME — hero moment ─────────────────────────
 function BizHome({ user, interested: propInterested, onPickInvestor, onTab, onStartReport, onNotifications = () => {}, onFundingProgress = () => {} }) {
   const loading    = propInterested === null;
-  const interested = propInterested && propInterested.length > 0
-    ? propInterested
-    : (window.MM_DATA?.interested || []);
+  const isDemoMode = propInterested === undefined;
+  const interested = isDemoMode
+    ? (window.MM_DATA?.interested || [])
+    : (propInterested || []);
 
   const newOffers  = interested.filter(i => i.status === "new" || !i.status).slice(0, 3);
   const raised     = user?.raised || 0;

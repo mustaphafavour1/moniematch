@@ -4,12 +4,12 @@
 function InvMatches({ onPickBusiness, matches: propMatches }) {
   const [filter, setFilter] = useState("all");
 
-  // Use real data if passed, fall back to mock
-  const allMatches = propMatches && propMatches.length > 0
-    ? propMatches
-    : (window.MM_DATA?.businesses || []);
-
-  const loading = propMatches === null;
+  // null = loading, undefined = demo mode, [] = real but empty, [...] = real data
+  const isDemoMode = propMatches === undefined;
+  const loading    = propMatches === null;
+  const allMatches = isDemoMode
+    ? (window.MM_DATA?.businesses || [])
+    : (propMatches || []);
 
   // Derive filter options from real data
   const categories = ["all", ...new Set(allMatches.map(b => b.category).filter(Boolean))];
