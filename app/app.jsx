@@ -6,57 +6,93 @@ const { useState, useEffect, useRef, useMemo } = React;
 const INVESTOR_SCREENS = [
   { id: "onb",           label: "Onboarding" },
   { id: "home",          label: "Home" },
+  { id: "prefsSetup",    label: "Prefs setup" },
   { id: "matches",       label: "Matches" },
-  { id: "biz",          label: "Business detail" },
+  { id: "search",        label: "Search" },
+  { id: "biz",           label: "Business detail" },
   { id: "deal",          label: "Deal · sign" },
   { id: "portfolio",     label: "Portfolio" },
   { id: "notifications", label: "Notifications" },
   { id: "matchPrefs",    label: "Match prefs" },
   { id: "dealHistory",   label: "Deal history" },
   { id: "invProfile",    label: "Profile" },
+  { id: "kyc",           label: "KYC" },
+  { id: "referral",      label: "Referral" },
   { id: "settings",      label: "Settings" },
 ];
 const BIZ_SCREENS = [
-  { id: "onb",            label: "Onboarding" },
-  { id: "home",           label: "Home" },
-  { id: "investorDetail", label: "Investor offer" },
-  { id: "dealSign",       label: "Counter-sign · funded" },
-  { id: "report",         label: "Report" },
-  { id: "reportHistory",  label: "Report history" },
-  { id: "investors",      label: "Investors list" },
-  { id: "fundingProgress",label: "Funding progress" },
-  { id: "notifications",  label: "Notifications" },
-  { id: "profileEdit",    label: "Edit profile" },
-  { id: "dealHistory",    label: "Deal history" },
-  { id: "profile",        label: "Profile" },
-  { id: "settings",       label: "Settings" },
+  { id: "onb",             label: "Onboarding" },
+  { id: "home",            label: "Home" },
+  { id: "investorDetail",  label: "Investor offer" },
+  { id: "dealSign",        label: "Counter-sign · funded" },
+  { id: "report",          label: "Report" },
+  { id: "reportHistory",   label: "Report history" },
+  { id: "investors",       label: "Investors list" },
+  { id: "fundingProgress", label: "Funding progress" },
+  { id: "notifications",   label: "Notifications" },
+  { id: "profileEdit",     label: "Edit profile" },
+  { id: "dealHistory",     label: "Deal history" },
+  { id: "documents",       label: "Documents" },
+  { id: "kyc",             label: "KYC" },
+  { id: "referral",        label: "Referral" },
+  { id: "profile",         label: "Profile" },
+  { id: "settings",        label: "Settings" },
 ];
 
 // ─── Investor app shell ───────────────────────────────────
 function InvestorApp({ initialScreen, tweaks }) {
-  const [screen, setScreen] = useState(initialScreen || "home");
-  const [user, setUser] = useState({ name: "Femi Akande", interests: ["Bakery", "Fashion", "Food"], rangeMin: 100000, rangeMax: 1500000, returnGoal: "balanced" });
-  const [tab, setTab] = useState("home");
-  const [activeBiz, setActiveBiz] = useState("aisha");
+  const [screen, setScreen]   = useState(initialScreen || "home");
+  const [user, setUser]       = useState(null);       // null = loading
+  const [matches, setMatches] = useState(null);       // null = loading
+  const [tab, setTab]         = useState("home");
+  const [activeBiz, setActiveBiz] = useState(null);
+  const [loadErr, setLoadErr] = useState(false);
 
   useEffect(() => { if (initialScreen) setScreen(initialScreen); }, [initialScreen]);
 
+  // Load real profile + matches from Supabase on mount
+  useEffect(() => {
+    if (initialScreen === "onb") {
+      // New user going through onboarding — no data to load
+      setUser({});
+      return;
+    }
+    (async () => {
+      try {
+        const profile = await window.DB.getMyProfile();
+        setUser(profile || {});
+        const m = await window.DB.getMyMatches();
+        setMatches(m || []);
+      } catch (e) {
+        console.warn("[MM] profile load failed:", e);
+        setUser({});
+        setMatches([]);
+        setLoadErr(true);
+      }
+    })();
+  }, [initialScreen]);
+
   const goTab = (t) => {
     setTab(t);
-    if (t === "home")     setScreen("home");
-    if (t === "matches")  setScreen("matches");
+    if (t === "home")      setScreen("home");
+    if (t === "matches")   setScreen("matches");
     if (t === "portfolio") setScreen("portfolio");
-    if (t === "profile")  setScreen("invProfile");
+    if (t === "profile")   setScreen("invProfile");
   };
 
   const showTabBar = ["home", "matches", "portfolio", "invProfile"].includes(screen);
-  const goBack = () => setScreen(tab === "home" ? "home" : tab === "matches" ? "matches" : tab === "portfolio" ? "portfolio" : "invProfile");
+  const goBack = () => setScreen(
+    tab === "home" ? "home" : tab === "matches" ? "matches" : tab === "portfolio" ? "portfolio" : "invProfile"
+  );
 
   const handleSignOut = async () => {
     try { if (window.MM_AUTH) await window.MM_AUTH.signOut(); } catch (e) {}
     setScreen("onb");
     setTab("home");
   };
+
+  // Show splash while profile loads (skip for onboarding)
+  if (user === null && screen !== "onb") return <SplashScreen />;
 
   return (
     <div className="app cream-bg">
@@ -68,13 +104,17 @@ function InvestorApp({ initialScreen, tweaks }) {
       {screen === "home" && tab === "home" && (
         <InvHome
           user={user}
+          matches={matches}
           onPickBusiness={(id) => { setActiveBiz(id); setScreen("biz"); }}
           onTab={goTab}
           onNotifications={() => setScreen("notifications")}
         />
       )}
       {screen === "matches" && tab === "matches" && (
-        <InvMatches onPickBusiness={(id) => { setActiveBiz(id); setScreen("biz"); }} />
+        <InvMatches
+          matches={matches}
+          onPickBusiness={(id) => { setActiveBiz(id); setScreen("biz"); }}
+        />
       )}
       {screen === "portfolio" && tab === "portfolio" && (
         <InvPortfolio onPickPosition={() => setScreen("portfolio")} />
@@ -140,12 +180,30 @@ function InvestorApp({ initialScreen, tweaks }) {
 
 // ─── Business app shell ───────────────────────────────────
 function BusinessApp({ initialScreen, tweaks }) {
-  const [screen, setScreen] = useState(initialScreen || "home");
-  const [user, setUser] = useState({ name: "Aisha Bello", bizName: "Layi Bakehouse", category: "Bakery" });
-  const [tab, setTab] = useState("home");
-  const [activeInv, setActiveInv] = useState("femi");
+  const [screen, setScreen]       = useState(initialScreen || "home");
+  const [user, setUser]           = useState(null);   // null = loading
+  const [interested, setInterested] = useState(null); // null = loading
+  const [tab, setTab]             = useState("home");
+  const [activeInv, setActiveInv] = useState(null);
 
   useEffect(() => { if (initialScreen) setScreen(initialScreen); }, [initialScreen]);
+
+  // Load real profile + interested investors on mount
+  useEffect(() => {
+    if (initialScreen === "onb") { setUser({}); return; }
+    (async () => {
+      try {
+        const profile = await window.DB.getMyProfile();
+        setUser(profile || {});
+        const inv = await window.DB.getInterestedInvestors();
+        setInterested(inv || []);
+      } catch (e) {
+        console.warn("[MM] biz profile load failed:", e);
+        setUser({});
+        setInterested([]);
+      }
+    })();
+  }, [initialScreen]);
 
   const goTab = (t) => {
     setTab(t);
@@ -164,6 +222,9 @@ function BusinessApp({ initialScreen, tweaks }) {
     setTab("home");
   };
 
+  // Show splash while profile loads
+  if (user === null && screen !== "onb") return <SplashScreen />;
+
   return (
     <div className="app cream-bg">
       <div className="statusbar-spacer" />
@@ -174,6 +235,7 @@ function BusinessApp({ initialScreen, tweaks }) {
       {screen === "home" && tab === "home" && (
         <BizHome
           user={user}
+          interested={interested}
           onPickInvestor={(id) => { setActiveInv(id); setScreen("investorDetail"); }}
           onTab={goTab}
           onStartReport={() => setScreen("report")}

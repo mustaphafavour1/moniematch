@@ -1,19 +1,28 @@
 // investor-2.jsx — Investor: Matches list, Business detail, Deal Summary, Portfolio, Updates, Profile.
 
 // ─── INVESTOR — ALL MATCHES (filterable list) ──────────────
-function InvMatches({ onPickBusiness }) {
+function InvMatches({ onPickBusiness, matches: propMatches }) {
   const [filter, setFilter] = useState("all");
-  const filters = [
-    { id: "all", label: "All" },
-    { id: "Bakery", label: "Bakery" },
-    { id: "Fashion", label: "Fashion" },
-    { id: "Food", label: "Food" },
-    { id: "Barbing", label: "Barbing" },
-    { id: "Repair", label: "Repair" },
-  ];
+
+  // Use real data if passed, fall back to mock
+  const allMatches = propMatches && propMatches.length > 0
+    ? propMatches
+    : (window.MM_DATA?.businesses || []);
+
+  const loading = propMatches === null;
+
+  // Derive filter options from real data
+  const categories = ["all", ...new Set(allMatches.map(b => b.category).filter(Boolean))];
+  const filters = categories.slice(0, 6).map(id => ({ id, label: id === "all" ? "All" : id }));
+
   const list = filter === "all"
-    ? window.MM_DATA.businesses
-    : window.MM_DATA.businesses.filter(b => b.category === filter);
+    ? allMatches
+    : allMatches.filter(b => b.category === filter);
+
+  if (loading) {
+    const S = window.MM_SKEL;
+    return S ? <S.SkeletonMatches light /> : null;
+  }
 
   return (
     <div className="scroll" style={{ paddingBottom: 16 }}>
@@ -21,7 +30,7 @@ function InvMatches({ onPickBusiness }) {
         <div className="eyebrow">Matched to your preferences</div>
         <div className="h1" style={{ fontSize: 36, marginTop: 8 }}>Matches</div>
         <p style={{ color: "var(--ink-2)", fontSize: 14, lineHeight: 1.5, margin: "8px 0 0" }}>
-          {window.MM_DATA.businesses.length} businesses match your range, return type and cadence.
+          {allMatches.length} {allMatches.length === 1 ? "business matches" : "businesses match"} your range, return type and cadence.
         </p>
       </div>
 
@@ -58,11 +67,14 @@ function InvMatches({ onPickBusiness }) {
       </div>
 
       <div className="pad col gap-10" style={{ marginTop: 18 }}>
-        {list.map((b, i) => (
-          <div key={b.id} className="fadein" style={{ animationDelay: `${i * 50}ms` }}>
-            <BizListCard biz={b} onClick={() => onPickBusiness(b.id)} />
-          </div>
-        ))}
+        {list.length > 0
+          ? list.map((b, i) => (
+              <div key={b.id} className="fadein" style={{ animationDelay: `${i * 50}ms` }}>
+                <BizListCard biz={b} onClick={() => onPickBusiness(b.id)} />
+              </div>
+            ))
+          : <EmptyMatches onUpdatePrefs={() => {}} />
+        }
       </div>
     </div>
   );

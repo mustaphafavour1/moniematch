@@ -262,36 +262,57 @@ function InvOnboarding({ onDone }) {
 }
 
 // ─── INVESTOR HOME — the hero moment ─────────────────────
-function InvHome({ user, onPickBusiness, onTab }) {
-  const matches = window.MM_DATA.matchesToday.map((id) => window.MM_DATA.businesses.find((b) => b.id === id));
-  const newThisWeek = window.MM_DATA.newThisWeek.map((id) => window.MM_DATA.businesses.find((b) => b.id === id));
+function InvHome({ user, matches: propMatches, onPickBusiness, onTab, onNotifications = () => {} }) {
+  // Use real data if passed, fall back to mock while loading
+  const loading  = propMatches === null;
+  const allMatches = propMatches && propMatches.length > 0
+    ? propMatches
+    : (window.MM_DATA?.businesses || []).slice(0, 5);
+
+  const todayMatches  = allMatches.slice(0, 2);
+  const newThisWeek   = allMatches.slice(2, 5);
+  const userName      = user?.name || "Investor";
+  const userInitials  = (user?.initials) || userName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+  const userColor     = user?.color || "var(--forest)";
+
+  if (loading) {
+    return window.MM_SKEL ? <window.MM_SKEL.SkeletonHome light /> : null;
+  }
 
   return (
     <div className="scroll" style={{ paddingBottom: 16 }}>
       {/* header */}
       <div className="pad" style={{ paddingTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div className="row gap-10">
-          <Avatar name={user.name} initials="FA" color="var(--forest)" size={36} />
+          <Avatar name={userName} initials={userInitials} color={userColor} size={36} />
           <div className="col">
             <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{greet()}</div>
-            <div style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{user.name.split(" ")[0]}</div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{userName.split(" ")[0]}</div>
           </div>
         </div>
-        <RoundBtn><Icon name="bell" size={18} /></RoundBtn>
+        <RoundBtn onClick={onNotifications}><Icon name="bell" size={18} /></RoundBtn>
       </div>
 
       {/* hero — today's matches headline card */}
       <div className="pad fadein" style={{ marginTop: 18 }}>
-        <div className="eyebrow" style={{ marginBottom: 10, fontSize: "9px" }}>Today · {matches.length} new matches</div>
+        <div className="eyebrow" style={{ marginBottom: 10, fontSize: "9px" }}>
+          Today · {todayMatches.length} {todayMatches.length === 1 ? "match" : "new matches"}
+        </div>
         <div className="h1" style={{ fontSize: "28px" }}>
-          Two businesses are looking for the kind of capital <span style={{ fontStyle: "italic", color: "var(--clay)", fontSize: "27px" }}>you bring.</span>
+          {todayMatches.length > 0
+            ? <>{todayMatches.length === 1 ? "One business is" : `${todayMatches.length} businesses are`} looking for the kind of capital <span style={{ fontStyle: "italic", color: "var(--clay)", fontSize: "27px" }}>you bring.</span></>
+            : <>Your matches are<br /><span style={{ fontStyle: "italic", color: "var(--clay)" }}>being calculated.</span></>
+          }
         </div>
       </div>
 
       {/* match carousel */}
       <div className="fadein d1" style={{ marginTop: 18, paddingLeft: 22, overflowX: "auto", scrollbarWidth: "none" }}>
         <div style={{ display: "flex", gap: 12, paddingRight: 22 }}>
-          {matches.map((b, i) => <MatchHeroCard key={b.id} biz={b} onClick={() => onPickBusiness(b.id)} index={i} />)}
+          {todayMatches.length > 0
+            ? todayMatches.map((b, i) => <MatchHeroCard key={b.id} biz={b} onClick={() => onPickBusiness(b.id)} index={i} />)
+            : <div style={{ padding:"32px 20px", color:"var(--ink-3)", fontSize:14 }}>No matches yet — complete your profile to unlock them.</div>
+          }
         </div>
       </div>
 
@@ -356,7 +377,10 @@ function InvHome({ user, onPickBusiness, onTab }) {
           <div onClick={() => onTab("matches")} style={{ fontSize: 12, color: "var(--clay)", fontWeight: 500, cursor: "pointer" }}>See all</div>
         </div>
         <div className="col gap-10">
-          {newThisWeek.map((b) => <MatchListRow key={b.id} biz={b} onClick={() => onPickBusiness(b.id)} />)}
+          {newThisWeek.length > 0
+            ? newThisWeek.map((b) => <MatchListRow key={b.id} biz={b} onClick={() => onPickBusiness(b.id)} />)
+            : <div style={{ fontSize:13.5, color:"var(--ink-3)", padding:"8px 0" }}>More businesses coming soon.</div>
+          }
         </div>
       </div>
 

@@ -288,71 +288,97 @@ function Field({ label, children }) {
 }
 
 // ─── BUSINESS HOME — hero moment ─────────────────────────
-function BizHome({ user, onPickInvestor, onTab, onStartReport }) {
-  const interested = window.MM_DATA.interested;
-  const aisha = window.MM_DATA.businesses.find(b => b.id === "aisha");
+function BizHome({ user, interested: propInterested, onPickInvestor, onTab, onStartReport, onNotifications = () => {}, onFundingProgress = () => {} }) {
+  const loading    = propInterested === null;
+  const interested = propInterested && propInterested.length > 0
+    ? propInterested
+    : (window.MM_DATA?.interested || []);
+
+  const newOffers  = interested.filter(i => i.status === "new" || !i.status).slice(0, 3);
+  const raised     = user?.raised || 0;
+  const target     = user?.target || 1200000;
+  const bizName    = user?.bizName || user?.business || "your business";
   const profilePct = 78;
+  const userName   = user?.name || "Owner";
+  const userInitials = userName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+  const userColor  = user?.color || "var(--clay)";
+
+  if (loading) {
+    const S = window.MM_SKEL;
+    return S ? <S.SkeletonHome light /> : null;
+  }
 
   return (
     <div className="scroll" style={{ paddingBottom: 16 }}>
       <div className="pad" style={{ paddingTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div className="row gap-10">
-          <Avatar name={user.name} initials="AB" color="var(--clay)" size={36} />
+          <Avatar name={userName} initials={userInitials} color={userColor} size={36} />
           <div className="col">
             <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{greet()}</div>
-            <div style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{user.name.split(" ")[0]}</div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{userName.split(" ")[0]}</div>
           </div>
         </div>
-        <RoundBtn><Icon name="bell" size={18} /></RoundBtn>
+        <RoundBtn onClick={onNotifications}><Icon name="bell" size={18} /></RoundBtn>
       </div>
 
       {/* hero — investor interest */}
       <div className="pad fadein" style={{ marginTop: 18 }}>
-        <div className="eyebrow" style={{ marginBottom: 10 }}>Today · {interested.filter(i => i.status === "new").length} new offers</div>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>
+          Today · {newOffers.length} new {newOffers.length === 1 ? "offer" : "offers"}
+        </div>
         <div className="h1" style={{ fontSize: 32 }}>
-          Two investors want a piece of <span style={{ fontStyle: "italic", color: "var(--forest)" }}>Layi Bakehouse.</span>
+          {newOffers.length > 0
+            ? <>{newOffers.length === 1 ? "One investor wants" : `${newOffers.length} investors want`} a piece of <span style={{ fontStyle: "italic", color: "var(--forest)" }}>{bizName}.</span></>
+            : <>Your profile is <span style={{ fontStyle: "italic", color: "var(--forest)" }}>live and visible.</span></>
+          }
         </div>
       </div>
 
       {/* offers stack */}
-      <div className="pad fadein d1" style={{ marginTop: 18 }}>
-        <div className="col gap-10">
-          {interested.filter(i => i.status === "new").map((it, i) => {
-            const inv = window.MM_DATA.investors.find(v => v.id === it.investorId);
-            return (
-              <div key={it.investorId} className="fadein" style={{ animationDelay: `${i * 80}ms` }}>
-                <OfferCard item={it} inv={inv} onClick={() => onPickInvestor(it.investorId)} highlight={i === 0} />
-              </div>
-            );
-          })}
+      {newOffers.length > 0 && (
+        <div className="pad fadein d1" style={{ marginTop: 18 }}>
+          <div className="col gap-10">
+            {newOffers.map((it, i) => {
+              const inv = window.MM_DATA?.investors?.find(v => v.id === it.investorId) || it;
+              return (
+                <div key={it.matchId || it.investorId || i} className="fadein" style={{ animationDelay: `${i * 80}ms` }}>
+                  <OfferCard item={it} inv={inv} onClick={() => onPickInvestor(it.userId || it.investorId)} highlight={i === 0} />
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* raise progress */}
       <div className="pad fadein d2" style={{ marginTop: 22 }}>
-        <div className="card forest">
+        <div className="card forest" onClick={onFundingProgress} style={{ cursor: "pointer" }}>
           <div className="row between" style={{ marginBottom: 12 }}>
             <div className="eyebrow" style={{ color: "rgba(255,255,255,0.6)" }}>Your active raise</div>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>10 days left</span>
+            <div className="row gap-4" style={{ color: "rgba(255,255,255,0.7)" }}>
+              <span style={{ fontSize: 11 }}>View detail</span>
+              <Icon name="fwd" size={13} />
+            </div>
           </div>
           <div className="row between" style={{ alignItems: "flex-end" }}>
             <div>
               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", letterSpacing: 0.04 }}>Raised</div>
               <div style={{ fontFamily: "var(--font-display)", fontSize: 30, color: "#fff" }}>
-                <AnimatedNaira value={aisha.raised} />
+                <AnimatedNaira value={raised} />
               </div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>of ₦1.2M target</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>of {fmtNaira(target, { compact: true })} target</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <ProgressRing value={(aisha.raised/aisha.target)*100} size={56} stroke={5} color="var(--sun)" trackColor="rgba(255,255,255,0.15)">
-                <span style={{ fontFamily: "var(--font-display)", fontSize: 16, color: "#fff" }}>{Math.round((aisha.raised/aisha.target)*100)}%</span>
+              <ProgressRing value={target > 0 ? (raised/target)*100 : 0} size={56} stroke={5} color="var(--sun)" trackColor="rgba(255,255,255,0.15)">
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 16, color: "#fff" }}>{target > 0 ? Math.round((raised/target)*100) : 0}%</span>
               </ProgressRing>
             </div>
           </div>
-          <div style={{ marginTop: 14, padding: "10px 12px", background: "rgba(0,0,0,0.16)", borderRadius: 10,
-                        fontSize: 12.5, color: "rgba(255,255,255,0.85)" }}>
-            <Icon name="sparkle" size={12} /> {fmtNaira(1200000 - aisha.raised, { compact: true })} more closes the round.
-          </div>
+          {target > raised && (
+            <div style={{ marginTop: 14, padding: "10px 12px", background: "rgba(0,0,0,0.16)", borderRadius: 10, fontSize: 12.5, color: "rgba(255,255,255,0.85)" }}>
+              <Icon name="sparkle" size={12} /> {fmtNaira(target - raised, { compact: true })} more closes the round.
+            </div>
+          )}
         </div>
       </div>
 
