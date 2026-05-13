@@ -1,49 +1,35 @@
-// inv-onboarding.jsx — Investor onboarding flow (splash slides, phone, OTP, name)
+// inv-onboarding.jsx — Investor onboarding flow (splash slides, email, OTP, name)
 
 function InvOnboarding({ onDone }) {
   const [step, setStep] = useState(0);
-  const [wtIdx, setWtIdx] = useState(0); // walkthrough sub-slide 0,1,2
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [wtIdx, setWtIdx] = useState(0);
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState(["","","","","",""]);  // 6-digit email OTP
   const [name, setName] = useState("");
   const [otpSending, setOtpSending] = useState(false);
-  const otpRefs = [useRef(), useRef(), useRef(), useRef()];
-  const formattedPhoneRef = useRef("");
+  const otpRefs = [useRef(),useRef(),useRef(),useRef(),useRef(),useRef()];
+  const emailRef = useRef("");
 
-  const [otpError, setOtpError]   = React.useState("");
+  const [otpError, setOtpError]         = React.useState("");
   const [otpVerifying, setOtpVerifying] = React.useState(false);
 
-  // Verify OTP — only advance on success, show error on failure
+  // Verify OTP — only advance on success
   useEffect(() => {
-    if (step === 2 && otp.every((d) => d !== "") && !otpVerifying) {
+    if (step === 2 && otp.every(d => d !== "") && !otpVerifying) {
       const t = setTimeout(async () => {
         setOtpError("");
         setOtpVerifying(true);
-
-        // Dev bypass: if phone is a known test number AND code is 1234, skip real verify
-        const isTestMode = formattedPhoneRef.current.endsWith("0000") || !formattedPhoneRef.current;
-        const isDev = window.location.hostname.includes("localhost") ||
-                      window.location.hostname.includes("127.0.0.1") ||
-                      window.location.hostname.includes("vercel.app");
-
-        if (isTestMode && isDev && otp.join("") === "1234") {
-          setOtpVerifying(false);
-          setStep(3);
-          return;
-        }
-
         try {
-          if (window.MM_AUTH && formattedPhoneRef.current) {
-            await window.MM_AUTH.verifyOTP(formattedPhoneRef.current, otp.join(""));
+          if (window.MM_AUTH) {
+            await window.MM_AUTH.verifyEmailOTP(emailRef.current, otp.join(""));
           }
           setOtpVerifying(false);
-          setStep(3); // ✓ only advance on success
+          setStep(3);
         } catch (e) {
           setOtpVerifying(false);
-          setOtp(["", "", "", ""]);
-          setOtpError("Wrong code. Check and try again.");
-          // Focus first input
-          setTimeout(() => document.querySelector('.otp-input-0')?.focus(), 100);
+          setOtp(["","","","","",""]);
+          setOtpError("Wrong code or expired. Try again.");
+          setTimeout(() => otpRefs[0].current?.focus(), 100);
         }
       }, 380);
       return () => clearTimeout(t);
@@ -134,109 +120,93 @@ function InvOnboarding({ onDone }) {
       </div>
     </div>,
 
-    // ── slide 1: phone ──
-    <div key="p" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
-      <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
+    // ── slide 1: email ──
+    <div key="p" className="screen-enter" style={{ padding:"230px 22px 28px", display:"flex", flexDirection:"column", height:"100%" }}>
+      <div className="row" style={{ marginBottom:18, marginTop:-200 }}>
         <RoundBtn onClick={() => setStep(0)}><Icon name="back" size={18} /></RoundBtn>
       </div>
-      <div style={{ height: 170 }} />
-      <div className="h2" style={{ marginBottom: 8 }}>What's your phone number?</div>
-      <p style={{ color: "var(--ink-2)", fontSize: 14, margin: "0 0 28px" }}>We'll send a 4-digit code. Standard rates apply.</p>
-      <div style={{
-        display: "flex", alignItems: "center", gap: 10,
-        background: "var(--bone)", border: "1px solid var(--line-strong)",
-        borderRadius: 16, padding: "14px 16px"
-      }}>
-        <span style={{ fontSize: 16, color: "var(--ink-2)" }}>🇳🇬 +234</span>
-        <div style={{ width: 1, height: 22, background: "var(--line-strong)" }} />
-        <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-          placeholder="803 000 0000"
-          style={{
-            flex: 1, border: 0, background: "transparent", outline: "none",
-            fontFamily: "inherit", fontSize: 16, color: "var(--ink)",
-            letterSpacing: "0.04em"
-          }} />
+      <div style={{ height:170 }} />
+      <div className="h2" style={{ marginBottom:8 }}>What's your email?</div>
+      <p style={{ color:"var(--ink-2)", fontSize:14, margin:"0 0 24px" }}>We'll send you a 6-digit sign-in code.</p>
+      <div style={{ background:"var(--bone)", border:"1px solid var(--line-strong)", borderRadius:16, padding:"14px 16px" }}>
+        <input
+          type="email" inputMode="email" autoComplete="email"
+          value={email} onChange={e => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          style={{ width:"100%", border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:16, color:"var(--ink)" }}
+        />
       </div>
-      <div style={{ flex: 1 }} />
-      {/* ── PATCH 1: send real OTP via Supabase ── */}
-      <button className="btn btn-primary btn-block"
-        disabled={phone.length < 10 || otpSending}
-        style={{ opacity: phone.length < 10 || otpSending ? 0.45 : 1 }}
-        onClick={async () => {
-          setOtpSending(true);
-          try {
-            if (window.MM_AUTH) {
-              const formatted = await window.MM_AUTH.sendOTP(phone);
-              formattedPhoneRef.current = formatted;
+      <div style={{ flex:1 }} />
+      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        <button className="btn btn-primary btn-block"
+          disabled={!email.includes("@") || !email.includes(".") || otpSending}
+          style={{ opacity: !email.includes("@") || otpSending ? 0.45 : 1 }}
+          onClick={async () => {
+            setOtpSending(true);
+            try {
+              if (window.MM_AUTH) {
+                emailRef.current = await window.MM_AUTH.sendEmailOTP(email);
+              }
+              setStep(2);
+            } catch (e) {
+              alert("Couldn't send code: " + (e.message || "Try again"));
             }
-          } catch (e) {
-            console.warn("[MM] OTP send failed:", e.message);
-            // still advance for UI testing
-          }
-          setOtpSending(false);
-          setStep(2);
-        }}>
-        {otpSending ? "Sending…" : "Send code"}
-      </button>
+            setOtpSending(false);
+          }}>
+          {otpSending ? "Sending…" : "Send code →"}
+        </button>
+        {/* Google sign-in */}
+        <button onClick={() => window.MM_AUTH?.signInWithGoogle("investor")}
+          style={{ width:"100%", padding:"13px 16px", border:"1.5px solid var(--line-strong)", borderRadius:14, background:"var(--bone)", cursor:"pointer", fontFamily:"inherit", fontSize:14, fontWeight:600, color:"var(--ink)", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+          <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/><path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+          Continue with Google
+        </button>
+      </div>
     </div>,
 
-    // ── slide 2: OTP ──
-    <div key="o" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
-      <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
-        <RoundBtn onClick={() => setStep(1)}><Icon name="back" size={18} /></RoundBtn>
+    // ── slide 2: email OTP (6 digits) ──
+    <div key="o" className="screen-enter" style={{ padding:"230px 22px 28px", display:"flex", flexDirection:"column", height:"100%" }}>
+      <div className="row" style={{ marginBottom:18, marginTop:-200 }}>
+        <RoundBtn onClick={() => { setStep(1); setOtp(["","","","","",""]); setOtpError(""); }}><Icon name="back" size={18} /></RoundBtn>
       </div>
-      <div style={{ height: 170 }} />
-      <div className="h2" style={{ marginBottom: 8 }}>Enter the code</div>
-      <p style={{ color: "var(--ink-2)", fontSize: 14, margin: "0 0 28px" }}>
-        Sent to <b>+234 {phone.slice(0, 3)} {phone.slice(3, 6)} {phone.slice(6)}</b>
+      <div style={{ height:170 }} />
+      <div className="h2" style={{ marginBottom:8 }}>Check your email</div>
+      <p style={{ color:"var(--ink-2)", fontSize:14, margin:"0 0 28px" }}>
+        We sent a 6-digit code to <b style={{ color:"var(--ink)" }}>{email}</b>
       </p>
-      {/* Fixed-size boxes — do NOT use flex:1, use fixed width */}
-      <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-        {otp.map((d, i) =>
-          <input key={i} ref={otpRefs[i]}
-            className={`otp-input-${i}`}
-            value={d} maxLength={1}
-            inputMode="numeric"
-            disabled={otpVerifying}
-            onChange={(e) => {
-              const val = e.target.value.replace(/\D/g, "");
+      <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
+        {otp.map((d, i) => (
+          <input key={i} ref={otpRefs[i]} value={d} maxLength={1}
+            inputMode="numeric" disabled={otpVerifying}
+            onChange={e => {
+              const val = e.target.value.replace(/\D/g,"");
               const next = [...otp]; next[i] = val; setOtp(next);
-              if (val && i < 3) otpRefs[i + 1].current?.focus();
+              if (val && i < 5) otpRefs[i+1].current?.focus();
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Backspace" && !d && i > 0) otpRefs[i - 1].current?.focus();
+            onKeyDown={e => {
+              if (e.key === "Backspace" && !d && i > 0) otpRefs[i-1].current?.focus();
             }}
-            style={{
-              width: 64, height: 68, flexShrink: 0,
-              textAlign: "center",
-              fontFamily: "var(--font-display)", fontSize: 30,
-              color: otpError ? "var(--clay)" : "var(--ink)",
-              border: `1.5px solid ${otpError ? "var(--clay)" : d ? "var(--clay)" : "var(--line-strong)"}`,
-              background: otpVerifying ? "rgba(31,26,20,0.04)" : "var(--bone)",
-              borderRadius: 14, outline: "none",
-              transition: "border-color 200ms, background 200ms",
-              opacity: otpVerifying ? 0.6 : 1,
-              WebkitAppearance: "none",
-            }} />
-        )}
+            style={{ width:44, height:56, flexShrink:0, textAlign:"center",
+                     fontFamily:"var(--font-display)", fontSize:26,
+                     color: otpError ? "var(--clay)" : "var(--ink)",
+                     border:`1.5px solid ${otpError ? "var(--clay)" : d ? "var(--clay)" : "var(--line-strong)"}`,
+                     background: otpVerifying ? "rgba(31,26,20,0.04)" : "var(--bone)",
+                     borderRadius:12, outline:"none", opacity: otpVerifying ? 0.6 : 1,
+                     WebkitAppearance:"none" }} />
+        ))}
       </div>
-      {otpError && (
-        <p style={{ fontSize: 13, color: "var(--clay)", margin: "12px 0 0", fontWeight: 500 }}>
-          {otpError}
-        </p>
-      )}
-      {otpVerifying && (
-        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "12px 0 0" }}>
-          Verifying…
-        </p>
-      )}
-      <div style={{ marginTop: 16, fontSize: 13, color: "var(--ink-3)" }}>
-        Didn't get it? <span style={{ color: "var(--clay)", fontWeight: 500, cursor: "pointer" }}
-          onClick={() => { setOtp(["","","",""]); setOtpError(""); setStep(1); }}>
+      {otpError && <p style={{ fontSize:13, color:"var(--clay)", margin:"12px 0 0", fontWeight:500 }}>{otpError}</p>}
+      {otpVerifying && <p style={{ fontSize:13, color:"var(--ink-3)", margin:"12px 0 0" }}>Verifying…</p>}
+      <p style={{ fontSize:13, color:"var(--ink-3)", margin:"16px 0 0" }}>
+        Didn't get it?{" "}
+        <span style={{ color:"var(--clay)", fontWeight:500, cursor:"pointer" }}
+          onClick={() => { setOtp(["","","","","",""]); setOtpError(""); setStep(1); }}>
           Resend code
         </span>
-      </div>
-      <div style={{ flex: 1 }} />
+        {" · "}
+        <span style={{ color:"var(--ink-3)" }}>Check spam folder</span>
+      </p>
+      <div style={{ flex:1 }} />
     </div>,
 
     // ── slide 3: name ──
@@ -271,7 +241,7 @@ function InvOnboarding({ onDone }) {
           const userData = { name: name || "Femi Adesanya" };
           try {
             if (window.MM_AUTH) {
-              await window.MM_AUTH.saveProfile({ name: userData.name, role: "investor" });
+              await window.MM_AUTH.saveProfile({ name: userData.name, role: "investor", email: emailRef.current });
             }
           } catch (e) {
             console.warn("[MM] save investor profile failed:", e.message);

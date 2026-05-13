@@ -4,33 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#F7F1E8" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>MonieMatch — Sign In</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Nunito:wght@400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Nunito:wght@400;500;600;700;800&display=swap" />
   <link rel="stylesheet" href="/app/shared/styles.css" />
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; height: 100dvh; background: #F7F1E8; overflow: hidden; }
-    body { display: flex; align-items: center; justify-content: center; }
-    #root { width: 100%; height: 100%; height: 100dvh; position: relative; overflow: hidden; }
-
+    html, body { height: 100%; height: 100dvh; overflow: hidden; }
+    body { background: #F7F1E8; display: flex; align-items: center; justify-content: center; }
+    #root { width: 100%; height: 100%; position: relative; overflow: hidden; }
     @media (min-width: 600px) {
-      body {
-        background: repeating-linear-gradient(135deg, #1c1813 0 14px, #1f1b16 14px 15px);
-        min-height: 100vh; height: auto; padding: 32px 20px;
-      }
-      #root {
-        width: 390px; height: 844px;
-        border-radius: 50px; overflow: hidden;
-        box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.5);
-      }
+      body { background: repeating-linear-gradient(135deg, #1c1813 0 14px, #1f1b16 14px 15px); min-height: 100vh; height: auto; padding: 32px 20px; }
+      #root { width: 390px; height: 844px; border-radius: 50px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.5); }
     }
   </style>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -38,163 +26,144 @@
 </head>
 <body>
   <div id="root"></div>
-
   <script src="/app/supabase.js"></script>
   <script type="text/babel" src="/app/shared/auth.jsx"></script>
-
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // Apply palette
-    const p = { forest:"#2D5D3F", clay:"#B45A3C", sun:"#E5A04A", cream:"#F7F1E8" };
-    const root = document.documentElement;
-    root.style.setProperty("--forest", p.forest);
-    root.style.setProperty("--clay",   p.clay);
-    root.style.setProperty("--sun",    p.sun);
-    root.style.setProperty("--cream",  p.cream);
-    root.style.setProperty("--forest-tint", "rgba(45,93,63,0.12)");
-    root.style.setProperty("--clay-tint",   "rgba(180,90,60,0.12)");
-    root.style.setProperty("--sun-tint",    "rgba(229,160,74,0.18)");
-    root.style.setProperty("--font-display", '"Fraunces","EB Garamond",Georgia,serif');
+    (function() {
+      const r = document.documentElement;
+      r.style.setProperty("--forest","#2D5D3F"); r.style.setProperty("--clay","#B45A3C");
+      r.style.setProperty("--sun","#E5A04A");    r.style.setProperty("--cream","#F7F1E8");
+      r.style.setProperty("--ink","#1c1813");    r.style.setProperty("--ink-2","rgba(28,24,19,0.65)");
+      r.style.setProperty("--ink-3","rgba(28,24,19,0.38)"); r.style.setProperty("--bone","rgba(28,24,19,0.05)");
+      r.style.setProperty("--line-strong","rgba(28,24,19,0.15)");
+      r.style.setProperty("--font-display",'"Fraunces",Georgia,serif');
+    })();
 
     function SignIn() {
-      const [step, setStep] = useState("phone"); // phone | otp | redirecting | error
-      const [phone, setPhone] = useState("");
-      const [otp, setOtp] = useState(["","","",""]);
-      const [loading, setLoading] = useState(false);
-      const [error, setError] = useState("");
-      const otpRefs = [useRef(), useRef(), useRef(), useRef()];
-      const fmtPhone = useRef("");
+      const [step, setStep]         = useState("email");
+      const [email, setEmail]       = useState("");
+      const [otp, setOtp]           = useState(["","","","","",""]);
+      const [sending, setSending]   = useState(false);
+      const [verifying, setVerifying] = useState(false);
+      const [error, setError]       = useState("");
+      const otpRefs = [useRef(),useRef(),useRef(),useRef(),useRef(),useRef()];
+      const emailRef = useRef("");
 
-      // Auto-verify when 4 digits filled
       useEffect(() => {
-        if (step === "otp" && otp.every(d => d !== "")) {
-          handleVerify();
+        if (step === "otp" && otp.every(d => d !== "") && !verifying) {
+          const t = setTimeout(async () => {
+            setError(""); setVerifying(true);
+            try {
+              await window.MM_AUTH.verifyEmailOTP(emailRef.current, otp.join(""));
+              const { data: { user } } = await window.sb.auth.getUser();
+              if (user) {
+                const { data: p } = await window.sb.from("users").select("role").eq("id", user.id).maybeSingle();
+                if (p?.role === "investor")          window.location.href = "/app/investor";
+                else if (p?.role === "business_owner") window.location.href = "/app/business";
+                else window.location.href = "/app";
+              }
+            } catch (e) {
+              setVerifying(false);
+              setOtp(["","","","","",""]);
+              setError("Wrong or expired code. Try again.");
+              setTimeout(() => otpRefs[0].current?.focus(), 100);
+            }
+          }, 380);
+          return () => clearTimeout(t);
         }
       }, [otp, step]);
 
-      const handleSend = async () => {
-        setLoading(true); setError("");
+      const sendCode = async () => {
+        setSending(true); setError("");
         try {
-          const formatted = await window.MM_AUTH.sendOTP(phone);
-          fmtPhone.current = formatted;
+          emailRef.current = await window.MM_AUTH.sendEmailOTP(email);
           setStep("otp");
-        } catch (e) {
-          setError("Couldn't send code. Check the number and try again.");
-        }
-        setLoading(false);
+        } catch (e) { setError("Couldn't send code. Check email and try again."); }
+        setSending(false);
       };
 
-      const handleVerify = async () => {
-        setLoading(true); setError("");
-        try {
-          await window.MM_AUTH.verifyOTP(fmtPhone.current, otp.join(""));
-          setStep("redirecting");
-          // Get user role and redirect
-          const profile = await window.MM_AUTH.getProfile();
-          if (!profile) {
-            // New number — send to signup
-            window.location.href = "/join/investor";
-            return;
-          }
-          const dest = profile.role === "investor" ? "/app/investor" : "/app/business";
-          window.location.href = dest;
-        } catch (e) {
-          setError("Wrong code or it expired. Try again.");
-          setOtp(["","","",""]);
-          setLoading(false);
-          setStep("otp");
-        }
-      };
-
-      if (step === "redirecting") {
-        return (
-          <div style={{ height:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"var(--cream)", gap:16 }}>
-            <div style={{ fontFamily:"var(--font-display)", fontSize:28, color:"var(--ink)" }}>MonieMatch</div>
-            <p style={{ fontSize:14, color:"var(--ink-3)" }}>Taking you in…</p>
-          </div>
-        );
-      }
+      const S = { width:"100%", padding:"14px 16px", border:"none", borderRadius:14, fontFamily:"inherit", fontSize:15, fontWeight:700, cursor:"pointer" };
 
       return (
-        <div style={{ height:"100%", display:"flex", flexDirection:"column", background:"var(--cream)", padding:"0 24px" }}>
-          {/* Header */}
-          <div style={{ paddingTop:64, paddingBottom:40, display:"flex", flexDirection:"column", gap:8 }}>
-            <div style={{ fontFamily:"var(--font-display)", fontSize:32, color:"var(--ink)", lineHeight:1.1 }}>
-              {step === "phone" ? "Welcome back." : "Enter the code."}
-            </div>
-            <p style={{ fontSize:15, color:"var(--ink-3)", margin:0, lineHeight:1.5 }}>
-              {step === "phone"
-                ? "Enter your phone number to sign in."
-                : <>Sent to <b style={{ color:"var(--ink)" }}>+234 {phone.slice(0,3)} {phone.slice(3,6)} {phone.slice(6)}</b></>
-              }
-            </p>
+        <div style={{ height:"100%", background:"var(--cream)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 28px", overflowY:"auto" }}>
+          {/* Logo */}
+          <div style={{ marginBottom:28 }}>
+            <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
+              <rect width="48" height="48" rx="14" fill="#2D5D3F"/>
+              <rect x="8" y="30" width="8" height="12" rx="3" fill="#E5A04A"/>
+              <rect x="20" y="20" width="8" height="22" rx="3" fill="white" opacity="0.9"/>
+              <rect x="32" y="12" width="8" height="30" rx="3" fill="white"/>
+            </svg>
           </div>
 
-          {/* Phone input */}
-          {step === "phone" && (
-            <div style={{ display:"flex", alignItems:"center", gap:10, background:"var(--bone)", border:"1.5px solid var(--line-strong)", borderRadius:16, padding:"14px 16px" }}>
-              <span style={{ fontSize:16, color:"var(--ink-2)" }}>🇳🇬 +234</span>
-              <div style={{ width:1, height:22, background:"var(--line-strong)" }} />
-              <input
-                value={phone}
-                onChange={e => setPhone(e.target.value.replace(/\D/g,"").slice(0,10))}
-                placeholder="803 000 0000"
-                autoFocus
-                style={{ flex:1, border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:16, color:"var(--ink)", letterSpacing:"0.04em" }}
-                onKeyDown={e => e.key === "Enter" && phone.length === 10 && handleSend()}
-              />
-            </div>
-          )}
+          {step === "email" ? (<>
+            <h1 style={{ fontFamily:"var(--font-display)", fontSize:30, color:"var(--ink)", textAlign:"center", marginBottom:6 }}>Welcome back</h1>
+            <p style={{ fontSize:14, color:"var(--ink-2)", textAlign:"center", marginBottom:28 }}>Enter your email to get a sign-in code</p>
 
-          {/* OTP input */}
-          {step === "otp" && (
-            <div style={{ display:"flex", gap:12 }}>
+            <div style={{ width:"100%", background:"var(--bone)", border:"1.5px solid var(--line-strong)", borderRadius:14, padding:"14px 16px", marginBottom:12 }}>
+              <input type="email" inputMode="email" autoComplete="email" value={email}
+                onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && email.includes("@") && sendCode()}
+                placeholder="your@email.com"
+                style={{ width:"100%", border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:16, color:"var(--ink)" }} />
+            </div>
+
+            {error && <p style={{ fontSize:13, color:"var(--clay)", marginBottom:10, alignSelf:"flex-start" }}>{error}</p>}
+
+            <button onClick={sendCode} disabled={!email.includes("@") || !email.includes(".") || sending}
+              style={{ ...S, background:"var(--ink)", color:"var(--cream)", opacity: !email.includes("@") || sending ? 0.4 : 1, marginBottom:10 }}>
+              {sending ? "Sending…" : "Send sign-in code →"}
+            </button>
+
+            <div style={{ width:"100%", display:"flex", alignItems:"center", gap:10, margin:"4px 0 10px" }}>
+              <div style={{ flex:1, height:1, background:"var(--line-strong)" }} />
+              <span style={{ fontSize:12, color:"var(--ink-3)" }}>or</span>
+              <div style={{ flex:1, height:1, background:"var(--line-strong)" }} />
+            </div>
+
+            <button onClick={() => window.MM_AUTH?.signInWithGoogle("auto")}
+              style={{ ...S, background:"white", color:"var(--ink)", border:"1.5px solid var(--line-strong)", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+              <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/><path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+              Continue with Google
+            </button>
+
+            <p style={{ fontSize:13, color:"var(--ink-3)", marginTop:24, textAlign:"center" }}>
+              New here?{" "}
+              <a href="/join-investor" style={{ color:"var(--clay)", fontWeight:600, textDecoration:"none" }}>Investor</a>
+              {" · "}
+              <a href="/join-business" style={{ color:"var(--forest)", fontWeight:600, textDecoration:"none" }}>Business owner</a>
+            </p>
+          </>) : (<>
+            <h1 style={{ fontFamily:"var(--font-display)", fontSize:28, color:"var(--ink)", textAlign:"center", marginBottom:6 }}>Check your email</h1>
+            <p style={{ fontSize:14, color:"var(--ink-2)", textAlign:"center", marginBottom:28 }}>
+              6-digit code sent to <b style={{ color:"var(--ink)" }}>{email}</b>
+            </p>
+
+            <div style={{ display:"flex", gap:8, justifyContent:"center", marginBottom:14 }}>
               {otp.map((d, i) => (
-                <input key={i} ref={otpRefs[i]} value={d} maxLength={1}
-                  autoFocus={i === 0}
-                  onChange={e => {
-                    const val = e.target.value.replace(/\D/g,"");
-                    const next = [...otp]; next[i] = val; setOtp(next);
-                    if (val && i < 3) otpRefs[i+1].current?.focus();
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === "Backspace" && !d && i > 0) otpRefs[i-1].current?.focus();
-                  }}
-                  style={{ flex:1, height:64, textAlign:"center", fontFamily:"var(--font-display)", fontSize:32, color:"var(--ink)", border:`1.5px solid ${d ? "var(--clay)" : "var(--line-strong)"}`, background:"var(--bone)", borderRadius:16, outline:"none", transition:"border-color 200ms" }}
-                />
+                <input key={i} ref={otpRefs[i]} value={d} maxLength={1} inputMode="numeric" disabled={verifying}
+                  onChange={e => { const v = e.target.value.replace(/\D/g,""); const n=[...otp]; n[i]=v; setOtp(n); if(v&&i<5) otpRefs[i+1].current?.focus(); }}
+                  onKeyDown={e => { if(e.key==="Backspace"&&!d&&i>0) otpRefs[i-1].current?.focus(); }}
+                  style={{ width:44, height:56, textAlign:"center", fontFamily:"var(--font-display)", fontSize:26,
+                           color: error ? "var(--clay)" : "var(--ink)",
+                           border:`1.5px solid ${error ? "var(--clay)" : d ? "var(--ink)" : "var(--line-strong)"}`,
+                           background: verifying ? "rgba(28,24,19,0.04)" : "white",
+                           borderRadius:12, outline:"none", WebkitAppearance:"none" }} />
               ))}
             </div>
-          )}
 
-          {/* Error */}
-          {error && (
-            <p style={{ fontSize:13, color:"#c0392b", margin:"12px 0 0", textAlign:"center" }}>{error}</p>
-          )}
+            {error    && <p style={{ fontSize:13, color:"var(--clay)", marginBottom:10 }}>{error}</p>}
+            {verifying && <p style={{ fontSize:13, color:"var(--ink-3)", marginBottom:10 }}>Verifying…</p>}
 
-          <div style={{ flex:1 }} />
-
-          {/* CTA */}
-          {step === "phone" && (
-            <button
-              onClick={handleSend}
-              disabled={phone.length < 10 || loading}
-              style={{ width:"100%", padding:14, background: phone.length === 10 ? "var(--ink)" : "var(--line-strong)", color: phone.length === 10 ? "var(--cream)" : "var(--ink-3)", border:"none", borderRadius:14, fontSize:16, fontWeight:700, cursor: phone.length === 10 ? "pointer" : "default", fontFamily:"inherit", transition:"all 200ms", marginBottom:16 }}>
-              {loading ? "Sending…" : "Send code"}
-            </button>
-          )}
-          {step === "otp" && (
-            <button
-              onClick={() => { setStep("phone"); setOtp(["","","",""]); }}
-              style={{ width:"100%", padding:14, background:"none", border:"1.5px solid var(--line-strong)", color:"var(--ink-2)", borderRadius:14, fontSize:14, fontWeight:600, cursor:"pointer", fontFamily:"inherit", marginBottom:16 }}>
-              ← Different number
-            </button>
-          )}
-
-          <p style={{ textAlign:"center", fontSize:13, color:"var(--ink-3)", paddingBottom:36 }}>
-            Don't have an account?{" "}
-            <a href="/join/investor" style={{ color:"var(--ink)", fontWeight:600, textDecoration:"none" }}>Join MonieMatch</a>
-          </p>
+            <p style={{ fontSize:13, color:"var(--ink-3)", marginTop:8 }}>
+              Didn't get it?{" "}
+              <span onClick={() => { setOtp(["","","","","",""]); setError(""); setStep("email"); }}
+                style={{ color:"var(--clay)", fontWeight:600, cursor:"pointer" }}>Resend</span>
+              {" · Check spam folder"}
+            </p>
+          </>)}
         </div>
       );
     }
