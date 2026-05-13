@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#F7F1E8" />
+  <link rel="icon" type="image/png" href="/logo.png" />
   <title>MonieMatch — Sign In</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,7 +12,7 @@
   <link rel="stylesheet" href="/app/shared/styles.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; height: 100dvh; overflow: hidden; }
+    html, body { height: 100%; overflow: hidden; }
     body { background: #F7F1E8; display: flex; align-items: center; justify-content: center; }
     #root { width: 100%; height: 100%; position: relative; overflow: hidden; }
     @media (min-width: 600px) {
@@ -29,7 +30,7 @@
   <script src="/app/supabase.js"></script>
   <script type="text/babel" src="/app/shared/auth.jsx"></script>
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState } = React;
 
     (function() {
       const r = document.documentElement;
@@ -41,128 +42,129 @@
       r.style.setProperty("--font-display",'"Fraunces",Georgia,serif');
     })();
 
+    async function redirectByRole() {
+      const { data: { user } } = await window.sb.auth.getUser();
+      if (!user) return;
+      const { data: p } = await window.sb.from("users").select("role").eq("id", user.id).maybeSingle();
+      if (p?.role === "investor")           window.location.href = "/app/investor";
+      else if (p?.role === "business_owner") window.location.href = "/app/business";
+      else window.location.href = "/app";
+    }
+
     function SignIn() {
-      const [step, setStep]         = useState("email");
-      const [email, setEmail]       = useState("");
-      const [otp, setOtp]           = useState(["","","","","",""]);
-      const [sending, setSending]   = useState(false);
-      const [verifying, setVerifying] = useState(false);
-      const [error, setError]       = useState("");
-      const otpRefs = [useRef(),useRef(),useRef(),useRef(),useRef(),useRef()];
-      const emailRef = useRef("");
+      const [login, setLogin]   = useState("");
+      const [pw, setPw]         = useState("");
+      const [showPw, setShowPw] = useState(false);
+      const [busy, setBusy]     = useState(false);
+      const [error, setError]   = useState("");
+      const [forgot, setForgot] = useState(false);
+      const [resetDone, setResetDone] = useState(false);
 
-      useEffect(() => {
-        if (step === "otp" && otp.every(d => d !== "") && !verifying) {
-          const t = setTimeout(async () => {
-            setError(""); setVerifying(true);
-            try {
-              await window.MM_AUTH.verifyEmailOTP(emailRef.current, otp.join(""));
-              const { data: { user } } = await window.sb.auth.getUser();
-              if (user) {
-                const { data: p } = await window.sb.from("users").select("role").eq("id", user.id).maybeSingle();
-                if (p?.role === "investor")          window.location.href = "/app/investor";
-                else if (p?.role === "business_owner") window.location.href = "/app/business";
-                else window.location.href = "/app";
-              }
-            } catch (e) {
-              setVerifying(false);
-              setOtp(["","","","","",""]);
-              setError("Wrong or expired code. Try again.");
-              setTimeout(() => otpRefs[0].current?.focus(), 100);
-            }
-          }, 380);
-          return () => clearTimeout(t);
-        }
-      }, [otp, step]);
-
-      const sendCode = async () => {
-        setSending(true); setError("");
+      const handleSignIn = async () => {
+        if (!login || !pw) return;
+        setBusy(true); setError("");
         try {
-          emailRef.current = await window.MM_AUTH.sendEmailOTP(email);
-          setStep("otp");
-        } catch (e) { setError("Couldn't send code. Check email and try again."); }
-        setSending(false);
+          await window.MM_AUTH.signIn(login, pw);
+          await redirectByRole();
+        } catch (e) {
+          setError(
+            e.message?.includes("not found")     ? "Username not found." :
+            e.message?.includes("Invalid")        ? "Wrong password." :
+            e.message?.includes("Email not conf") ? "Check your email to confirm your account first." :
+            "Sign in failed. Try again."
+          );
+        }
+        setBusy(false);
       };
 
-      const S = { width:"100%", padding:"14px 16px", border:"none", borderRadius:14, fontFamily:"inherit", fontSize:15, fontWeight:700, cursor:"pointer" };
+      const handleReset = async () => {
+        if (!login.includes("@")) { setError("Enter your email address to reset password."); return; }
+        setBusy(true);
+        try { await window.MM_AUTH.resetPassword(login); setResetDone(true); } catch (e) { setError("Couldn't send reset email."); }
+        setBusy(false);
+      };
+
+      const inp = { width:"100%", border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:16, color:"var(--ink)" };
+      const box = { width:"100%", background:"var(--bone)", border:"1.5px solid var(--line-strong)", borderRadius:14, padding:"14px 16px", marginBottom:10 };
 
       return (
         <div style={{ height:"100%", background:"var(--cream)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 28px", overflowY:"auto" }}>
+
           {/* Logo */}
-          <div style={{ marginBottom:28 }}>
-            <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="14" fill="#2D5D3F"/>
-              <rect x="8" y="30" width="8" height="12" rx="3" fill="#E5A04A"/>
-              <rect x="20" y="20" width="8" height="22" rx="3" fill="white" opacity="0.9"/>
-              <rect x="32" y="12" width="8" height="30" rx="3" fill="white"/>
-            </svg>
-          </div>
+          <img src="/logo.png" alt="MonieMatch" style={{ width:48, height:48, borderRadius:12, marginBottom:22, objectFit:"contain" }}
+            onError={e => { e.target.style.display="none"; }} />
 
-          {step === "email" ? (<>
-            <h1 style={{ fontFamily:"var(--font-display)", fontSize:30, color:"var(--ink)", textAlign:"center", marginBottom:6 }}>Welcome back</h1>
-            <p style={{ fontSize:14, color:"var(--ink-2)", textAlign:"center", marginBottom:28 }}>Enter your email to get a sign-in code</p>
+          <h1 style={{ fontFamily:"var(--font-display)", fontSize:30, color:"var(--ink)", textAlign:"center", marginBottom:6 }}>
+            {forgot ? "Reset password" : "Welcome back"}
+          </h1>
+          <p style={{ fontSize:14, color:"var(--ink-2)", textAlign:"center", marginBottom:28 }}>
+            {forgot ? "Enter your email to get a reset link" : "Sign in with your username or email"}
+          </p>
 
-            <div style={{ width:"100%", background:"var(--bone)", border:"1.5px solid var(--line-strong)", borderRadius:14, padding:"14px 16px", marginBottom:12 }}>
-              <input type="email" inputMode="email" autoComplete="email" value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && email.includes("@") && sendCode()}
-                placeholder="your@email.com"
-                style={{ width:"100%", border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:16, color:"var(--ink)" }} />
+          {!forgot ? (<>
+            {/* Login field */}
+            <div style={box}>
+              <input value={login} onChange={e => { setLogin(e.target.value); setError(""); }}
+                onKeyDown={e => e.key === "Enter" && handleSignIn()}
+                placeholder="Username or email" autoCapitalize="none" autoCorrect="off"
+                style={inp} />
+            </div>
+
+            {/* Password field */}
+            <div style={{ ...box, display:"flex", alignItems:"center", gap:8 }}>
+              <input type={showPw ? "text" : "password"} value={pw}
+                onChange={e => { setPw(e.target.value); setError(""); }}
+                onKeyDown={e => e.key === "Enter" && handleSignIn()}
+                placeholder="Password" autoComplete="current-password"
+                style={{ ...inp, flex:1 }} />
+              <span onClick={() => setShowPw(s => !s)}
+                style={{ fontSize:12, color:"var(--ink-3)", cursor:"pointer", userSelect:"none", fontWeight:500 }}>
+                {showPw ? "Hide" : "Show"}
+              </span>
             </div>
 
             {error && <p style={{ fontSize:13, color:"var(--clay)", marginBottom:10, alignSelf:"flex-start" }}>{error}</p>}
 
-            <button onClick={sendCode} disabled={!email.includes("@") || !email.includes(".") || sending}
-              style={{ ...S, background:"var(--ink)", color:"var(--cream)", opacity: !email.includes("@") || sending ? 0.4 : 1, marginBottom:10 }}>
-              {sending ? "Sending…" : "Send sign-in code →"}
+            <button onClick={handleSignIn} disabled={!login || !pw || busy}
+              style={{ width:"100%", padding:"15px", background:"var(--ink)", color:"var(--cream)", border:"none", borderRadius:14, fontFamily:"inherit", fontSize:15, fontWeight:700, cursor:"pointer", opacity: !login || !pw || busy ? 0.4 : 1, marginBottom:10 }}>
+              {busy ? "Signing in…" : "Sign in"}
             </button>
 
-            <div style={{ width:"100%", display:"flex", alignItems:"center", gap:10, margin:"4px 0 10px" }}>
-              <div style={{ flex:1, height:1, background:"var(--line-strong)" }} />
-              <span style={{ fontSize:12, color:"var(--ink-3)" }}>or</span>
-              <div style={{ flex:1, height:1, background:"var(--line-strong)" }} />
-            </div>
-
+            {/* Google */}
             <button onClick={() => window.MM_AUTH?.signInWithGoogle("auto")}
-              style={{ ...S, background:"white", color:"var(--ink)", border:"1.5px solid var(--line-strong)", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+              style={{ width:"100%", padding:"13px 16px", border:"1.5px solid var(--line-strong)", borderRadius:14, background:"white", cursor:"pointer", fontFamily:"inherit", fontSize:14, fontWeight:600, color:"var(--ink)", display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:20 }}>
               <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/><path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
               Continue with Google
             </button>
 
-            <p style={{ fontSize:13, color:"var(--ink-3)", marginTop:24, textAlign:"center" }}>
+            <span onClick={() => { setForgot(true); setError(""); }}
+              style={{ fontSize:13, color:"var(--clay)", cursor:"pointer", fontWeight:600 }}>
+              Forgot password?
+            </span>
+
+            <p style={{ fontSize:13, color:"var(--ink-3)", marginTop:20, textAlign:"center" }}>
               New here?{" "}
               <a href="/join-investor" style={{ color:"var(--clay)", fontWeight:600, textDecoration:"none" }}>Investor</a>
               {" · "}
-              <a href="/join-business" style={{ color:"var(--forest)", fontWeight:600, textDecoration:"none" }}>Business owner</a>
+              <a href="/join-business" style={{ color:"var(--forest)", fontWeight:600, textDecoration:"none" }}>Business</a>
             </p>
           </>) : (<>
-            <h1 style={{ fontFamily:"var(--font-display)", fontSize:28, color:"var(--ink)", textAlign:"center", marginBottom:6 }}>Check your email</h1>
-            <p style={{ fontSize:14, color:"var(--ink-2)", textAlign:"center", marginBottom:28 }}>
-              6-digit code sent to <b style={{ color:"var(--ink)" }}>{email}</b>
-            </p>
-
-            <div style={{ display:"flex", gap:8, justifyContent:"center", marginBottom:14 }}>
-              {otp.map((d, i) => (
-                <input key={i} ref={otpRefs[i]} value={d} maxLength={1} inputMode="numeric" disabled={verifying}
-                  onChange={e => { const v = e.target.value.replace(/\D/g,""); const n=[...otp]; n[i]=v; setOtp(n); if(v&&i<5) otpRefs[i+1].current?.focus(); }}
-                  onKeyDown={e => { if(e.key==="Backspace"&&!d&&i>0) otpRefs[i-1].current?.focus(); }}
-                  style={{ width:44, height:56, textAlign:"center", fontFamily:"var(--font-display)", fontSize:26,
-                           color: error ? "var(--clay)" : "var(--ink)",
-                           border:`1.5px solid ${error ? "var(--clay)" : d ? "var(--ink)" : "var(--line-strong)"}`,
-                           background: verifying ? "rgba(28,24,19,0.04)" : "white",
-                           borderRadius:12, outline:"none", WebkitAppearance:"none" }} />
-              ))}
-            </div>
-
-            {error    && <p style={{ fontSize:13, color:"var(--clay)", marginBottom:10 }}>{error}</p>}
-            {verifying && <p style={{ fontSize:13, color:"var(--ink-3)", marginBottom:10 }}>Verifying…</p>}
-
-            <p style={{ fontSize:13, color:"var(--ink-3)", marginTop:8 }}>
-              Didn't get it?{" "}
-              <span onClick={() => { setOtp(["","","","","",""]); setError(""); setStep("email"); }}
-                style={{ color:"var(--clay)", fontWeight:600, cursor:"pointer" }}>Resend</span>
-              {" · Check spam folder"}
-            </p>
+            {resetDone ? (
+              <p style={{ fontSize:14, color:"var(--forest)", textAlign:"center" }}>
+                ✓ Reset link sent. Check your email.
+              </p>
+            ) : (<>
+              <div style={box}>
+                <input value={login} onChange={e => setLogin(e.target.value)} type="email" placeholder="your@email.com" style={inp} />
+              </div>
+              {error && <p style={{ fontSize:13, color:"var(--clay)", marginBottom:10 }}>{error}</p>}
+              <button onClick={handleReset} disabled={busy}
+                style={{ width:"100%", padding:"15px", background:"var(--ink)", color:"var(--cream)", border:"none", borderRadius:14, fontFamily:"inherit", fontSize:15, fontWeight:700, cursor:"pointer", marginBottom:12 }}>
+                {busy ? "Sending…" : "Send reset link"}
+              </button>
+            </>)}
+            <span onClick={() => { setForgot(false); setError(""); setResetDone(false); }}
+              style={{ fontSize:13, color:"var(--ink-3)", cursor:"pointer" }}>← Back to sign in</span>
           </>)}
         </div>
       );

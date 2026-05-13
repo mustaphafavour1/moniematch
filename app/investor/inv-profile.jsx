@@ -1,49 +1,60 @@
 // inv-profile.jsx — Investor profile screen
 
-function InvProfile({ user }) {
+function InvProfile({ user, onEditPrefs, onSettings, onSignOut }) {
+  const name      = user?.name     || "Investor";
+  const initials  = user?.initials || name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+  const color     = user?.color    || "var(--forest)";
+  const range     = user?.investmentRange || "—";
+  const returns   = (user?.returnStructures || []).join(", ") || "—";
+  const cadence   = (user?.reportingCadence || []).join(", ") || "—";
+  const interests = (user?.interests || []).join(", ") || "—";
+  const uname     = user?.username  ? `@${user.username}` : "";
+
   return (
-    <div className="scroll" style={{ paddingBottom: 16 }}>
-      <div className="pad" style={{ paddingTop: 14, textAlign: "center" }}>
-        <Avatar name={user.name} initials="FA" color="var(--forest)" size={88} />
-        <div className="h1" style={{ fontSize: 26, marginTop: 14 }}>{user.name}</div>
-        <div style={{ fontSize: 13, color: "var(--ink-3)" }}>Investor · joined May 2026</div>
+    <div className="scroll" style={{ paddingBottom: 40 }}>
+      {/* Header */}
+      <div className="pad" style={{ paddingTop:14, textAlign:"center" }}>
+        <Avatar name={name} initials={initials} color={color} size={88} />
+        <div className="h1" style={{ fontSize:26, marginTop:14 }}>{name}</div>
+        {uname && <div style={{ fontSize:13, color:"var(--clay)", marginTop:2, fontWeight:600 }}>{uname}</div>}
+        <div style={{ fontSize:13, color:"var(--ink-3)", marginTop:2 }}>Investor · {user?.city || "Nigeria"}</div>
       </div>
 
-      <div className="pad" style={{ marginTop: 22 }}>
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <DetailRow icon="money" label="Investment range" value="₦200k – ₦1.5M" />
-          <DetailRow icon="trend-up" label="Preferred returns" value="Revenue share, Fixed" />
-          <DetailRow icon="bell" label="Reporting cadence" value="Monthly + quarterly" />
-          <DetailRow icon="shop" label="Industries of interest" value="Food, Fashion, Bakery, Barbing" last />
+      {/* Investment preferences — with edit button */}
+      <div className="pad" style={{ marginTop:22 }}>
+        <div className="row between" style={{ marginBottom:10 }}>
+          <div className="eyebrow">Investment preferences</div>
+          <button onClick={onEditPrefs}
+            style={{ appearance:"none", border:"1.5px solid var(--line-strong)", background:"none", borderRadius:20, padding:"5px 12px", fontSize:12, fontWeight:600, color:"var(--clay)", cursor:"pointer", fontFamily:"inherit" }}>
+            Edit
+          </button>
+        </div>
+        <div className="card" style={{ padding:0, overflow:"hidden" }}>
+          <DetailRow icon="money"    label="Investment range"   value={range} />
+          <DetailRow icon="trend-up" label="Preferred returns"  value={returns} />
+          <DetailRow icon="bell"     label="Reporting cadence"  value={cadence} />
+          <DetailRow icon="shop"     label="Industries"         value={interests} last />
         </div>
       </div>
 
-      <div className="pad" style={{ marginTop: 14 }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>Verification</div>
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <DetailRow icon="check" label="BVN verified" value="✓" />
-          <DetailRow icon="phone" label="Phone verified" value="✓" />
-          <DetailRow icon="doc" label="ID upload" value="Pending" last />
-        </div>
-      </div>
-
-      <div className="pad" style={{ marginTop: 14 }}>
-        <div className="card sand">
-          <div className="row gap-10" style={{ alignItems: "flex-start" }}>
-            <Icon name="sparkle" size={18} color="var(--clay)" fill />
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>Get the Premium tier</div>
-              <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5, margin: "4px 0 10px" }}>
-                Early deal access · sector analytics · priority matching. ₦7,500/month.
-              </p>
-              <button className="btn btn-clay" style={{ padding: "10px 16px", fontSize: 13 }}>Upgrade</button>
-            </div>
+      {/* Actions */}
+      <div className="pad" style={{ marginTop:14 }}>
+        <div className="card" style={{ padding:0, overflow:"hidden" }}>
+          <div onClick={onSettings}
+            style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 16px", cursor:"pointer", borderBottom:"1px solid var(--line)" }}>
+            <Icon name="settings" size={18} color="var(--ink-3)" />
+            <span style={{ fontSize:14, color:"var(--ink)" }}>Settings</span>
+            <Icon name="fwd" size={14} color="var(--ink-4)" style={{ marginLeft:"auto" }} />
+          </div>
+          <div onClick={onSignOut}
+            style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 16px", cursor:"pointer" }}>
+            <Icon name="logout" size={18} color="var(--clay)" />
+            <span style={{ fontSize:14, color:"var(--clay)", fontWeight:500 }}>Sign out</span>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
 
 Object.assign(window, { InvProfile });

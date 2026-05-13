@@ -10,12 +10,14 @@ const INVESTOR_SCREENS = [
   { id: "matches",       label: "Matches" },
   { id: "search",        label: "Search" },
   { id: "biz",           label: "Business detail" },
+  { id: "chat",          label: "Chat" },
   { id: "deal",          label: "Deal · sign" },
   { id: "portfolio",     label: "Portfolio" },
   { id: "notifications", label: "Notifications" },
   { id: "matchPrefs",    label: "Match prefs" },
   { id: "dealHistory",   label: "Deal history" },
   { id: "invProfile",    label: "Profile" },
+  { id: "requirements",  label: "Requirements" },
   { id: "kyc",           label: "KYC" },
   { id: "referral",      label: "Referral" },
   { id: "settings",      label: "Settings" },
@@ -24,6 +26,7 @@ const BIZ_SCREENS = [
   { id: "onb",             label: "Onboarding" },
   { id: "home",            label: "Home" },
   { id: "investorDetail",  label: "Investor offer" },
+  { id: "chat",            label: "Chat" },
   { id: "dealSign",        label: "Counter-sign · funded" },
   { id: "report",          label: "Report" },
   { id: "reportHistory",   label: "Report history" },
@@ -31,6 +34,7 @@ const BIZ_SCREENS = [
   { id: "fundingProgress", label: "Funding progress" },
   { id: "notifications",   label: "Notifications" },
   { id: "profileEdit",     label: "Edit profile" },
+  { id: "profileLinks",    label: "Links & catalogue" },
   { id: "dealHistory",     label: "Deal history" },
   { id: "documents",       label: "Documents" },
   { id: "kyc",             label: "KYC" },
@@ -122,8 +126,10 @@ function InvestorApp({ initialScreen, tweaks }) {
       {screen === "invProfile" && tab === "profile" && (
         <InvProfile
           user={user}
+          onEditPrefs={() => setScreen("matchPrefs")}
           onSettings={() => setScreen("settings")}
           onDealHistory={() => setScreen("dealHistory")}
+          onSignOut={handleSignOut}
         />
       )}
       {screen === "biz" && (
@@ -132,6 +138,7 @@ function InvestorApp({ initialScreen, tweaks }) {
           onBack={goBack}
           onInvest={() => setScreen("deal")}
           onReports={() => setScreen("reportsReceived")}
+          onChat={() => setScreen("chat")}
         />
       )}
       {screen === "deal" && (
@@ -156,6 +163,18 @@ function InvestorApp({ initialScreen, tweaks }) {
       )}
       {screen === "dealHistory" && (
         <InvDealHistory onBack={() => setScreen("invProfile")} />
+      )}
+      {screen === "chat" && activeBiz && (
+        <MatchChat
+          matchId={activeBiz?.matchId}
+          currentUser={user}
+          otherParty={activeBiz}
+          onBack={() => setScreen("biz")}
+        />
+      )}
+      {screen === "requirements" && (
+        <InvRequirements user={user} onBack={() => setScreen("invProfile")}
+          onSave={r => { setUser({...user, requirements:r}); setScreen("invProfile"); }} />
       )}
       {screen === "reportsReceived" && (
         <InvReportsReceived bizId={activeBiz} onBack={() => setScreen("biz")} />
@@ -251,8 +270,10 @@ function BusinessApp({ initialScreen, tweaks }) {
           user={user}
           onSettings={() => setScreen("settings")}
           onEditProfile={() => setScreen("profileEdit")}
+          onEditLinks={() => setScreen("profileLinks")}
           onDealHistory={() => setScreen("dealHistory")}
           onReportHistory={() => setScreen("reportHistory")}
+          onSignOut={handleSignOut}
         />
       )}
       {screen === "investorDetail" && (
@@ -261,6 +282,7 @@ function BusinessApp({ initialScreen, tweaks }) {
           onBack={goBack}
           onAccept={() => setScreen("dealSign")}
           onCounter={() => setScreen("counterOffer")}
+          onChat={() => setScreen("chat")}
         />
       )}
       {screen === "counterOffer" && (
@@ -303,8 +325,19 @@ function BusinessApp({ initialScreen, tweaks }) {
       {screen === "dealHistory" && (
         <BizDealHistory onBack={() => setScreen("profile")} />
       )}
+      {screen === "chat" && activeInv && (
+        <MatchChat
+          matchId={activeInv?.matchId}
+          currentUser={user}
+          otherParty={activeInv}
+          onBack={() => setScreen("investorDetail")}
+        />
+      )}
+      {screen === "profileLinks" && (
+        <BizProfileLinks user={user} onBack={() => setScreen("profile")}
+          onSave={l => { setUser({...user, ...l}); setScreen("profile"); }} />
+      )}
       {screen === "kyc" && (
-        <KYCScreen role="business" onBack={goBack} onVerified={() => setScreen("profile")} />
       )}
       {screen === "documents" && (
         <BizDocuments onBack={() => setScreen("profile")} />

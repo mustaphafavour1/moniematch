@@ -1,40 +1,17 @@
-// biz-onboarding.jsx — Business owner onboarding flow (splash slides, email, OTP, business setup)
+// biz-onboarding.jsx — Business owner onboarding (splash slides, email+password, business setup)
 
 function BizOnboarding({ onDone }) {
-  const [step, setStep] = useState(0);
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState(["","","","","",""]);  // 6-digit
-  const [name, setName] = useState("");
-  const [bizName, setBizName] = useState("");
+  const [step, setStep]         = useState(0);
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw]     = useState(false);
+  const [name, setName]         = useState("");
+  const [username, setUsername] = useState("");
+  const [bizName, setBizName]   = useState("");
   const [category, setCategory] = useState("");
-  const [otpSending, setOtpSending] = useState(false);
-  const otpRefs = [useRef(),useRef(),useRef(),useRef(),useRef(),useRef()];
-  const emailRef = useRef("");
-
-  const [otpError, setOtpError]         = React.useState("");
-  const [otpVerifying, setOtpVerifying] = React.useState(false);
-
-  // Verify OTP — only advance on success
-  useEffect(() => {
-    if (step === 2 && otp.every(d => d !== "") && !otpVerifying) {
-      const t = setTimeout(async () => {
-        setOtpError("");
-        setOtpVerifying(true);
-        try {
-          if (window.MM_AUTH) {
-            await window.MM_AUTH.verifyEmailOTP(emailRef.current, otp.join(""));
-          }
-          setOtpVerifying(false);
-          setStep(3);
-        } catch (e) {
-          setOtpVerifying(false);
-          setOtp(["","","","","",""]);
-          setOtpError("Wrong code or expired. Try again.");
-        }
-      }, 380);
-      return () => clearTimeout(t);
-    }
-  }, [otp, step]);
+  const [busy, setBusy]         = useState(false);
+  const [error, setError]       = useState("");
+  const [usernameErr, setUsernameErr] = useState("");
 
   const cats = ["Bakery", "Fashion", "Food", "Barbing", "Repair", "Beauty", "Retail", "Other"];
 
@@ -114,38 +91,51 @@ function BizOnboarding({ onDone }) {
       </div>
     </div>,
 
-    // ── slide 1: email ──
+    // ── slide 1: email + password ──
     <div key="p" className="screen-enter" style={{ padding:"230px 22px 28px", display:"flex", flexDirection:"column", height:"100%" }}>
       <div className="row" style={{ marginBottom:18, marginTop:-200 }}>
         <RoundBtn onClick={() => setStep(0)}><Icon name="back" size={18} /></RoundBtn>
       </div>
       <div style={{ height:170 }} />
-      <div className="h2" style={{ marginBottom:8 }}>What's your email?</div>
-      <p style={{ color:"var(--ink-2)", fontSize:14, margin:"0 0 24px" }}>We'll send you a 6-digit sign-in code.</p>
-      <div style={{ background:"var(--bone)", border:"1px solid var(--line-strong)", borderRadius:16, padding:"14px 16px" }}>
-        <input type="email" inputMode="email" autoComplete="email"
-          value={email} onChange={e => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          style={{ width:"100%", border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:16, color:"var(--ink)" }} />
+      <div className="h2" style={{ marginBottom:8 }}>Create your account</div>
+      <p style={{ color:"var(--ink-2)", fontSize:14, margin:"0 0 20px" }}>Use an email you can always access.</p>
+
+      <div style={{ background:"var(--bone)", border:"1px solid var(--line-strong)", borderRadius:14, padding:"13px 16px", marginBottom:10 }}>
+        <input type="email" inputMode="email" autoComplete="email" value={email}
+          onChange={e => { setEmail(e.target.value); setError(""); }}
+          placeholder="your@email.com"
+          style={{ width:"100%", border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:15, color:"var(--ink)" }} />
       </div>
+
+      <div style={{ background:"var(--bone)", border:"1px solid var(--line-strong)", borderRadius:14, padding:"13px 16px", marginBottom:6, display:"flex", alignItems:"center", gap:10 }}>
+        <input type={showPw ? "text" : "password"} autoComplete="new-password" value={password}
+          onChange={e => { setPassword(e.target.value); setError(""); }}
+          placeholder="Create a password"
+          style={{ flex:1, border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:15, color:"var(--ink)" }} />
+        <span onClick={() => setShowPw(s => !s)} style={{ fontSize:12, color:"var(--ink-3)", cursor:"pointer", userSelect:"none", fontWeight:500 }}>
+          {showPw ? "Hide" : "Show"}
+        </span>
+      </div>
+      <p style={{ fontSize:12, color:"var(--ink-3)", margin:"0 0 16px" }}>At least 8 characters</p>
+
+      {error && <p style={{ fontSize:13, color:"var(--clay)", margin:"-8px 0 12px", fontWeight:500 }}>{error}</p>}
+
       <div style={{ flex:1 }} />
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
         <button className="btn btn-forest btn-block"
-          disabled={!email.includes("@") || !email.includes(".") || otpSending}
-          style={{ opacity: !email.includes("@") || otpSending ? 0.45 : 1 }}
+          disabled={!email.includes("@") || password.length < 8 || busy}
+          style={{ opacity: !email.includes("@") || password.length < 8 || busy ? 0.45 : 1 }}
           onClick={async () => {
-            setOtpSending(true);
+            setBusy(true); setError("");
             try {
-              if (window.MM_AUTH) {
-                emailRef.current = await window.MM_AUTH.sendEmailOTP(email);
-              }
-              setStep(2);
+              if (window.MM_AUTH) await window.MM_AUTH.signUpWithPassword(email, password);
+              setStep(2); // name step (no OTP middle step)
             } catch (e) {
-              alert("Couldn't send code: " + (e.message || "Try again"));
+              setError(e.message?.includes("already") ? "Email already registered. Sign in instead." : (e.message || "Something went wrong."));
             }
-            setOtpSending(false);
+            setBusy(false);
           }}>
-          {otpSending ? "Sending…" : "Send code →"}
+          {busy ? "Creating account…" : "Continue →"}
         </button>
         <button onClick={() => window.MM_AUTH?.signInWithGoogle("business_owner")}
           style={{ width:"100%", padding:"13px 16px", border:"1.5px solid var(--line-strong)", borderRadius:14, background:"var(--bone)", cursor:"pointer", fontFamily:"inherit", fontSize:14, fontWeight:600, color:"var(--ink)", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
@@ -155,65 +145,33 @@ function BizOnboarding({ onDone }) {
       </div>
     </div>,
 
-    // ── slide 2: email OTP (6 digits) ──
-    <div key="o" className="screen-enter" style={{ padding:"230px 22px 28px", display:"flex", flexDirection:"column", height:"100%" }}>
+    // ── slide 2: name + username ──
+    <div key="n" className="screen-enter" style={{ padding:"230px 22px 28px", display:"flex", flexDirection:"column", height:"100%" }}>
       <div className="row" style={{ marginBottom:18, marginTop:-200 }}>
-        <RoundBtn onClick={() => { setStep(1); setOtp(["","","","","",""]); setOtpError(""); }}><Icon name="back" size={18} /></RoundBtn>
+        <RoundBtn onClick={() => setStep(1)}><Icon name="back" size={18} /></RoundBtn>
       </div>
       <div style={{ height:170 }} />
-      <div className="h2" style={{ marginBottom:8 }}>Check your email</div>
-      <p style={{ color:"var(--ink-2)", fontSize:14, margin:"0 0 28px" }}>
-        We sent a 6-digit code to <b style={{ color:"var(--ink)" }}>{email}</b>
-      </p>
-      <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
-        {otp.map((d, i) => (
-          <input key={i} ref={otpRefs[i]} value={d} maxLength={1}
-            inputMode="numeric" disabled={otpVerifying}
-            onChange={e => {
-              const val = e.target.value.replace(/\D/g,"");
-              const next = [...otp]; next[i] = val; setOtp(next);
-              if (val && i < 5) otpRefs[i+1].current?.focus();
-            }}
-            onKeyDown={e => {
-              if (e.key === "Backspace" && !d && i > 0) otpRefs[i-1].current?.focus();
-            }}
-            style={{ width:44, height:56, flexShrink:0, textAlign:"center",
-                     fontFamily:"var(--font-display)", fontSize:26,
-                     color: otpError ? "var(--clay)" : "var(--ink)",
-                     border:`1.5px solid ${otpError ? "var(--clay)" : d ? "var(--forest)" : "var(--line-strong)"}`,
-                     background: otpVerifying ? "rgba(31,26,20,0.04)" : "var(--bone)",
-                     borderRadius:12, outline:"none", opacity: otpVerifying ? 0.6 : 1,
-                     WebkitAppearance:"none" }} />
-        ))}
-      </div>
-      {otpError && <p style={{ fontSize:13, color:"var(--clay)", margin:"12px 0 0", fontWeight:500 }}>{otpError}</p>}
-      {otpVerifying && <p style={{ fontSize:13, color:"var(--ink-3)", margin:"12px 0 0" }}>Verifying…</p>}
-      <p style={{ fontSize:13, color:"var(--ink-3)", margin:"16px 0 0" }}>
-        Didn't get it?{" "}
-        <span style={{ color:"var(--forest)", fontWeight:500, cursor:"pointer" }}
-          onClick={() => { setOtp(["","","","","",""]); setOtpError(""); setStep(1); }}>
-          Resend code
-        </span>
-        {" · "}
-        <span style={{ color:"var(--ink-3)" }}>Check spam folder</span>
-      </p>
-      <div style={{ flex:1 }} />
-    </div>,
+      <div className="h2" style={{ marginBottom:8 }}>What's your name?</div>
+      <p style={{ color:"var(--ink-2)", fontSize:14, margin:"0 0 20px" }}>This is what investors see. Pick a username too.</p>
 
-    // ── slide 3: name ──
-    <div key="n" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
-      <div className="row" style={{ marginBottom: 18, marginTop: -200 }}>
-        <RoundBtn onClick={() => setStep(2)}><Icon name="back" size={18} /></RoundBtn>
+      <input value={name} onChange={e => setName(e.target.value)}
+        placeholder="Full name  e.g. Aisha Bello"
+        style={{ border:"1px solid var(--line-strong)", background:"var(--bone)", borderRadius:14, padding:"14px 18px", fontFamily:"inherit", fontSize:15, color:"var(--ink)", outline:"none", width:"100%", marginBottom:10 }} />
+
+      <div style={{ border:"1px solid var(--line-strong)", background:"var(--bone)", borderRadius:14, padding:"14px 18px", display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
+        <span style={{ fontSize:14, color:"var(--ink-3)", fontWeight:500 }}>@</span>
+        <input value={username}
+          onChange={e => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"")); setUsernameErr(""); }}
+          placeholder="username  e.g. aishab"
+          style={{ flex:1, border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:15, color:"var(--ink)" }} />
       </div>
-      <div style={{ height: 170 }} />
-      <div className="h2" style={{ marginBottom: 8 }}>What's your name?</div>
-      <p style={{ color: "var(--ink-2)", fontSize: 14, margin: "0 0 24px" }}>This is what investors see first.</p>
-      <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Aisha Bello"
-             style={{ border: "1px solid var(--line-strong)", background: "var(--bone)", borderRadius: 16, padding: "16px 18px", fontFamily: "inherit", fontSize: 16, color: "var(--ink)", outline: "none", width: "100%" }} />
-      <div style={{ flex: 1 }} />
+      <p style={{ fontSize:12, color:"var(--ink-3)", margin:"0 0 14px" }}>Lowercase letters, numbers, underscores only</p>
+      {usernameErr && <p style={{ fontSize:13, color:"var(--clay)", margin:"-8px 0 10px" }}>{usernameErr}</p>}
+
+      <div style={{ flex:1 }} />
       <button className="btn btn-forest btn-block"
-        disabled={!name}
-        style={{ opacity: !name ? 0.45 : 1 }}
+        disabled={!name || username.length < 3}
+        style={{ opacity: !name || username.length < 3 ? 0.45 : 1 }}
         onClick={() => setStep(4)}>
         Continue
       </button>
@@ -222,7 +180,7 @@ function BizOnboarding({ onDone }) {
     // ── slide 4: business quick capture ──
     <div key="b" className="screen-enter" style={{ padding: "230px 22px 28px", display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="row between" style={{ marginBottom: 18, marginTop: -200 }}>
-        <RoundBtn onClick={() => setStep(3)}><Icon name="back" size={18} /></RoundBtn>
+        <RoundBtn onClick={() => setStep(2)}><Icon name="back" size={18} /></RoundBtn>
         <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>Step 1 of profile · 90 sec</div>
       </div>
       <div style={{ height: 170 }} />
@@ -255,7 +213,7 @@ function BizOnboarding({ onDone }) {
             const userData = { name: name || "Aisha Bello", bizName: bizName || "Layi Bakehouse", category: category || "Bakery" };
             try {
               if (window.MM_AUTH) {
-                await window.MM_AUTH.saveProfile({ name: userData.name, role: "business_owner" });
+                await window.MM_AUTH.saveProfile({ name: userData.name, username, role: "business_owner" });
                 await window.MM_AUTH.saveBusinessProfile({ name: userData.bizName, category: userData.category });
               }
             } catch (e) {
@@ -271,7 +229,7 @@ function BizOnboarding({ onDone }) {
             const userData = { name: name || "Aisha Bello", bizName: "Layi Bakehouse", category: "Bakery" };
             try {
               if (window.MM_AUTH) {
-                await window.MM_AUTH.saveProfile({ name: userData.name, role: "business_owner" });
+                await window.MM_AUTH.saveProfile({ name: userData.name, username, role: "business_owner" });
               }
             } catch (e) {
               console.warn("[MM] save profile (skip) failed:", e.message);
