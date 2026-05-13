@@ -43,6 +43,101 @@ const BIZ_SCREENS = [
   { id: "settings",        label: "Settings" },
 ];
 
+// ─── First-login overlays ─────────────────────────────────
+
+function ChangePasswordOverlay({ onDone }) {
+  const [pw, setPw]     = useState("");
+  const [pw2, setPw2]   = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr]   = useState("");
+
+  const save = async () => {
+    if (pw !== pw2) { setErr("Passwords don't match."); return; }
+    if (pw.length < 8) { setErr("Must be at least 8 characters."); return; }
+    setBusy(true);
+    try {
+      await window.MM_AUTH.changePassword(pw);
+      onDone();
+    } catch (e) { setErr(e.message || "Failed. Try again."); }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{ position:"absolute", inset:0, background:"rgba(28,24,19,0.7)", zIndex:9999, display:"flex", alignItems:"flex-end" }}>
+      <div style={{ background:"var(--cream)", width:"100%", borderRadius:"24px 24px 0 0", padding:"28px 24px 40px" }}>
+        <div style={{ fontFamily:"var(--font-display)", fontSize:22, color:"var(--ink)", marginBottom:6 }}>Set your password</div>
+        <p style={{ fontSize:14, color:"var(--ink-2)", margin:"0 0 20px", lineHeight:1.5 }}>
+          This is your first sign-in. Choose a password you'll remember.
+        </p>
+        <div style={{ background:"var(--bone)", border:"1px solid var(--line-strong)", borderRadius:12, padding:"12px 16px", marginBottom:10, display:"flex", alignItems:"center", gap:8 }}>
+          <input type={show ? "text" : "password"} value={pw} onChange={e => { setPw(e.target.value); setErr(""); }}
+            placeholder="New password" style={{ flex:1, border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:15, color:"var(--ink)" }} />
+          <span onClick={() => setShow(s=>!s)} style={{ fontSize:12, color:"var(--ink-3)", cursor:"pointer", fontWeight:500 }}>{show?"Hide":"Show"}</span>
+        </div>
+        <div style={{ background:"var(--bone)", border:"1px solid var(--line-strong)", borderRadius:12, padding:"12px 16px", marginBottom:8 }}>
+          <input type={show ? "text" : "password"} value={pw2} onChange={e => { setPw2(e.target.value); setErr(""); }}
+            placeholder="Confirm password" style={{ width:"100%", border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:15, color:"var(--ink)" }} />
+        </div>
+        {err && <p style={{ fontSize:13, color:"var(--clay)", margin:"0 0 10px" }}>{err}</p>}
+        <p style={{ fontSize:12, color:"var(--ink-3)", margin:"0 0 16px" }}>At least 8 characters</p>
+        <button onClick={save} disabled={!pw || !pw2 || busy}
+          style={{ width:"100%", padding:"14px", background:"var(--ink)", color:"var(--cream)", border:"none", borderRadius:12, fontFamily:"inherit", fontSize:15, fontWeight:700, cursor:"pointer", opacity:!pw||!pw2||busy?0.4:1 }}>
+          {busy ? "Saving…" : "Set password →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RealEmailOverlay({ onDone }) {
+  const [email, setEmail] = useState("");
+  const [busy, setBusy]   = useState(false);
+  const [err, setErr]     = useState("");
+
+  const save = async () => {
+    if (!email.includes("@") || email.endsWith("@moniematch.app")) {
+      setErr("Enter a real email address."); return;
+    }
+    setBusy(true);
+    try {
+      // Update auth email + public.users email
+      await window.sb.auth.updateUser({ email });
+      const { data: { user } } = await window.sb.auth.getUser();
+      if (user) {
+        await window.sb.from("users").update({ email }).eq("id", user.id);
+      }
+      onDone();
+    } catch (e) { setErr(e.message || "Failed. Try again."); }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{ position:"absolute", inset:0, background:"rgba(28,24,19,0.7)", zIndex:9998, display:"flex", alignItems:"flex-end" }}>
+      <div style={{ background:"var(--cream)", width:"100%", borderRadius:"24px 24px 0 0", padding:"28px 24px 40px" }}>
+        <div style={{ fontFamily:"var(--font-display)", fontSize:22, color:"var(--ink)", marginBottom:6 }}>Add your real email</div>
+        <p style={{ fontSize:14, color:"var(--ink-2)", margin:"0 0 20px", lineHeight:1.5 }}>
+          We need your real email for password recovery and important updates about your matches.
+        </p>
+        <div style={{ background:"var(--bone)", border:"1px solid var(--line-strong)", borderRadius:12, padding:"12px 16px", marginBottom:8 }}>
+          <input type="email" value={email} onChange={e => { setEmail(e.target.value); setErr(""); }}
+            placeholder="your@email.com" style={{ width:"100%", border:0, background:"transparent", outline:"none", fontFamily:"inherit", fontSize:15, color:"var(--ink)" }} />
+        </div>
+        {err && <p style={{ fontSize:13, color:"var(--clay)", margin:"0 0 10px" }}>{err}</p>}
+        <div style={{ display:"flex", gap:10 }}>
+          <button onClick={onDone} style={{ flex:1, padding:"14px", background:"transparent", color:"var(--ink-3)", border:"1.5px solid var(--line-strong)", borderRadius:12, fontFamily:"inherit", fontSize:14, cursor:"pointer" }}>
+            Skip for now
+          </button>
+          <button onClick={save} disabled={!email || busy}
+            style={{ flex:2, padding:"14px", background:"var(--ink)", color:"var(--cream)", border:"none", borderRadius:12, fontFamily:"inherit", fontSize:15, fontWeight:700, cursor:"pointer", opacity:!email||busy?0.4:1 }}>
+            {busy ? "Saving…" : "Save email →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Investor app shell ───────────────────────────────────
 function InvestorApp({ initialScreen, tweaks }) {
   const [screen, setScreen]   = useState(initialScreen || "home");
@@ -51,13 +146,14 @@ function InvestorApp({ initialScreen, tweaks }) {
   const [tab, setTab]         = useState("home");
   const [activeBiz, setActiveBiz] = useState(null);
   const [loadErr, setLoadErr] = useState(false);
+  const [needsRealEmail, setNeedsRealEmail] = useState(false);
+  const [needsPwChange, setNeedsPwChange] = useState(false);
 
   useEffect(() => { if (initialScreen) setScreen(initialScreen); }, [initialScreen]);
 
   // Load real profile + matches from Supabase on mount
   useEffect(() => {
     if (initialScreen === "onb") {
-      // New user going through onboarding — no data to load
       setUser({});
       return;
     }
@@ -67,11 +163,19 @@ function InvestorApp({ initialScreen, tweaks }) {
         setUser(profile || {});
         const m = await window.DB.getMyMatches();
         setMatches(m || []);
+        // If user signed in with fake email, prompt for real one
+        const { data: { user: authUser } } = await window.sb.auth.getUser();
+        if (authUser?.email?.endsWith("@moniematch.app")) {
+          setNeedsRealEmail(true);
+        }
+        // If must_change_password, show that too
+        if (profile?.must_change_password) {
+          setNeedsPwChange(true);
+        }
       } catch (e) {
         console.warn("[MM] profile load failed:", e);
         setUser({});
         setMatches([]);
-        setLoadErr(true);
       }
     })();
   }, [initialScreen]);
@@ -101,6 +205,10 @@ function InvestorApp({ initialScreen, tweaks }) {
   return (
     <div className="app cream-bg">
       <div className="statusbar-spacer" />
+
+      {/* First-login overlays */}
+      {needsPwChange && <ChangePasswordOverlay onDone={() => setNeedsPwChange(false)} />}
+      {needsRealEmail && !needsPwChange && <RealEmailOverlay onDone={() => setNeedsRealEmail(false)} />}
 
       {screen === "onb" && (
         <InvOnboarding onDone={(u) => { setUser({ ...user, ...u }); setScreen("prefsSetup"); setTab("home"); }} />
@@ -200,14 +308,15 @@ function InvestorApp({ initialScreen, tweaks }) {
 // ─── Business app shell ───────────────────────────────────
 function BusinessApp({ initialScreen, tweaks }) {
   const [screen, setScreen]       = useState(initialScreen || "home");
-  const [user, setUser]           = useState(null);   // null = loading
-  const [interested, setInterested] = useState(null); // null = loading
+  const [user, setUser]           = useState(null);
+  const [interested, setInterested] = useState(null);
   const [tab, setTab]             = useState("home");
   const [activeInv, setActiveInv] = useState(null);
+  const [needsRealEmail, setNeedsRealEmail] = useState(false);
+  const [needsPwChange, setNeedsPwChange]   = useState(false);
 
   useEffect(() => { if (initialScreen) setScreen(initialScreen); }, [initialScreen]);
 
-  // Load real profile + interested investors on mount
   useEffect(() => {
     if (initialScreen === "onb") { setUser({}); return; }
     (async () => {
@@ -216,6 +325,9 @@ function BusinessApp({ initialScreen, tweaks }) {
         setUser(profile || {});
         const inv = await window.DB.getInterestedInvestors();
         setInterested(inv || []);
+        const { data: { user: authUser } } = await window.sb.auth.getUser();
+        if (authUser?.email?.endsWith("@moniematch.app")) setNeedsRealEmail(true);
+        if (profile?.must_change_password) setNeedsPwChange(true);
       } catch (e) {
         console.warn("[MM] biz profile load failed:", e);
         setUser({});
@@ -241,12 +353,14 @@ function BusinessApp({ initialScreen, tweaks }) {
     setTab("home");
   };
 
-  // Show splash while profile loads
   if (user === null && screen !== "onb") return <SplashScreen />;
 
   return (
     <div className="app cream-bg">
       <div className="statusbar-spacer" />
+
+      {needsPwChange && <ChangePasswordOverlay onDone={() => setNeedsPwChange(false)} />}
+      {needsRealEmail && !needsPwChange && <RealEmailOverlay onDone={() => setNeedsRealEmail(false)} />}
 
       {screen === "onb" && (
         <BizOnboarding onDone={(u) => { setUser({ ...user, ...u }); setScreen("home"); setTab("home"); }} />
@@ -338,6 +452,7 @@ function BusinessApp({ initialScreen, tweaks }) {
           onSave={l => { setUser({...user, ...l}); setScreen("profile"); }} />
       )}
       {screen === "kyc" && (
+        <KYCScreen role="business" onBack={goBack} onVerified={() => setScreen("profile")} />
       )}
       {screen === "documents" && (
         <BizDocuments onBack={() => setScreen("profile")} />

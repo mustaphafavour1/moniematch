@@ -8,6 +8,7 @@ function InvOnboarding({ onDone }) {
   const [showPw, setShowPw]   = useState(false);
   const [name, setName]         = useState("");
   const [username, setUsername] = useState("");
+  const [usernameErr, setUsernameErr] = useState("");
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState("");
 
