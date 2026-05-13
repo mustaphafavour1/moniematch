@@ -372,7 +372,86 @@
       .eq("id", matchId);
   }
 
-  // ── Expose globally ───────────────────────────────────
+  // ── Upload avatar to Supabase Storage ────────────────
+  async function uploadAvatar(file) {
+    const { data: { user: authUser } } = await window.sb.auth.getUser();
+    if (!authUser) throw new Error("Not authenticated");
+
+    // Determine extension
+    const ext  = file.type.includes("png") ? "png" : file.type.includes("webp") ? "webp" : "jpg";
+    const path = `${authUser.id}.${ext}`;
+
+    const { data, error } = await window.sb.storage
+      .from("avatars")
+      .upload(path, file, {
+        upsert: true,          // overwrite existing
+        contentType: file.type,
+      });
+
+    if (error) throw error;
+
+    // Get public URL
+    const { data: { publicUrl } } = window.sb.storage
+      .from("avatars")
+      .getPublicUrl(path);
+
+    // Save to users table
+    await window.sb
+      .from("users")
+      .update({ avatar_url: publicUrl })
+      .eq("id", authUser.id);
+
+    return publicUrl;
+  }
+
+  // ── Upload business photo ────────────────────────────
+  async function uploadBusinessPhoto(businessId, file) {
+    const ext  = file.type.includes("png") ? "png" : file.type.includes("webp") ? "webp" : file.type.includes("mp4") ? "mp4" : "jpg";
+    const path = `${businessId}/${Date.now()}.${ext}`;
+
+    const { error } = await window.sb.storage
+      .from("business-photos")
+      .upload(path, file, { contentType: file.type });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = window.sb.storage
+      .from("business-photos")
+      .getPublicUrl(path);
+
+    return publicUrl;
+  }
+
+  // ── Send a chat message ──────────────────────────────
+  async function sendMessage(matchId, content) {
+    const { data: { user: authUser } } = await window.sb.auth.getUser();
+    if (!authUser) throw new Error("Not authenticated");
+
+    const { data, error } = await window.sb
+      .from("messages")
+      .insert({
+        match_id:  matchId,
+        sender_id: authUser.id,
+        content:   content.trim(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // ── Get chat messages for a match ────────────────────
+  async function getChatMessages(matchId) {
+    const { data } = await window.sb
+      .from("messages")
+      .select("*")
+      .eq("match_id", matchId)
+      .order("created_at", { ascending: true });
+    return data || [];
+  }
+
+  // Expose globally ─────────────────────────────────────
   window.DB = {
     getMyProfile,
     getMyMatches,
@@ -386,7 +465,10 @@
     getReports,
     submitReport,
     updateMatchStatus,
-    // Utils exposed for screens
+    uploadAvatar,
+    uploadBusinessPhoto,
+    sendMessage,
+    getChatMessages,
     adaptBusiness,
     adaptInvestor,
     colorFor,

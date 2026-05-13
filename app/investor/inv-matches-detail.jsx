@@ -122,7 +122,7 @@ function BizListCard({ biz, onClick }) {
 }
 
 // ─── BUSINESS DETAIL (the pitch page) ────────────────────
-function InvBusinessDetail({ bizId, onBack, onProceed, onInvest, onReports }) {
+function InvBusinessDetail({ bizId, onBack, onProceed, onInvest, onReports, onChat }) {
   const [biz, setBiz] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -301,12 +301,18 @@ function InvBusinessDetail({ bizId, onBack, onProceed, onInvest, onReports }) {
           style={{ background: "var(--ink)", color: "var(--cream)" }}>
           Start a deal · {fmtNairaRange(biz.askMin, biz.askMax)}
         </button>
-        <WhatsAppButton
-          phone={biz.ownerPhone}
-          name={biz.business}
-          context="investor_to_business"
-          style={{ borderRadius: 12 }}
-        />
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={onChat} className="btn btn-soft"
+            style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
+            <Icon name="send" size={15} color="var(--ink-2)" /> Chat
+          </button>
+          <WhatsAppButton
+            phone={biz.ownerPhone}
+            name={biz.business}
+            context="investor_to_business"
+            style={{ flex:1, borderRadius:12 }}
+          />
+        </div>
       </div>
     </div>
   );
