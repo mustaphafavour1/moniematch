@@ -294,10 +294,19 @@ function InvBusinessDetail({ bizId, onBack, onProceed, onInvest, onReports }) {
         position: "absolute", left: 0, right: 0, bottom: 0,
         padding: "14px 16px 22px",
         background: "linear-gradient(180deg, rgba(247,241,232,0) 0%, var(--cream) 30%)",
+        display: "flex", flexDirection: "column", gap: 8,
       }}>
-        <button className="btn btn-primary btn-block" onClick={onProceed}>
+        <button className="btn btn-primary btn-block"
+          onClick={onInvest || onProceed}
+          style={{ background: "var(--ink)", color: "var(--cream)" }}>
           Start a deal · {fmtNairaRange(biz.askMin, biz.askMax)}
         </button>
+        <WhatsAppButton
+          phone={biz.ownerPhone}
+          name={biz.business}
+          context="investor_to_business"
+          style={{ borderRadius: 12 }}
+        />
       </div>
     </div>
   );
