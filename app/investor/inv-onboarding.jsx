@@ -135,10 +135,18 @@ function InvOnboarding({ onDone }) {
           onClick={async () => {
             setBusy(true); setError("");
             try {
-              if (window.MM_AUTH) await window.MM_AUTH.signUpWithPassword(email, password);
-              setStep(2); // go to name step (step index shifted — no OTP step)
+              if (!window.MM_AUTH?.signUpWithPassword) throw new Error("reload");
+              await window.MM_AUTH.signUpWithPassword(email, password);
+              setStep(2);
             } catch (e) {
-              setError(e.message?.includes("already") ? "Email already registered. Sign in instead." : (e.message || "Something went wrong."));
+              console.error("[MM] signup error:", e);
+              const msg = e.message || "";
+              if (msg === "reload") setError("Something went wrong. Please refresh the page.");
+              else if (msg.includes("already") || msg.includes("registered")) setError("Email already registered — sign in instead.");
+              else if (msg.includes("valid email"))  setError("Enter a valid email address.");
+              else if (msg.includes("Password"))     setError("Password must be at least 8 characters.");
+              else if (msg.includes("not a function") || msg.includes("undefined") || msg.includes("Cannot read")) setError("Refresh the page and try again.");
+              else setError("Couldn't create account. Try again.");
             }
             setBusy(false);
           }}>

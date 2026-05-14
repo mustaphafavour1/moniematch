@@ -64,13 +64,17 @@
         if (!login || !pw) return;
         setBusy(true); setError("");
         try {
+          if (!window.MM_AUTH?.signIn) throw new Error("reload");
           await window.MM_AUTH.signIn(login, pw);
           await redirectByRole();
         } catch (e) {
+          console.error("[MM] signin error:", e);
           setError(
-            e.message?.includes("not found")     ? "Username not found." :
-            e.message?.includes("Invalid")        ? "Wrong password." :
-            e.message?.includes("Email not conf") ? "Check your email to confirm your account first." :
+            e.message === "reload"                   ? "Refresh the page and try again." :
+            e.message?.includes("not found")         ? "Username not found." :
+            e.message?.includes("Invalid")           ? "Wrong password." :
+            e.message?.includes("Email not conf")    ? "Check your email to confirm your account first." :
+            e.message?.includes("not a function")    ? "Refresh the page and try again." :
             "Sign in failed. Try again."
           );
         }
