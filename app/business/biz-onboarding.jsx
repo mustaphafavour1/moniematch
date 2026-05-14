@@ -128,8 +128,11 @@ function BizOnboarding({ onDone }) {
           onClick={async () => {
             setBusy(true); setError("");
             try {
-              if (!window.MM_AUTH?.signUpWithPassword) throw new Error("reload");
-              await window.MM_AUTH.signUpWithPassword(email, password);
+              const { error: signUpErr } = await window.sb.auth.signUp({
+                email: email.trim().toLowerCase(),
+                password,
+              });
+              if (signUpErr) throw signUpErr;
               setStep(2);
             } catch (e) {
               console.error("[MM] signup error:", e);
@@ -218,13 +221,18 @@ function BizOnboarding({ onDone }) {
           onClick={async () => {
             const userData = { name: name || "Aisha Bello", bizName: bizName || "Layi Bakehouse", category: category || "Bakery" };
             try {
-              if (window.MM_AUTH) {
-                await window.MM_AUTH.saveProfile({ name: userData.name, username, role: "business_owner" });
-                await window.MM_AUTH.saveBusinessProfile({ name: userData.bizName, category: userData.category });
+              const { data: { user } } = await window.sb.auth.getUser();
+              if (user) {
+                await window.sb.from("users").upsert(
+                  { id: user.id, name: userData.name, username, role: "business_owner", email: user.email },
+                  { onConflict: "id" }
+                );
+                await window.sb.from("businesses").upsert(
+                  { owner_id: user.id, name: userData.bizName, category: userData.category },
+                  { onConflict: "owner_id" }
+                );
               }
-            } catch (e) {
-              console.warn("[MM] save biz profile failed:", e.message);
-            }
+            } catch (e) { console.warn("[MM] save biz profile:", e.message); }
             onDone(userData);
           }}>
           Save and explore
@@ -234,12 +242,14 @@ function BizOnboarding({ onDone }) {
           onClick={async () => {
             const userData = { name: name || "Aisha Bello", bizName: "Layi Bakehouse", category: "Bakery" };
             try {
-              if (window.MM_AUTH) {
-                await window.MM_AUTH.saveProfile({ name: userData.name, username, role: "business_owner" });
+              const { data: { user } } = await window.sb.auth.getUser();
+              if (user) {
+                await window.sb.from("users").upsert(
+                  { id: user.id, name: userData.name, username, role: "business_owner", email: user.email },
+                  { onConflict: "id" }
+                );
               }
-            } catch (e) {
-              console.warn("[MM] save profile (skip) failed:", e.message);
-            }
+            } catch (e) { console.warn("[MM] save profile (skip):", e.message); }
             onDone(userData);
           }}>
           Skip — finish later

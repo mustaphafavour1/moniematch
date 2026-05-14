@@ -135,17 +135,18 @@ function InvOnboarding({ onDone }) {
           onClick={async () => {
             setBusy(true); setError("");
             try {
-              if (!window.MM_AUTH?.signUpWithPassword) throw new Error("reload");
-              await window.MM_AUTH.signUpWithPassword(email, password);
+              const { error: signUpErr } = await window.sb.auth.signUp({
+                email: email.trim().toLowerCase(),
+                password,
+              });
+              if (signUpErr) throw signUpErr;
               setStep(2);
             } catch (e) {
-              console.error("[MM] signup error:", e);
-              const msg = e.message || "";
-              if (msg === "reload") setError("Something went wrong. Please refresh the page.");
-              else if (msg.includes("already") || msg.includes("registered")) setError("Email already registered — sign in instead.");
-              else if (msg.includes("valid email"))  setError("Enter a valid email address.");
-              else if (msg.includes("Password"))     setError("Password must be at least 8 characters.");
-              else if (msg.includes("not a function") || msg.includes("undefined") || msg.includes("Cannot read")) setError("Refresh the page and try again.");
+              console.error("[MM] signup:", e);
+              const msg = (e.message || "").toLowerCase();
+              if (msg.includes("already") || msg.includes("registered")) setError("Email already registered — sign in instead.");
+              else if (msg.includes("valid email")) setError("Enter a valid email address.");
+              else if (msg.includes("password"))    setError("Password must be at least 8 characters.");
               else setError("Couldn't create account. Try again.");
             }
             setBusy(false);
@@ -193,13 +194,20 @@ function InvOnboarding({ onDone }) {
         onClick={async () => {
           setBusy(true);
           try {
-            await window.MM_AUTH.saveProfile({ name, username, role:"investor" });
+            const { data: { user } } = await window.sb.auth.getUser();
+            if (user) {
+              await window.sb.from("users").upsert(
+                { id: user.id, name, username, role: "investor", email: user.email },
+                { onConflict: "id" }
+              );
+            }
             onDone({ name, username });
           } catch (e) {
-            if (e.message?.includes("unique") || e.message?.includes("duplicate")) {
+            console.error("[MM] save profile:", e);
+            if ((e.message||"").includes("unique") || (e.message||"").includes("duplicate")) {
               setUsernameErr("That username is taken. Try another.");
             } else {
-              setError(e.message || "Something went wrong.");
+              setError("Couldn't save profile. Try again.");
             }
           }
           setBusy(false);
