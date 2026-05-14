@@ -690,7 +690,10 @@ function hexA(hex, a) {
 // /app/investor  → InvestorApp with session check
 // /app/business  → BusinessApp with session check
 // /app           → Root (demo mode with IOSDevice frame)
+// If MM_CUSTOM_MOUNT is true (set by investor/business index.html),
+// those pages handle their own mounting — skip this.
 (async function mountApp() {
+  if (window.MM_CUSTOM_MOUNT) return;
   const path = window.location.pathname;
   const isInvestor = path.includes("/investor");
   const isBusiness = path.includes("/business");

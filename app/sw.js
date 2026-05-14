@@ -1,30 +1,15 @@
 // sw.js — MonieMatch service worker
-// Strategy:
-//   Static assets  → cache-first  (fast on repeat visits)
-//   Supabase API   → network-first (always try live data, fall back gracefully)
-//   Navigation     → network-first, fall back to cached shell
+// v4 — clears old broken cache, stops caching JSX files
+// JSX files change constantly during dev — always fetch fresh from network
 
-const CACHE = 'moniematch-v1';
+const CACHE = 'moniematch-v4';  // bump version whenever you need a force refresh
 
+// Only cache the HTML shells and static CSS — NOT JSX files
 const SHELL = [
-  '/app/',
-  '/app/index.html',
-  '/app/styles.css',
-  '/app/supabase.js',
-  '/app/skeleton.jsx',
-  '/app/ios-frame.jsx',
-  '/app/tweaks-panel.jsx',
-  '/app/ui.jsx',
-  '/app/mock-data.jsx',
-  '/app/investor.jsx',
-  '/app/investor-2.jsx',
-  '/app/investor-3.jsx',
-  '/app/business.jsx',
-  '/app/business-2.jsx',
-  '/app/app.jsx',
+  '/app/shared/styles.css',
 ];
 
-// ── Install: pre-cache the app shell ──────────────────────
+// ── Install ────────────────────────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE)
@@ -33,33 +18,45 @@ self.addEventListener('install', event => {
   );
 });
 
-// ── Activate: remove stale caches ─────────────────────────
+// ── Activate: delete ALL old caches ───────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+        keys.filter(k => k !== CACHE).map(k => {
+          console.log('[SW] deleting old cache:', k);
+          return caches.delete(k);
+        })
       ))
       .then(() => self.clients.claim())
   );
 });
 
-// ── Fetch: smart routing ───────────────────────────────────
+// ── Fetch ──────────────────────────────────────────────────
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET and cross-origin (except fonts + CDN)
   if (request.method !== 'GET') return;
 
-  // Supabase API — network first, silent fail
+  // Supabase API — always network, never cache
   if (url.hostname.includes('supabase.co')) {
     event.respondWith(
-      fetch(request)
-        .catch(() => new Response(
-          JSON.stringify({ data: null, error: { message: 'offline' } }),
-          { headers: { 'Content-Type': 'application/json' } }
-        ))
+      fetch(request).catch(() => new Response(
+        JSON.stringify({ data: null, error: { message: 'offline' } }),
+        { headers: { 'Content-Type': 'application/json' } }
+      ))
+    );
+    return;
+  }
+
+  // JSX files — ALWAYS fetch fresh, never serve from cache
+  // (they change frequently during development)
+  if (url.pathname.endsWith('.jsx')) {
+    event.respondWith(
+      fetch(request).catch(() =>
+        new Response('// offline', { headers: { 'Content-Type': 'application/javascript' } })
+      )
     );
     return;
   }
@@ -79,7 +76,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // CDN scripts (React, Babel, Supabase) — cache first
+  // CDN scripts (React, Babel, Supabase JS) — cache first, they're versioned
   if (url.hostname.includes('unpkg.com') || url.hostname.includes('cdn.jsdelivr.net')) {
     event.respondWith(
       caches.match(request).then(cached => {
@@ -96,19 +93,16 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App shell files — cache first, network fallback
+  // Everything else — network first, cache as fallback
   event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request).then(res => {
+    fetch(request)
+      .then(res => {
         if (res.ok) {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(request, clone));
         }
         return res;
-      }).catch(() => cached || caches.match('/app/index.html'));
-
-      // Return cache immediately if available, update in background
-      return cached || network;
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
