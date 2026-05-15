@@ -5,23 +5,23 @@ import { GOOGLE_FORMS } from '@/lib/constants'
 
 export default function Contact() {
   const [sending, setSending] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [sent, setSent]       = useState(false)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = e.currentTarget
     const data = new FormData(form)
-
     setSending(true)
+
     const fd = new FormData()
-    fd.append(GOOGLE_FORMS.contact.fields.name,    data.get('name') as string)
-    fd.append(GOOGLE_FORMS.contact.fields.email,   data.get('email') as string)
-    fd.append(GOOGLE_FORMS.contact.fields.role,    data.get('role') as string)
+    fd.append(GOOGLE_FORMS.contact.fields.name,    data.get('name')    as string)
+    fd.append(GOOGLE_FORMS.contact.fields.email,   data.get('email')   as string)
+    fd.append(GOOGLE_FORMS.contact.fields.role,    data.get('role')    as string)
     fd.append(GOOGLE_FORMS.contact.fields.message, data.get('message') as string)
 
     try {
       await fetch(GOOGLE_FORMS.contact.url, { method: 'POST', body: fd, mode: 'no-cors' })
-    } catch (_) { /* no-cors always throws — submission still lands */ }
+    } catch (_) {}
 
     setSending(false)
     setSent(true)
@@ -32,7 +32,7 @@ export default function Contact() {
     <section id="contact" style={{ padding: '96px 0', background: 'var(--ink-2)' }}>
       <div className="section-w">
         <div className="ct-grid">
-          {/* Left: info */}
+          {/* Left */}
           <div className="rl">
             <SectionLabel light>Contact Us</SectionLabel>
             <h2 className="sh2" style={{ color: '#fff', marginTop: 16 }}>
@@ -41,26 +41,20 @@ export default function Contact() {
             <p className="sb" style={{ color: 'rgba(247,241,232,.5)', marginTop: 24 }}>
               Questions, partnerships, press — we&apos;re a small team and we actually read our emails.
             </p>
-
             <p className="ct-lbl" style={{ marginTop: 32 }}>Email</p>
             <a href="mailto:hello@moniematch.com" className="ct-link">
               <MailIcon /> hello@moniematch.com
             </a>
-
             <p className="ct-lbl">Follow us</p>
             <div className="socials">
-              {[
-                { title: 'Instagram', href: '#', icon: <InstagramIcon /> },
-                { title: 'Twitter',   href: '#', icon: <TwitterIcon /> },
-                { title: 'LinkedIn',  href: '#', icon: <LinkedInIcon /> },
-                { title: 'TikTok',    href: '#', icon: <TikTokIcon /> },
-              ].map((s) => (
-                <a key={s.title} href={s.href} className="soc" title={s.title}>{s.icon}</a>
-              ))}
+              <a href="#" className="soc" title="Instagram"><InstagramIcon /></a>
+              <a href="#" className="soc" title="Twitter"><TwitterIcon /></a>
+              <a href="#" className="soc" title="LinkedIn"><LinkedInIcon /></a>
+              <a href="#" className="soc" title="TikTok"><TikTokIcon /></a>
             </div>
           </div>
 
-          {/* Right: form */}
+          {/* Right */}
           <div className="rr">
             {sent ? (
               <div className="form-success show" style={{ display: 'flex' }}>
@@ -77,14 +71,12 @@ export default function Contact() {
                   <input className="fi" id="ct-email" name="email" type="email" placeholder="your@email.com" required />
                 </div>
                 <div>
+                  {/* Short-answer text field — avoids exact-match constraint of Google Form multiple choice */}
                   <label className="flbl" htmlFor="ct-role">I am a...</label>
-                  <select className="fsel" id="ct-role" name="role">
-                    <option value="">Select one</option>
-                    <option value="Potential investor">Potential investor</option>
-                    <option value="Business owner seeking funding">Business owner seeking funding</option>
-                    <option value="Partner / collaborator">Partner / collaborator</option>
-                    <option value="Just curious">Just curious</option>
-                  </select>
+                  <input
+                    className="fi" id="ct-role" name="role" type="text"
+                    placeholder="e.g. Investor, Business owner, Partner..."
+                  />
                 </div>
                 <div>
                   <label className="flbl" htmlFor="ct-msg">Message</label>
@@ -102,7 +94,6 @@ export default function Contact() {
   )
 }
 
-// ── Inline icons ──────────────────────────────────────────────────────────────
 function MailIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -114,8 +105,7 @@ function MailIcon() {
 function SendIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+      <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
   )
 }

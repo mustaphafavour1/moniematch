@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import SectionLabel from '@/components/ui/SectionLabel'
 import { BUSINESS_CATEGORIES, ALGO_ROWS } from '@/lib/constants'
 
@@ -63,9 +62,9 @@ export default function ForBusinesses() {
               ))}
             </div>
 
-            <Link href="/join-business" className="btn-amber" style={{ marginTop: 32, display: 'inline-flex' }}>
+            <a href="/join-business" className="btn-amber" style={{ marginTop: 32, display: 'inline-flex' }}>
               List My Business →
-            </Link>
+            </a>
 
             {/* Testimonial */}
             <div className="tcard">

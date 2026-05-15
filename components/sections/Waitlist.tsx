@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import Link from 'next/link'
 import { GOOGLE_FORMS } from '@/lib/constants'
 
 function BellIcon() {
@@ -26,73 +25,52 @@ export default function Waitlist() {
 
   const submit = async () => {
     if (!email || !email.includes('@')) { alert('Enter a valid email address.'); return }
-
     const fd = new FormData()
     fd.append(GOOGLE_FORMS.waitlist.fields.name,  name)
     fd.append(GOOGLE_FORMS.waitlist.fields.email, email)
-
     try {
       await fetch(GOOGLE_FORMS.waitlist.url, { method: 'POST', body: fd, mode: 'no-cors' })
-    } catch (_) { /* no-cors */ }
-
+    } catch (_) {}
     setDone(true)
   }
 
   return (
-    <section
-      id="waitlist"
-      style={{ padding: '68px 0', background: 'var(--ink)', borderTop: '1px solid rgba(148,134,97,.1)' }}
-    >
+    <section id="waitlist" style={{ padding: '68px 0', background: 'var(--ink)', borderTop: '1px solid rgba(148,134,97,.1)' }}>
       <div className="section-w">
         <div className="wl-row">
-          {/* Text */}
           <div className="wl-text rl">
             <h3>Be the first to know<br />when the app drops.</h3>
             <p>One email. No spam. Just the download link.</p>
           </div>
 
-          {/* Form / success */}
           <div className="rr" id="wlArea">
             {done ? (
               <div>
-                <div style={{
-                  padding: '14px 22px', background: 'rgba(148,134,97,.12)',
-                  border: '1px solid rgba(148,134,97,.25)', borderRadius: 100,
-                  fontSize: 13.5, color: 'var(--gold-l)', fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: 10,
-                }}>
+                <div style={{ padding: '14px 22px', background: 'rgba(148,134,97,.12)', border: '1px solid rgba(148,134,97,.25)', borderRadius: 100, fontSize: 13.5, color: 'var(--gold-l)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <CheckIcon />
                   You&apos;re on the list! We&apos;ll drop the link in your inbox.
                 </div>
                 <p style={{ fontSize: 11, color: 'rgba(247,241,232,.2)', marginTop: 10 }}>
                   The web app is{' '}
-                  <Link href="/app" style={{ color: 'var(--gold)', textDecoration: 'none', borderBottom: '1px solid rgba(148,134,97,.25)' }}>
+                  <a href="/app" style={{ color: 'var(--gold)', textDecoration: 'none', borderBottom: '1px solid rgba(148,134,97,.25)' }}>
                     live right now →
-                  </Link>
+                  </a>
                 </p>
               </div>
             ) : (
               <div className="wl-fields">
                 <div className="wl-row2">
-                  <input
-                    className="wi" type="text" placeholder="Your name"
-                    value={name} onChange={e => setName(e.target.value)}
-                  />
-                  <input
-                    className="wi" type="email" placeholder="your@email.com"
-                    value={email} onChange={e => setEmail(e.target.value)}
-                  />
+                  <input className="wi" type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} />
+                  <input className="wi" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
                 <div className="wl-row2">
-                  <button className="bwl" onClick={submit}>
-                    <BellIcon /> Notify Me
-                  </button>
+                  <button className="bwl" onClick={submit}><BellIcon /> Notify Me</button>
                 </div>
                 <p className="wl-note" style={{ marginTop: 10 }}>
                   No spam. Unsubscribe anytime. The web app is{' '}
-                  <Link href="/app" style={{ color: 'var(--gold)', textDecoration: 'none', borderBottom: '1px solid rgba(148,134,97,.25)' }}>
+                  <a href="/app" style={{ color: 'var(--gold)', textDecoration: 'none', borderBottom: '1px solid rgba(148,134,97,.25)' }}>
                     live right now →
-                  </Link>
+                  </a>
                 </p>
               </div>
             )}

@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import Image from 'next/image'
 import SectionLabel from '@/components/ui/SectionLabel'
 import { INVESTOR_BENEFITS } from '@/lib/constants'
@@ -63,9 +62,9 @@ export default function ForInvestors() {
               ))}
             </ul>
 
-            <Link href="/join-investor" className="btn-dark" style={{ marginTop: 34, display: 'inline-flex' }}>
+            <a href="/join-investor" className="btn-dark" style={{ marginTop: 34, display: 'inline-flex' }}>
               Start Investing →
-            </Link>
+            </a>
           </div>
 
           {/* Card visual */}
