@@ -42,8 +42,8 @@ export default function Contact() {
               Questions, partnerships, press — we&apos;re a small team and we actually read our emails.
             </p>
             <p className="ct-lbl" style={{ marginTop: 32 }}>Email</p>
-            <a href="mailto:hello@moniematch.com" className="ct-link">
-              <MailIcon /> hello@moniematch.com
+            <a href="mailto:admin@moniematch.com" className="ct-link">
+              <MailIcon /> admin@moniematch.com
             </a>
             <p className="ct-lbl">Follow us</p>
             <div className="socials">

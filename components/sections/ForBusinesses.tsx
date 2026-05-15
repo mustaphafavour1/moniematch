@@ -66,7 +66,6 @@ export default function ForBusinesses() {
               List My Business →
             </a>
 
-            
           </div>
 
           {/* Algorithm card */}

@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonieMatch — Meet Your Next FundMate</title>
+  <meta name="description" content="MonieMatch matches Investors with small but already-profitable businesses and facilitates win-win deals for both parties." />
+  <link rel="icon" href="/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #948661; --gold-l: #b5a882;
+      --amber: #E5A04A; --terra: #B45A3C;
+      --ink: #1c1813; --ink-mid: #26211A; --ink-2: #2e2720;
+      --cream: #F7F1E8; --cream-d: #ece5d8; --snow: #fafaf8;
+      --dim: rgba(28,24,19,.55); --dim-light: rgba(247,241,232,.45);
+      --f: 'Host Grotesk', sans-serif;
+      --ease: cubic-bezier(.25,.46,.45,.94);
+      --spring: cubic-bezier(.16,1,.3,1);
+      --pad: 48px;
+    }
+    @media(max-width:640px){ :root { --pad: 22px; } }
+    @media(max-width:1024px){ :root { --pad: 32px; } }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--f); background: var(--snow); color: var(--ink); overflow-x: hidden; }
+
+    /* ── PROGRESS BAR ── */
+    #bar { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, var(--gold), var(--amber)); z-index: 9999; width: 0%; transition: width .06s linear; }
+
+    /* ── ICONS (Lucide) ── */
+    [data-lucide] { display: inline-block; flex-shrink: 0; }
+    .ico-amber [data-lucide], [data-lucide].ico-amber { color: var(--amber); }
+    .ico-gold [data-lucide], [data-lucide].ico-gold { color: var(--gold); }
+    .ico-terra [data-lucide], [data-lucide].ico-terra { color: var(--terra); }
+    .ico-white [data-lucide], [data-lucide].ico-white { color: #fff; }
+    .ico-dim [data-lucide], [data-lucide].ico-dim { color: var(--dim-light); }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px var(--pad);
+      background: rgba(250,250,248,0); backdrop-filter: blur(0px);
+      border-bottom: 1px solid transparent;
+      transition: background .45s, backdrop-filter .45s, border-color .45s;
+    }
+    nav.on { background: rgba(250,250,248,.92); backdrop-filter: blur(20px); border-color: rgba(148,134,97,.12); }
+    .n-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+    .n-logo img { height: 32px; width: auto; display: block; }
+    .n-logo-fallback { display: none; }
+    .n-logo img[src="/logo.png"]:not([loaded]) + .n-logo-fallback { display: block; }
+    .n-logo-t { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+    .n-links { display: flex; align-items: center; gap: 26px; list-style: none; }
+    .n-links a { color: var(--dim); text-decoration: none; font-size: 13.5px; font-weight: 500; transition: color .2s; }
+    .n-links a:hover { color: var(--ink); }
+    .n-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px; border-radius: 100px;
+      background: var(--ink); color: #fff;
+      font-family: var(--f); font-size: 13px; font-weight: 600; text-decoration: none;
+      transition: background .25s, transform .2s;
+    }
+    .n-cta:hover { background: var(--gold); transform: translateY(-1px); }
+    .hbg { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 4px; }
+    .hbg span { width: 22px; height: 2px; background: var(--ink); border-radius: 2px; transition: all .3s; display: block; }
+    .hbg.o span:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+    .hbg.o span:nth-child(2) { opacity: 0; }
+    .hbg.o span:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+    .mob-m { display: none; position: fixed; inset: 0; top: 64px; background: rgba(250,250,248,.97); backdrop-filter: blur(20px); z-index: 99; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+    .mob-m.o { display: flex; }
+    .mob-m a { font-size: 22px; font-weight: 700; color: var(--ink); text-decoration: none; transition: color .2s; }
+    .mob-m a:hover { color: var(--gold); }
+    .mob-ctas { display: flex; flex-direction: column; gap: 10px; width: 260px; margin-top: 12px; }
+    .btn-mi, .btn-mb { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 24px; border-radius: 100px; font-family: var(--f); font-size: 15px; font-weight: 600; text-decoration: none; transition: all .25s; }
+    .btn-mi { background: var(--ink); color: #fff; }
+    .btn-mi:hover { background: var(--gold); }
+    .btn-mb { background: transparent; color: var(--ink); border: 1.5px solid rgba(28,24,19,.2); }
+    .btn-mb:hover { border-color: var(--gold); }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh; position: relative; overflow: hidden;
+      display: flex; align-items: center;
+      background-image: url('images/hero-bg-web.png');
+      background-size: cover; background-position: right center; background-repeat: no-repeat;
+    }
+    /* Very minimal subtle vignette, NOT covering the image */
+    #hero::before {
+      content: ''; position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(90deg, rgba(250,250,248,.72) 0%, rgba(250,250,248,.3) 45%, transparent 65%);
+    }
+    .h-inner { position: relative; z-index: 2; padding: 140px var(--pad) 80px; max-width: 600px; }
+
+    .h-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 14px; border-radius: 100px; border: 1px solid rgba(148,134,97,.35);
+      font-size: 10.5px; font-weight: 700; color: var(--gold); letter-spacing: 1.2px; text-transform: uppercase;
+      margin-bottom: 30px; opacity: 0; animation: fup .6s var(--spring) .2s forwards;
+    }
+    .h-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.6)} }
+
+    /* FundMate headline */
+    .h-head {
+      font-size: clamp(40px, 5.5vw, 76px); font-weight: 800; line-height: .97;
+      letter-spacing: -2.5px; color: var(--ink); margin-bottom: 24px;
+    }
+    .h-head .line { display: block; overflow: hidden; }
+    .h-head .w { display: inline-block; opacity: 0; transform: translateY(110%); animation: sup .85s var(--spring) forwards; }
+
+    /* FundMate wordplay treatment */
+    .fundmate-wrap { white-space: nowrap; }
+    .soul-cross {
+      font-size: .65em; color: rgba(28,24,19,.3); vertical-align: .14em;
+      text-decoration: line-through; text-decoration-color: var(--amber);
+      text-decoration-thickness: 1.5px; margin-right: 2px; letter-spacing: -1px;
+    }
+    .fund-text { color: var(--amber); }
+    .mate-text { color: var(--ink); }
+
+    .h-sub { font-size: clamp(14px, 1.6vw, 16.5px); color: var(--dim); line-height: 1.72; max-width: 460px; margin-bottom: 44px; opacity: 0; animation: fup .7s var(--spring) .88s forwards; }
+    .h-ctas { display: flex; gap: 10px; flex-wrap: wrap; opacity: 0; animation: fup .6s var(--spring) 1.02s forwards; }
+    .btn-inv {
+      display: inline-flex; align-items: center; gap: 8px; padding: 14px 26px; border-radius: 100px;
+      background: var(--ink); color: #fff; font-family: var(--f); font-size: 14px; font-weight: 600; text-decoration: none;
+      transition: background .25s, transform .25s, box-shadow .25s;
+    }
+    .btn-inv:hover { background: var(--gold); transform: translateY(-2px); box-shadow: 0 12px 28px rgba(148,134,97,.22); }
+    .btn-biz {
+      display: inline-flex; align-items: center; gap: 8px; padding: 14px 26px; border-radius: 100px;
+      background: transparent; color: var(--ink); border: 1.5px solid rgba(28,24,19,.22);
+      font-family: var(--f); font-size: 14px; font-weight: 600; text-decoration: none;
+      transition: all .25s;
+    }
+    .btn-biz:hover { border-color: var(--gold); background: rgba(148,134,97,.07); transform: translateY(-2px); }
+    .barr { transition: transform .2s; }
+    .btn-inv:hover .barr, .btn-biz:hover .barr { transform: translateX(4px); }
+    .h-wl { display: block; margin-top: 18px; font-size: 12px; color: var(--dim); text-decoration: none; opacity: 0; animation: fup .6s var(--spring) 1.15s forwards; transition: color .2s; }
+    .h-wl:hover { color: var(--gold); }
+    .h-wl span { border-bottom: 1px solid currentColor; }
+
+    @media(max-width:1024px) {
+      #hero { background-image: url('images/hero-bg-tablet.png'); background-position: center bottom; }
+      #hero::before { background: linear-gradient(180deg, rgba(250,250,248,.96) 0%, rgba(250,250,248,.85) 50%, transparent 100%); }
+      .h-inner { max-width: 100%; padding: 120px var(--pad) 60px; }
+    }
+    @media(max-width:640px) {
+      #hero { background-image: url('images/hero-bg-mobile.png'); background-position: center bottom; min-height: 100svh; }
+      #hero::before { background: linear-gradient(180deg, rgba(250,250,248,1) 0%, rgba(250,250,248,.88) 42%, rgba(250,250,248,.2) 72%, transparent 100%); }
+    }
+
+    @keyframes fup { to { opacity: 1; transform: translateY(0); } }
+    @keyframes sup { to { opacity: 1; transform: translateY(0); } }
+
+    /* ── REVEALS ── */
+    .rv, .rl, .rr { opacity: 0; transition: opacity .72s var(--spring), transform .72s var(--spring); }
+    .rv { transform: translateY(32px); } .rl { transform: translateX(-32px); } .rr { transform: translateX(32px); }
+    .rv.v, .rl.v, .rr.v { opacity: 1; transform: translate(0); }
+    .d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
+    .d4{transition-delay:.32s}.d5{transition-delay:.4s}.d6{transition-delay:.48s}
+
+    /* ── SHARED LAYOUT ── */
+    .w { max-width: 1200px; margin: 0 auto; padding: 0 var(--pad); }
+    .slbl { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); padding: 5px 14px; border: 1px solid rgba(148,134,97,.28); border-radius: 100px; margin-bottom: 18px; }
+    .sh2 { font-size: clamp(28px, 4vw, 50px); font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; margin-bottom: 18px; }
+    .sh2 .em { color: var(--amber); font-style: italic; }
+    .sh2 .et { color: var(--terra); font-style: italic; }
+    .sb { font-size: 15.5px; color: var(--dim); line-height: 1.78; }
+
+    /* ── TICKER ── */
+    .ticker { overflow: hidden; background: var(--amber); padding: 14px 0; }
+    .t-track { display: flex; width: max-content; animation: tick 32s linear infinite; }
+    .ticker:hover .t-track { animation-play-state: paused; }
+    .t-item { white-space: nowrap; padding: 0 18px; font-size: 11px; font-weight: 700; color: var(--ink); letter-spacing: .5px; text-transform: uppercase; display: flex; align-items: center; gap: 18px; }
+    .t-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--ink); opacity: .3; }
+    @keyframes tick { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+    /* ── BENTO FEATURES ── */
+    #features { padding: 96px 0; background: var(--ink-mid); }
+    .fh { text-align: center; margin-bottom: 60px; }
+    .fh .slbl { color: var(--gold-l); border-color: rgba(148,134,97,.2); }
+    .fh .sh2 { color: #fff; }
+    .fh .sb { color: var(--dim-light); max-width: 480px; margin: 0 auto; }
+    .bgrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    @media(max-width:900px){ .bgrid { grid-template-columns: 1fr 1fr; } }
+    @media(max-width:540px){ .bgrid { grid-template-columns: 1fr; } }
+    .bc {
+      background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.075);
+      border-radius: 20px; padding: 30px 26px; position: relative; overflow: hidden;
+      transition: border-color .3s, background .3s, transform .3s;
+    }
+    .bc:hover { border-color: rgba(148,134,97,.35); background: rgba(255,255,255,.07); transform: translateY(-3px); }
+    .bc::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--gold), var(--amber)); transform: scaleX(0); transition: transform .3s; }
+    .bc:hover::after { transform: scaleX(1); }
+    .bn { font-size: 10.5px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,.22); text-transform: uppercase; display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
+    .bn::after { content: '—'; }
+    .bv { height: 110px; margin-bottom: 22px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(255,255,255,.03); }
+
+    /* Card visual: score ring + bars */
+    .v-score { display: flex; align-items: center; gap: 16px; }
+    .v-ring-svg { width: 64px; height: 64px; }
+    .v-ring-track { fill: none; stroke: rgba(255,255,255,.1); stroke-width: 6; }
+    .v-ring-fill { fill: none; stroke: var(--amber); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 188; stroke-dashoffset: 12; transform: rotate(-90deg); transform-origin: center; animation: ringIn 1.5s var(--spring) forwards; }
+    @keyframes ringIn { from { stroke-dashoffset: 188; } }
+    .v-ring-num { font-size: 18px; font-weight: 800; fill: var(--amber); }
+    .v-bars { display: flex; align-items: flex-end; gap: 5px; height: 52px; }
+    .v-bar { width: 10px; border-radius: 3px 3px 0 0; background: var(--amber); opacity: .75; animation: barA 2s ease-in-out infinite alternate; }
+    .v-bar:nth-child(1){height:35%;animation-delay:0s}.v-bar:nth-child(2){height:65%;animation-delay:.12s}.v-bar:nth-child(3){height:45%;animation-delay:.24s}.v-bar:nth-child(4){height:82%;animation-delay:.36s}.v-bar:nth-child(5){height:58%;animation-delay:.48s}
+    @keyframes barA { 0%{opacity:.4}100%{opacity:.9} }
+    /* Chat visual */
+    .v-chat { display: flex; flex-direction: column; gap: 7px; width: 100%; padding: 0 8px; }
+    .vm { padding: 7px 11px; border-radius: 11px; font-size: 10.5px; color: rgba(247,241,232,.72); max-width: 78%; }
+    .vm.s { background: rgba(148,134,97,.22); align-self: flex-end; border-radius: 11px 11px 2px 11px; }
+    .vm.r { background: rgba(255,255,255,.07); border-radius: 11px 11px 11px 2px; }
+    /* Pills visual */
+    .v-pills { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 8px; justify-content: center; }
+    .vp { padding: 5px 11px; border-radius: 100px; font-size: 10.5px; font-weight: 600; color: rgba(247,241,232,.7); }
+    .vp.a { background: rgba(229,160,74,.18); border: 1px solid rgba(229,160,74,.3); }
+    .vp.b { background: rgba(148,134,97,.15); border: 1px solid rgba(148,134,97,.25); }
+    .vp.c { background: rgba(180,90,60,.15); border: 1px solid rgba(180,90,60,.25); }
+    /* Report visual */
+    .v-report { width: 100%; padding: 0 6px; display: flex; flex-direction: column; gap: 5px; }
+    .vr-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 11px; border-radius: 9px; background: rgba(255,255,255,.05); }
+    .vr-l { font-size: 10px; color: rgba(247,241,232,.4); } .vr-v { font-size: 11.5px; font-weight: 700; color: var(--amber); }
+    .vr-v.green { color: #6fcf97; }
+    /* Portfolio visual */
+    .v-port { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .v-port-n { font-size: 30px; font-weight: 800; color: var(--amber); letter-spacing: -1px; }
+    .v-port-l { font-size: 10px; color: rgba(247,241,232,.4); text-transform: uppercase; letter-spacing: 1px; }
+    .bt { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 8px; letter-spacing: -.2px; }
+    .bd { font-size: 13px; color: rgba(247,241,232,.42); line-height: 1.62; }
+
+    /* ── DIAGONAL CONTAINERS (Problems section) ── */
+    #problems { padding: 96px 0; background: var(--snow); }
+    .prob-hd { margin-bottom: 56px; }
+    .diag-rows { display: flex; flex-direction: column; gap: 20px; }
+    .diag-pair { display: flex; align-items: stretch; min-height: 200px; border-radius: 20px; overflow: hidden; }
+    .dp-left {
+      flex: 0 0 50%; position: relative; z-index: 2;
+      background: #fff;
+      clip-path: polygon(3.5% 0, 90% 0, 100% 90%, 96.5% 100%, 3.5% 100%, 0 91%, 0 9%);
+      padding: 44px 52px 44px 44px;
+    }
+    .dp-right {
+      flex: 1; position: relative; z-index: 1;
+      background: var(--ink-mid);
+      clip-path: polygon(0% 10%, 6% 93%, 9.5% 100%, 96% 100%, 100% 91%, 100% 9%, 96% 0, 3.5% 0);
+      margin-left: -5%;
+      padding: 44px 44px 44px 80px;
+    }
+    /* Flipped diagonal direction */
+    .diag-pair.flip .dp-left {
+      clip-path: polygon(3.5% 0, 96.5% 0, 100% 9%, 100% 91%, 90% 100%, 3.5% 100%, 0 91%, 0 9%);
+    }
+    .diag-pair.flip .dp-right {
+      clip-path: polygon(3.5% 0, 96% 0, 100% 9%, 100% 91%, 96% 100%, 9.5% 100%, 6% 7%, 0% 10%);
+    }
+    @media(max-width:760px){
+      .diag-pair { flex-direction: column; border-radius: 16px; }
+      .dp-left, .dp-right { flex: none; width: 100%; clip-path: none; margin-left: 0; padding: 36px 28px; }
+      .dp-left { border-radius: 16px 16px 0 0; }
+      .dp-right { border-radius: 0 0 16px 16px; }
+    }
+    .dp-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+    .dp-icon.light { background: rgba(148,134,97,.1); }
+    .dp-icon.dark { background: rgba(229,160,74,.12); }
+    .dp-tag { font-size: 9.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; display: block; }
+    .dp-left .dp-tag { color: var(--dim); }
+    .dp-right .dp-tag { color: var(--amber); }
+    .dp-title { font-size: 19px; font-weight: 800; letter-spacing: -.3px; margin-bottom: 10px; line-height: 1.2; }
+    .dp-right .dp-title { color: #fff; }
+    .dp-desc { font-size: 13.5px; line-height: 1.65; }
+    .dp-left .dp-desc { color: var(--dim); }
+    .dp-right .dp-desc { color: rgba(247,241,232,.5); }
+
+    /* ── HOW IT WORKS ── */
+    #how-it-works { padding: 96px 0; background: var(--cream); }
+    .hh { text-align: center; margin-bottom: 52px; }
+    .htabs { display: flex; gap: 4px; background: rgba(28,24,19,.07); border-radius: 100px; padding: 4px; width: fit-content; margin: 0 auto 52px; }
+    .ht { padding: 10px 24px; border-radius: 100px; font-family: var(--f); font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--dim); transition: all .3s var(--spring); }
+    .ht.on { background: var(--ink); color: #fff; }
+    .hp { display: none; } .hp.on { display: block; }
+    .hsteps { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+    @media(max-width:860px){ .hsteps { grid-template-columns: 1fr 1fr; } }
+    @media(max-width:500px){ .hsteps { grid-template-columns: 1fr; } }
+    .hs { background: #fff; border: 1px solid rgba(28,24,19,.07); border-radius: 18px; padding: 26px 22px; transition: all .3s; position: relative; overflow: hidden; }
+    .hs::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--gold), var(--amber)); transform: scaleX(0); transition: transform .3s; transform-origin: left; }
+    .hs:hover::before { transform: scaleX(1); }
+    .hs:hover { border-color: rgba(148,134,97,.18); transform: translateY(-4px); }
+    .hn { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--gold); text-transform: uppercase; margin-bottom: 16px; display: block; }
+    .h-ico { width: 42px; height: 42px; border-radius: 12px; background: rgba(148,134,97,.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--gold); }
+    .htit { font-size: 16px; font-weight: 700; margin-bottom: 8px; letter-spacing: -.2px; }
+    .hdesc { font-size: 13px; color: var(--dim); line-height: 1.65; }
+
+    /* ── SPLIT GRID ── */
+    .sg { display: grid; grid-template-columns: 1fr 1fr; gap: 68px; align-items: center; }
+    @media(max-width:800px){ .sg { grid-template-columns: 1fr; gap: 44px; } }
+
+    /* ── FOR INVESTORS ── */
+    #investors { padding: 96px 0; background: var(--snow); }
+    .bl { list-style: none; margin-top: 26px; display: flex; flex-direction: column; gap: 13px; }
+    .bi { display: flex; align-items: flex-start; gap: 12px; }
+    .bck { width: 22px; height: 22px; color: var(--amber); flex-shrink: 0; margin-top: 1px; }
+    .bt2 { font-size: 14.5px; color: var(--dim); line-height: 1.6; }
+    .bt2 strong { color: var(--ink); font-weight: 600; }
+    .clink { display: inline-flex; align-items: center; gap: 8px; margin-top: 34px; padding: 14px 26px; border-radius: 100px; font-family: var(--f); font-size: 14px; font-weight: 600; text-decoration: none; transition: all .25s; }
+    .cd { background: var(--ink); color: #fff; } .cd:hover { background: var(--gold); transform: translateY(-2px); }
+    .ca { background: var(--amber); color: var(--ink); } .ca:hover { background: var(--gold); transform: translateY(-2px); }
+    /* Floating card stack */
+    .cs { position: relative; height: 310px; }
+    .ic { position: absolute; border-radius: 20px; padding: 26px; width: 290px; }
+    .ic-b { background: var(--cream-d); border: 1px solid rgba(148,134,97,.14); top: 26px; left: 16px; transform: rotate(-4deg); }
+    .ic-m { background: #fff; border: 1px solid rgba(229,160,74,.14); top: 13px; left: 8px; transform: rotate(-1.5deg); }
+    .ic-f { background: #fff; border: 1px solid rgba(148,134,97,.28); top: 0; left: 0; box-shadow: 0 18px 48px rgba(28,24,19,.1); animation: cf 4s ease-in-out infinite; }
+    @keyframes cf { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .ic-logo { height: 28px; width: auto; }
+    .il { font-size: 10px; color: var(--gold); font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+    .ia { font-size: 28px; font-weight: 800; color: var(--ink); letter-spacing: -1px; margin-bottom: 4px; }
+    .ib2 { font-size: 12px; color: var(--dim); margin-bottom: 16px; }
+    .ibadge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 100px; background: rgba(229,160,74,.1); border: 1px solid rgba(229,160,74,.25); font-size: 11.5px; color: #a07020; font-weight: 600; }
+    .mr { position: absolute; bottom: -12px; right: -12px; width: 68px; height: 68px; border-radius: 50%; background: var(--amber); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--ink); font-weight: 800; font-size: 18px; line-height: 1; box-shadow: 0 8px 22px rgba(229,160,74,.32); }
+    .mr small { font-size: 9px; font-weight: 600; }
+
+    /* ── FOR BUSINESSES ── */
+    #businesses { padding: 96px 0; background: var(--ink-mid); }
+    #businesses .slbl { color: var(--gold-l); border-color: rgba(148,134,97,.2); }
+    #businesses .sh2 { color: #fff; }
+    #businesses .sb { color: rgba(247,241,232,.5); }
+    .bcats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
+    @media(max-width:480px){ .bcats { grid-template-columns: 1fr; } }
+    .bcat { padding: 13px 16px; border-radius: 13px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: rgba(247,241,232,.72); transition: all .25s; cursor: pointer; }
+    .bcat:hover { background: rgba(229,160,74,.1); border-color: rgba(229,160,74,.25); color: var(--amber); transform: translateY(-2px); }
+    .bcat-ico { color: var(--amber); width: 18px; height: 18px; }
+    .tcard { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 20px; padding: 34px; position: relative; overflow: hidden; margin-top: 28px; }
+    .tcard::before { content: ''; position: absolute; top: -40px; right: -40px; width: 130px; height: 130px; border-radius: 50%; background: radial-gradient(circle, rgba(229,160,74,.12) 0%, transparent 70%); }
+    .tq { font-size: 30px; color: var(--amber); opacity: .3; display: block; margin-bottom: 4px; }
+    .tt { font-size: 16px; font-style: italic; font-weight: 600; line-height: 1.5; color: rgba(247,241,232,.88); margin-bottom: 18px; }
+    .ta { display: flex; align-items: center; gap: 12px; }
+    .tav { width: 36px; height: 36px; border-radius: 50%; background: var(--amber); color: var(--ink); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
+    .tn { font-size: 13.5px; font-weight: 600; color: rgba(247,241,232,.88); display: block; }
+    .tr { font-size: 11.5px; color: rgba(247,241,232,.38); }
+    .algo-card { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 22px; padding: 34px; }
+    .algo-lbl { font-size: 10.5px; font-weight: 700; color: rgba(247,241,232,.3); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 22px; }
+    .algo-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
+    .algo-name { font-size: 13px; color: rgba(247,241,232,.6); display: flex; align-items: center; gap: 8px; }
+    .algo-right { display: flex; align-items: center; gap: 10px; }
+    .algo-track { width: 100px; height: 4px; border-radius: 3px; background: rgba(255,255,255,.07); overflow: hidden; }
+    .algo-fill { height: 100%; background: var(--amber); border-radius: 3px; }
+    .algo-pt { font-size: 12px; font-weight: 700; color: var(--amber); width: 28px; text-align: right; }
+    .algo-total { border-top: 1px solid rgba(255,255,255,.07); margin-top: 8px; padding-top: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .algo-total-lbl { font-size: 13px; font-weight: 700; color: rgba(247,241,232,.75); }
+    .algo-total-num { font-size: 28px; font-weight: 800; color: var(--amber); letter-spacing: -1px; }
+    .algo-foot { font-size: 11.5px; color: rgba(247,241,232,.25); margin-top: 10px; }
+
+    /* ── APP COMING SOON ── */
+    #app { padding: 96px 0; background: var(--snow); text-align: center; }
+    .app-in { max-width: 600px; margin: 0 auto; }
+    .app-bs { display: flex; justify-content: center; gap: 14px; margin-top: 40px; flex-wrap: wrap; }
+    .app-b { position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 22px; border-radius: 14px; background: #fff; border: 1px solid rgba(28,24,19,.09); text-decoration: none; color: var(--ink); transition: all .25s; box-shadow: 0 2px 10px rgba(28,24,19,.05); }
+    .app-b:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(28,24,19,.1); }
+    .sn { position: absolute; top: -9px; right: 12px; background: var(--amber); color: var(--ink); font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 100px; letter-spacing: .5px; text-transform: uppercase; }
+    .app-ico { color: var(--ink); }
+    .app-bt small { display: block; font-size: 9.5px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+    .app-bt strong { font-size: 15px; font-weight: 700; }
+    .app-note { font-size: 12px; color: var(--dim); margin-top: 18px; }
+    .app-note a { color: var(--gold); text-decoration: none; border-bottom: 1px solid rgba(148,134,97,.28); }
+    .app-note a:hover { border-color: var(--gold); }
+
+    /* ── FAQ ── */
+    #faq { padding: 96px 0; background: var(--cream); }
+    .fq-list { max-width: 700px; margin: 0 auto; }
+    .fq-item { border-bottom: 1px solid rgba(28,24,19,.1); }
+    .fq-q { width: 100%; text-align: left; padding: 22px 0; background: none; border: none; font-family: var(--f); font-size: 15.5px; font-weight: 700; color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: color .2s; }
+    .fq-q:hover { color: var(--terra); }
+    .fq-ico { width: 27px; height: 27px; border-radius: 50%; background: rgba(28,24,19,.06); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .25s, transform .35s; color: var(--ink); }
+    .fq-item.o .fq-ico { background: var(--terra); color: #fff; transform: rotate(45deg); }
+    .fq-a { max-height: 0; overflow: hidden; transition: max-height .45s var(--spring); }
+    .fq-item.o .fq-a { max-height: 260px; }
+    .fq-a p { padding-bottom: 20px; font-size: 14.5px; color: var(--dim); line-height: 1.72; }
+
+    /* ── CONTACT ── */
+    #contact { padding: 96px 0; background: var(--ink-2); }
+    .ct-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 68px; align-items: start; }
+    @media(max-width:800px){ .ct-grid { grid-template-columns: 1fr; gap: 44px; } }
+    .ct-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+    .ct-link { display: flex; align-items: center; gap: 9px; font-size: 18px; font-weight: 700; color: #fff; text-decoration: none; margin-bottom: 34px; transition: color .2s; }
+    .ct-link:hover { color: var(--amber); }
+    .socials { display: flex; gap: 9px; }
+    .soc { width: 40px; height: 40px; border-radius: 11px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center; text-decoration: none; color: rgba(247,241,232,.6); transition: all .25s; }
+    .soc:hover { background: rgba(229,160,74,.14); border-color: rgba(229,160,74,.28); color: var(--amber); transform: translateY(-2px); }
+    .ctf { display: flex; flex-direction: column; gap: 13px; }
+    .flbl { font-size: 10px; font-weight: 600; color: rgba(247,241,232,.38); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; display: block; }
+    .fi, .fta, .fsel { background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.09); border-radius: 12px; padding: 13px 16px; font-family: var(--f); font-size: 14px; color: #fff; outline: none; width: 100%; transition: border-color .2s; }
+    .fi:focus, .fta:focus, .fsel:focus { border-color: rgba(148,134,97,.45); }
+    .fsel option { background: var(--ink); }
+    .fta { resize: vertical; min-height: 100px; }
+    .fi::placeholder, .fta::placeholder { color: rgba(247,241,232,.25); }
+    .bsend { background: var(--amber); color: var(--ink); border: none; border-radius: 100px; padding: 13px 26px; font-family: var(--f); font-size: 13.5px; font-weight: 700; cursor: pointer; align-self: flex-start; display: flex; align-items: center; gap: 7px; transition: all .25s; }
+    .bsend:hover { background: var(--gold); transform: translateY(-2px); }
+    .form-success { padding: 14px 20px; background: rgba(148,134,97,.12); border: 1px solid rgba(148,134,97,.25); border-radius: 12px; font-size: 14px; color: var(--gold-l); font-weight: 600; display: none; }
+    .form-success.show { display: flex; align-items: center; gap: 8px; }
+
+    /* ── WAITLIST ── */
+    #waitlist { padding: 68px 0; background: var(--ink); border-top: 1px solid rgba(148,134,97,.1); }
+    .wl-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 36px; flex-wrap: wrap; }
+    .wl-text h3 { font-size: 24px; font-weight: 800; letter-spacing: -.4px; color: #fff; margin-bottom: 6px; }
+    .wl-text p { font-size: 13.5px; color: rgba(247,241,232,.42); }
+    .wl-fields { display: flex; flex-direction: column; gap: 10px; }
+    .wl-row2 { display: flex; gap: 10px; flex-wrap: wrap; }
+    .wi { background: rgba(255,255,255,.07); border: 1px solid rgba(148,134,97,.22); border-radius: 100px; padding: 13px 20px; font-family: var(--f); font-size: 13px; color: #fff; outline: none; min-width: 200px; transition: border-color .2s; }
+    .wi:focus { border-color: rgba(148,134,97,.5); }
+    .wi::placeholder { color: rgba(247,241,232,.28); }
+    .bwl { background: transparent; border: 1px solid rgba(148,134,97,.32); border-radius: 100px; padding: 13px 20px; font-family: var(--f); font-size: 13px; font-weight: 600; color: var(--gold-l); cursor: pointer; white-space: nowrap; transition: all .25s; display: flex; align-items: center; gap: 7px; }
+    .bwl:hover { background: rgba(148,134,97,.1); border-color: var(--gold); }
+    .wl-note { font-size: 10.5px; color: rgba(247,241,232,.22); padding-left: 4px; }
+    @media(max-width:680px){ .wl-row { flex-direction: column; } .wi { min-width: unset; width: 100%; } .wl-row2 { flex-direction: column; } .bwl { text-align: center; justify-content: center; } }
+
+    /* ── FOOTER ── */
+    footer { background: var(--ink); border-top: 1px solid rgba(255,255,255,.05); padding: 68px 0 32px; }
+    .ft-top { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 52px; margin-bottom: 52px; }
+    @media(max-width:900px){ .ft-top { grid-template-columns: 1fr 1fr; gap: 36px; } }
+    @media(max-width:540px){ .ft-top { grid-template-columns: 1fr; } }
+    .fb p { font-size: 13px; color: rgba(247,241,232,.32); line-height: 1.75; margin-top: 13px; max-width: 250px; }
+    .fc h4 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(247,241,232,.28); margin-bottom: 16px; }
+    .fc a { display: block; font-size: 13px; color: rgba(247,241,232,.5); text-decoration: none; margin-bottom: 10px; transition: color .2s; }
+    .fc a:hover { color: var(--amber); }
+    .ft-bot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; padding-top: 26px; border-top: 1px solid rgba(255,255,255,.05); }
+    .ft-copy { font-size: 12px; color: rgba(247,241,232,.22); }
+    .ft-leg { display: flex; gap: 18px; }
+    .ft-leg a { font-size: 12px; color: rgba(247,241,232,.28); text-decoration: none; transition: color .2s; }
+    .ft-leg a:hover { color: var(--amber); }
+
+    .tc { text-align: center; }
+    .mt16{margin-top:16px} .mt24{margin-top:24px} .mt32{margin-top:32px}
+  </style>
+</head>
+<body>
+
+<div id="bar"></div>
+
+<!-- ── NAV ── -->
+<!-- 
+  LOGO SETUP: Place your logo file at the ROOT of the repo as "logo.png"
+  The file already exists there — just replace it with your new logo image.
+  For SVG logo: rename your file "logo.svg" and update the src below.
+-->
+<nav id="nav">
+  <a href="/" class="n-logo">
+    <img src="/logo.png" alt="MonieMatch" height="32" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+    <!-- Fallback inline SVG if logo.png isn't uploaded yet -->
+    <svg style="display:none;width:30px;height:30px" viewBox="0 0 156 156" fill="none" aria-hidden="true">
+      <path d="M10 30.5C10 17.2 23.9 8.5 35.9 14.3L91.1 41.3L115.5 17.7C126.9 6.6 146 14.7 146 30.6V125.5C146 135.5 137.9 143.5 128 143.5H88H26.8C17.5 143.5 10 136 10 126.7V30.5Z" fill="#948661"/>
+    </svg>
+    <span class="n-logo-t">MonieMatch</span>
+  </a>
+  <ul class="n-links" id="nlinks">
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="#contact">Contact Us</a></li>
+    <li><a href="#about-us">About</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="/signin">Sign In</a></li>
+  </ul>
+  <a href="/join-investor" class="n-cta">Try A Match <span style="transition:transform .2s" class="arr">→</span></a>
+  <button class="hbg" id="hbg" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- Mobile menu -->
+<div class="mob-m" id="mobm">
+  <a href="#how-it-works">How it works</a>
+  <a href="#faq">FAQ</a>
+  <a href="#contact">Contact</a>
+  <a href="/signin">Sign In</a>
+  <div class="mob-ctas">
+    <a href="/join-investor" class="btn-mi">I am an Investor →</a>
+    <a href="/join-business" class="btn-mb">I own a Business →</a>
+  </div>
+</div>
+
+<!-- ── HERO ── -->
+<section id="hero">
+  <div class="h-inner">
+    <div class="h-pill"><span class="h-dot"></span>Nigeria's Investment Matching Platform</div>
+
+    <h1 class="h-head">
+      <span class="line"><span class="w" style="animation-delay:.28s">Meet</span>&nbsp;<span class="w" style="animation-delay:.38s">your</span>&nbsp;<span class="w" style="animation-delay:.48s">next</span></span>
+      <span class="line">
+        <span class="w fundmate-wrap" style="animation-delay:.6s">
+          <span class="soul-cross">Soul</span><span class="fund-text">Fund</span><span class="mate-text">Mate</span>
+        </span>
+      </span>
+      <span class="line"><span class="w" style="animation-delay:.78s">today.</span></span>
+    </h1>
+
+    <p class="h-sub">We match Investors with small but already-profitable businesses and facilitate win-win deals for both parties.</p>
+    <div class="h-ctas">
+      <a href="/join-investor" class="btn-inv">I am an Investor <span class="barr">→</span></a>
+      <a href="/join-business" class="btn-biz">I own a Business <span class="barr">→</span></a>
+    </div>
+    <a href="#waitlist" class="h-wl"><span>Notify me when the app drops</span> ↓</a>
+  </div>
+</section>
+
+<!-- ── TICKER ── -->
+<div class="ticker" aria-hidden="true">
+  <div class="t-track">
+    <span class="t-item">Sow your 100k, pluck 20k fruits monthly <span class="t-dot"></span></span>
+    <span class="t-item">We're the Tinder for Investors and Investees <span class="t-dot"></span></span>
+    <span class="t-item">Plug your business to the right socket <span class="t-dot"></span></span>
+    <span class="t-item">Latest Solopportunity for SoloPreneurs <span class="t-dot"></span></span>
+    <span class="t-item">You're 1 Match away from the hottest business in town <span class="t-dot"></span></span>
+    <span class="t-item">Funds to let — Self-con, 2-man, 3-man businesses accepted <span class="t-dot"></span></span>
+    <span class="t-item">Eat the fruit of your labour like a King <span class="t-dot"></span></span>
+    <span class="t-item">We perform matchmaking miracles for small businesses <span class="t-dot"></span></span>
+    <span class="t-item">Sow your 100k, pluck 20k fruits monthly <span class="t-dot"></span></span>
+    <span class="t-item">We're the Tinder for Investors and Investees <span class="t-dot"></span></span>
+    <span class="t-item">Plug your business to the right socket <span class="t-dot"></span></span>
+    <span class="t-item">Latest Solopportunity for SoloPreneurs <span class="t-dot"></span></span>
+    <span class="t-item">You're 1 Match away from the hottest business in town <span class="t-dot"></span></span>
+    <span class="t-item">Funds to let — Self-con, 2-man, 3-man businesses accepted <span class="t-dot"></span></span>
+    <span class="t-item">Eat the fruit of your labour like a King <span class="t-dot"></span></span>
+    <span class="t-item">We perform matchmaking miracles for small businesses <span class="t-dot"></span></span>
+  </div>
+</div>
+
+<!-- ── SECTION 2: FEATURES BENTO ── -->
+<section id="features">
+  <div class="w">
+    <div class="fh rv">
+      <span class="slbl">What MonieMatch Does</span>
+      <h2 class="sh2 mt16">Built for how Nigeria<br>actually <em class="em">does business.</em></h2>
+      <p class="sb mt16">Six things we obsessed over so you don't have to think about them.</p>
+    </div>
+    <div class="bgrid">
+
+      <div class="bc rv d1">
+        <div class="bn">01</div>
+        <div class="bv">
+          <div class="v-score">
+            <svg class="v-ring-svg" viewBox="0 0 64 64">
+              <circle class="v-ring-track" cx="32" cy="32" r="28"/>
+              <circle class="v-ring-fill" cx="32" cy="32" r="28"/>
+              <text class="v-ring-num" x="32" y="37" text-anchor="middle" font-family="Host Grotesk, sans-serif">94</text>
+            </svg>
+            <div class="v-bars">
+              <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="bt">Smart Algorithm Matching</div>
+        <p class="bd">A 5-factor engine scores every investor-business pair out of 99. The higher the score, the stronger the match — surfaced automatically.</p>
+      </div>
+
+      <div class="bc rv d2">
+        <div class="bn">02</div>
+        <div class="bv">
+          <div class="v-pills">
+            <span class="vp a">Fashion ✓</span><span class="vp b">Bakery ✓</span><span class="vp c">Verified</span>
+            <span class="vp a">Lagos</span><span class="vp b">₦100k–500k</span><span class="vp a">Monthly</span>
+          </div>
+        </div>
+        <div class="bt">Verified Businesses</div>
+        <p class="bd">Every business is verified before going live. Real names, real categories, real locations. No ghost listings, no bad surprises when you get there.</p>
+      </div>
+
+      <div class="bc rv d3">
+        <div class="bn">03</div>
+        <div class="bv">
+          <div class="v-chat">
+            <div class="vm r">How much are you looking to invest?</div>
+            <div class="vm s">₦200k. Revenue share works for me.</div>
+            <div class="vm r">Deal. Let's sign. 🤝</div>
+          </div>
+        </div>
+        <div class="bt">In-App Deal Negotiation</div>
+        <p class="bd">Propose, counter-propose, and close entirely on MonieMatch. Chat, agree terms, sign the deal. No WhatsApp confusion, no lost agreements.</p>
+      </div>
+
+      <div class="bc rv d4">
+        <div class="bn">04</div>
+        <div class="bv">
+          <div class="v-report">
+            <div class="vr-row"><span class="vr-l">Revenue this month</span><span class="vr-v">₦380,000</span></div>
+            <div class="vr-row"><span class="vr-l">Investor return</span><span class="vr-v">₦20,000</span></div>
+            <div class="vr-row"><span class="vr-l">Status</span><span class="vr-v green">✓ Submitted</span></div>
+          </div>
+        </div>
+        <div class="bt">Monthly Revenue Reports</div>
+        <p class="bd">Business owners submit monthly reports in various formats — voice, text, images. Investors stay informed. Trust is built in, not assumed.</p>
+      </div>
+
+      <div class="bc rv d5">
+        <div class="bn">05</div>
+        <div class="bv"><div class="v-port"><span class="v-port-n">₦1.2M</span><span class="v-port-l">Portfolio Value</span></div></div>
+        <div class="bt">Live Portfolio Tracking</div>
+        <p class="bd">All your active deals, pending returns, and performance in one clean dashboard. Know exactly where every naira is working.</p>
+      </div>
+
+      <div class="bc rv d6">
+        <div class="bn">06</div>
+        <div class="bv"><div class="v-pills"><span class="vp a">Monthly returns</span><span class="vp c">Revenue share</span><span class="vp b">Profit split</span></div></div>
+        <div class="bt">Flexible Return Structures</div>
+        <p class="bd">Fixed monthly, revenue share, or profit split — you negotiate what works for both sides. Every deal is custom-built for your situation.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 3: PROBLEMS ADDRESSED (Diagonal containers) ── -->
+<section id="about-us" style="padding:96px 0;background:var(--snow)">
+  <div class="w">
+    <div class="prob-hd rv">
+      <span class="slbl">Problems We Addressed</span>
+      <h2 class="sh2 mt16">The system was broken.<br>We <span class="et">fixed it.</span></h2>
+      <p class="sb mt16" style="max-width:520px">MonieMatch was built because real people in the real Nigerian economy needed it.</p>
+    </div>
+
+    <div class="diag-rows">
+
+      <!-- Row 1: \ diagonal -->
+      <div class="diag-pair rv">
+        <div class="dp-left">
+          <div class="dp-icon light"><i data-lucide="landmark" style="width:20px;height:20px;color:var(--dim)"></i></div>
+          <span class="dp-tag">The old way</span>
+          <div class="dp-title">Banks turned small businesses away.</div>
+          <p class="dp-desc">No collateral, no connections, no credit history — formal lenders weren't built for the informal economy. Bakers, tailors, and barbers were locked out.</p>
+        </div>
+        <div class="dp-right">
+          <div class="dp-icon dark"><i data-lucide="badge-check" style="width:20px;height:20px;color:var(--amber)"></i></div>
+          <span class="dp-tag">MonieMatch</span>
+          <div class="dp-title">We connect you with people, not institutions.</div>
+          <p class="dp-desc">Everyday investors who believe in your hustle. No paperwork gatekeepers. Verified profiles, smart matching, and a handshake backed by a signed digital deal.</p>
+        </div>
+      </div>
+
+      <!-- Row 2: / diagonal (flipped) -->
+      <div class="diag-pair flip rv d2">
+        <div class="dp-left">
+          <div class="dp-icon light"><i data-lucide="trending-down" style="width:20px;height:20px;color:var(--terra)"></i></div>
+          <span class="dp-tag">The old way</span>
+          <div class="dp-title">Savings accounts earned 4% while inflation ran wild.</div>
+          <p class="dp-desc">Your ₦500k sat in a savings account doing nothing. Meanwhile, verified businesses in your city were growing and needed exactly that amount to scale.</p>
+        </div>
+        <div class="dp-right">
+          <div class="dp-icon dark"><i data-lucide="sprout" style="width:20px;height:20px;color:var(--amber)"></i></div>
+          <span class="dp-tag">MonieMatch</span>
+          <div class="dp-title">Sow your seeds in the right spots. Pluck monthly.</div>
+          <p class="dp-desc">Invest in a verified bakery, fashion designer, or photographer. Set your terms. Receive monthly reports. Earn structured returns — not as a promise, as a signed deal.</p>
+        </div>
+      </div>
+
+      <!-- Row 3: \ diagonal -->
+      <div class="diag-pair rv d3">
+        <div class="dp-left">
+          <div class="dp-icon light"><i data-lucide="handshake" style="width:20px;height:20px;color:var(--dim)"></i></div>
+          <span class="dp-tag">The old way</span>
+          <div class="dp-title">Handshake deals with no structure went wrong.</div>
+          <p class="dp-desc">You lent money to a cousin's business. No agreement. No reports. Six months later, nothing. Good relationship, bad deal. The informal economy needed structure.</p>
+        </div>
+        <div class="dp-right">
+          <div class="dp-icon dark"><i data-lucide="file-text" style="width:20px;height:20px;color:var(--amber)"></i></div>
+          <span class="dp-tag">MonieMatch</span>
+          <div class="dp-title">Digital deal. Monthly report. Paper trail for everything.</div>
+          <p class="dp-desc">Every deal is signed in-app. Every month, the business submits a revenue report. Every naira is accounted for. Trust is built in — not just assumed.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section id="how-it-works">
+  <div class="w">
+    <div class="hh rv"><span class="slbl">How It Works</span><h2 class="sh2 mt16">As simple as sow, match, <em class="em">earn.</em></h2></div>
+    <div class="htabs rv">
+      <button class="ht on" data-tab="inv">I'm an Investor</button>
+      <button class="ht" data-tab="biz">I'm a Business Owner</button>
+    </div>
+    <div id="tab-inv" class="hp on">
+      <div class="hsteps">
+        <div class="hs rv d1"><span class="hn">01</span><div class="h-ico"><i data-lucide="user-round" style="width:20px;height:20px"></i></div><div class="htit">Set Up Your Profile</div><p class="hdesc">Tell us your investment range, preferred industries, and how you want returns. Takes 3 minutes.</p></div>
+        <div class="hs rv d2"><span class="hn">02</span><div class="h-ico"><i data-lucide="target" style="width:20px;height:20px"></i></div><div class="htit">Browse Your Matches</div><p class="hdesc">Our algorithm surfaces businesses that score highest against your exact preferences. No irrelevant listings.</p></div>
+        <div class="hs rv d3"><span class="hn">03</span><div class="h-ico"><i data-lucide="handshake" style="width:20px;height:20px"></i></div><div class="htit">Propose & Close the Deal</div><p class="hdesc">Initiate a deal, negotiate terms via chat, sign the agreement, and send funds. All on MonieMatch.</p></div>
+        <div class="hs rv d4"><span class="hn">04</span><div class="h-ico"><i data-lucide="leaf" style="width:20px;height:20px"></i></div><div class="htit">Pluck Your Returns</div><p class="hdesc">Receive monthly revenue reports. Watch your portfolio grow. Eat the fruit of your labour like a king.</p></div>
+      </div>
+    </div>
+    <div id="tab-biz" class="hp">
+      <div class="hsteps">
+        <div class="hs rv d1"><span class="hn">01</span><div class="h-ico"><i data-lucide="store" style="width:20px;height:20px"></i></div><div class="htit">List Your Business</div><p class="hdesc">Describe your business, state your funding need, and explain how you'll use and repay the investment.</p></div>
+        <div class="hs rv d2"><span class="hn">02</span><div class="h-ico"><i data-lucide="zap" style="width:20px;height:20px"></i></div><div class="htit">Get Auto-Matched</div><p class="hdesc">Our engine matches you instantly with investors whose goals align with yours. No cold pitching required.</p></div>
+        <div class="hs rv d3"><span class="hn">03</span><div class="h-ico"><i data-lucide="file-signature" style="width:20px;height:20px"></i></div><div class="htit">Review Offers & Sign</div><p class="hdesc">Check investor offers, counter if needed, sign the digital agreement, and receive your funds.</p></div>
+        <div class="hs rv d4"><span class="hn">04</span><div class="h-ico"><i data-lucide="bar-chart-2" style="width:20px;height:20px"></i></div><div class="htit">Report. Grow. Repeat.</div><p class="hdesc">Submit monthly revenue updates with voice-to-text. Keep investors informed. Build trust. Raise more.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOR INVESTORS ── -->
+<section id="investors">
+  <div class="w">
+    <div class="sg">
+      <div class="rl">
+        <span class="slbl">For Investors</span>
+        <h2 class="sh2 mt16">I might not be a Senior Investor.<br>But my investment <em class="em">is.</em></h2>
+        <p class="sb mt24">Stop watching your money earn 4% a year. MonieMatch deploys your capital into verified small businesses — structured terms, monthly reports, real returns.</p>
+        <ul class="bl">
+          <li class="bi"><div class="bck"><i data-lucide="circle-check" style="width:20px;height:20px;color:var(--amber)"></i></div><span class="bt2"><strong>AI-powered matching</strong> — only businesses that fit your exact criteria reach you.</span></li>
+          <li class="bi"><div class="bck"><i data-lucide="circle-check" style="width:20px;height:20px;color:var(--amber)"></i></div><span class="bt2"><strong>Monthly revenue reports</strong> — every business owner sends verified updates. No ghosting.</span></li>
+          <li class="bi"><div class="bck"><i data-lucide="circle-check" style="width:20px;height:20px;color:var(--amber)"></i></div><span class="bt2"><strong>Flexible structures</strong> — monthly fixed, revenue share, or profit split. You negotiate what works.</span></li>
+          <li class="bi"><div class="bck"><i data-lucide="circle-check" style="width:20px;height:20px;color:var(--amber)"></i></div><span class="bt2"><strong>Any amount</strong> — from ₦50k to ₦5M, there's a matching business waiting for you.</span></li>
+        </ul>
+        <a href="/join-investor" class="clink cd mt32">Start Investing →</a>
+      </div>
+      <div class="rr" style="display:flex;justify-content:center">
+        <div class="cs">
+          <div class="ic ic-b"></div>
+          <div class="ic ic-m"></div>
+          <div class="ic ic-f">
+            <img src="/logo.png" class="ic-logo" alt="" onerror="this.style.display='none'" />
+            <div class="il" style="margin-top:12px">Active Investment</div>
+            <div class="ia">₦500,000</div>
+            <div class="ib2">Adaeze's Confectionery · Lagos</div>
+            <div class="ibadge"><i data-lucide="trending-up" style="width:13px;height:13px;color:#a07020"></i> +₦20,000 / month</div>
+            <div class="mr">94<small>/ 99</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOR BUSINESSES ── -->
+<section id="businesses">
+  <div class="w">
+    <div class="sg">
+      <div class="rl">
+        <span class="slbl">For Businesses</span>
+        <h2 class="sh2 mt16">Bring your favourite<br>business into <em class="em">the light.</em></h2>
+        <p class="sb mt24">Stop borrowing from family with no structure. Stop waiting on banks that were never built for you. List your business and let the right investor find you.</p>
+        <div class="bcats">
+          <div class="bcat"><i data-lucide="scissors" class="bcat-ico"></i> Fashion & Tailoring</div>
+          <div class="bcat"><i data-lucide="cake" class="bcat-ico"></i> Bakeries & Food</div>
+          <div class="bcat"><i data-lucide="scissors" class="bcat-ico"></i> Barbers & Salons</div>
+          <div class="bcat"><i data-lucide="camera" class="bcat-ico"></i> Photography</div>
+          <div class="bcat"><i data-lucide="shopping-bag" class="bcat-ico"></i> Retail & Trading</div>
+          <div class="bcat"><i data-lucide="monitor" class="bcat-ico"></i> Tech & Digital</div>
+        </div>
+        <a href="/join-business" class="clink ca mt32">List My Business →</a>
+        <div class="tcard mt32">
+          <span class="tq">"</span>
+          <p class="tt">"Listed my fashion business on a Monday. Had three investor offers by Friday. No bank ever moved that fast."</p>
+          <div class="ta"><div class="tav">TK</div><div><span class="tn">Tolu K.</span><span class="tr">Fashion Designer · Abuja</span></div></div>
+        </div>
+      </div>
+      <div class="rr">
+        <div class="algo-card">
+          <p class="algo-lbl">How Your Match Score Is Built</p>
+          <div class="algo-row"><span class="algo-name"><i data-lucide="banknote" style="width:16px;height:16px;color:var(--amber)"></i> Amount Match</span><div class="algo-right"><div class="algo-track"><div class="algo-fill" style="width:100%"></div></div><span class="algo-pt">30</span></div></div>
+          <div class="algo-row"><span class="algo-name"><i data-lucide="bar-chart-2" style="width:16px;height:16px;color:var(--amber)"></i> Return Structure</span><div class="algo-right"><div class="algo-track"><div class="algo-fill" style="width:83%"></div></div><span class="algo-pt">25</span></div></div>
+          <div class="algo-row"><span class="algo-name"><i data-lucide="tag" style="width:16px;height:16px;color:var(--amber)"></i> Category Match</span><div class="algo-right"><div class="algo-track"><div class="algo-fill" style="width:67%"></div></div><span class="algo-pt">20</span></div></div>
+          <div class="algo-row"><span class="algo-name"><i data-lucide="calendar" style="width:16px;height:16px;color:var(--amber)"></i> Report Cadence</span><div class="algo-right"><div class="algo-track"><div class="algo-fill" style="width:50%"></div></div><span class="algo-pt">15</span></div></div>
+          <div class="algo-row" style="margin:0"><span class="algo-name"><i data-lucide="map-pin" style="width:16px;height:16px;color:var(--amber)"></i> Location</span><div class="algo-right"><div class="algo-track"><div class="algo-fill" style="width:33%"></div></div><span class="algo-pt">10</span></div></div>
+          <div class="algo-total"><span class="algo-total-lbl">Max Score</span><span class="algo-total-num">99 <span style="font-size:14px;opacity:.4">/99</span></span></div>
+          <p class="algo-foot">100 doesn't exist in real life — but 99 is close enough to change yours.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── APP COMING SOON ── -->
+<section id="app">
+  <div class="w">
+    <div class="app-in rv tc">
+      <span class="slbl">Mobile App</span>
+      <h2 class="sh2 mt16">MonieMatch is coming<br>to your <em class="em">pocket.</em></h2>
+      <p class="sb mt16">The full experience on iOS and Android. Match, deal, and track returns from anywhere.</p>
+      <div class="app-bs">
+        <a href="#waitlist" class="app-b">
+          <span class="sn">Coming Soon</span>
+          <i data-lucide="apple" class="app-ico" style="width:26px;height:26px"></i>
+          <div class="app-bt"><small>Download on the</small><strong>App Store</strong></div>
+        </a>
+        <a href="#waitlist" class="app-b">
+          <span class="sn">Coming Soon</span>
+          <i data-lucide="smartphone" class="app-ico" style="width:24px;height:24px"></i>
+          <div class="app-bt"><small>Get it on</small><strong>Google Play</strong></div>
+        </a>
+      </div>
+      <p class="app-note">Meanwhile — <a href="/app">the web app is live right now →</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ── -->
+<section id="faq">
+  <div class="w">
+    <div class="rv tc" style="margin-bottom:60px"><span class="slbl">FAQ</span><h2 class="sh2 mt16">Questions? We got you.</h2></div>
+    <div class="fq-list">
+      <div class="fq-item"><button class="fq-q">How does MonieMatch match me with the right businesses?<span class="fq-ico"><i data-lucide="plus" style="width:15px;height:15px"></i></span></button><div class="fq-a"><p>Our algorithm scores every investor-business pair across 5 factors: investment amount overlap (30pts), return structure preference (25pts), reporting cadence (15pts), business category (20pts), and location (10pts). The result is a compatibility score out of 99. We surface your top matches automatically.</p></div></div>
+      <div class="fq-item"><button class="fq-q">What kinds of businesses are on MonieMatch?<span class="fq-ico"><i data-lucide="plus" style="width:15px;height:15px"></i></span></button><div class="fq-a"><p>Fashion designers, bakers, barbers, photographers, retailers, tech freelancers — any Nigerian small business that's real and has a funding need. We support 80+ business categories with smart fuzzy matching.</p></div></div>
+      <div class="fq-item"><button class="fq-q">How much can I invest? Is there a minimum?<span class="fq-ico"><i data-lucide="plus" style="width:15px;height:15px"></i></span></button><div class="fq-a"><p>No platform minimum. Investors set their own range — from ₦50,000 upwards. The matching engine only connects you with businesses whose funding needs overlap with your range.</p></div></div>
+      <div class="fq-item"><button class="fq-q">How are returns structured and paid?<span class="fq-ico"><i data-lucide="plus" style="width:15px;height:15px"></i></span></button><div class="fq-a"><p>You negotiate the structure before signing — fixed monthly payments, revenue-share percentages, or profit splits. Terms are per-deal. For MVP, fund movement happens directly between parties. MonieMatch handles matching, deal agreements, and reporting. Escrow is coming.</p></div></div>
+      <div class="fq-item"><button class="fq-q">Is my money safe? What if the business defaults?<span class="fq-ico"><i data-lucide="plus" style="width:15px;height:15px"></i></span></button><div class="fq-a"><p>MonieMatch facilitates and documents deals — we don't hold your money. Every business signs a digital agreement and all terms are on record. As with any investment, returns are not guaranteed. Invest amounts you're comfortable with.</p></div></div>
+      <div class="fq-item"><button class="fq-q">I don't have a CAC-registered business. Can I still list?<span class="fq-ico"><i data-lucide="plus" style="width:15px;height:15px"></i></span></button><div class="fq-a"><p>Yes. MonieMatch was built for the informal economy. Your business doesn't need formal registration to list — we verify basic business info and auto-activate your listing. Solopreneurs fully welcome.</p></div></div>
+      <div class="fq-item"><button class="fq-q">When is the mobile app dropping?<span class="fq-ico"><i data-lucide="plus" style="width:15px;height:15px"></i></span></button><div class="fq-a"><p>We're building it now. Join the waitlist below and we'll email you the moment it goes live. The full platform is already live at moniematch.com/app — fully optimised for your phone.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTACT (Google Form wired) ── -->
+<section id="contact">
+  <div class="w">
+    <div class="ct-grid">
+      <div class="rl">
+        <span class="slbl" style="color:var(--gold-l);border-color:rgba(148,134,97,.2)">Contact Us</span>
+        <h2 class="sh2 mt16" style="color:#fff">Let's talk<br><em class="em">business.</em></h2>
+        <p class="sb mt24" style="color:rgba(247,241,232,.5)">Questions, partnerships, press — we're a small team and we actually read our emails.</p>
+        <p class="ct-lbl mt32">Email</p>
+        <a href="mailto:admin@moniematch.com" class="ct-link"><i data-lucide="mail" style="width:18px;height:18px;color:var(--amber)"></i> admin@moniematch.com</a>
+        <p class="ct-lbl">Follow us</p>
+        <div class="socials">
+          <a href="#" class="soc" title="Instagram"><i data-lucide="instagram" style="width:18px;height:18px"></i></a>
+          <a href="#" class="soc" title="Twitter"><i data-lucide="twitter" style="width:18px;height:18px"></i></a>
+          <a href="#" class="soc" title="LinkedIn"><i data-lucide="linkedin" style="width:18px;height:18px"></i></a>
+          <a href="#" class="soc" title="TikTok"><i data-lucide="music-2" style="width:18px;height:18px"></i></a>
+        </div>
+      </div>
+      <div class="rr">
+        <form class="ctf" id="ctForm" onsubmit="submitContact(event)">
+          <div>
+            <label class="flbl" for="ct-name">Your Name</label>
+            <input class="fi" id="ct-name" type="text" placeholder="What do we call you?" required />
+          </div>
+          <div>
+            <label class="flbl" for="ct-email">Email Address</label>
+            <input class="fi" id="ct-email" type="email" placeholder="your@email.com" required />
+          </div>
+          <div>
+            <label class="flbl" for="ct-role">I am a...</label>
+            <select class="fsel" id="ct-role">
+              <option value="">Select one</option>
+              <option value="Potential investor">Potential investor</option>
+              <option value="Business owner seeking funding">Business owner seeking funding</option>
+              <option value="Partner / collaborator">Partner / collaborator</option>
+              <option value="Just curious">Just curious</option>
+            </select>
+          </div>
+          <div>
+            <label class="flbl" for="ct-msg">Message</label>
+            <textarea class="fta" id="ct-msg" placeholder="Tell us what's on your mind..."></textarea>
+          </div>
+          <button type="submit" class="bsend" id="ctBtn">
+            <i data-lucide="send" style="width:16px;height:16px"></i> Send Message
+          </button>
+          <div class="form-success" id="ctSuccess">
+            <i data-lucide="check-circle" style="width:18px;height:18px;color:var(--gold)"></i>
+            Message received! We'll get back to you soon.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── WAITLIST (Google Form wired) ── -->
+<section id="waitlist">
+  <div class="w">
+    <div class="wl-row">
+      <div class="wl-text rl">
+        <h3>Be the first to know<br>when the app drops.</h3>
+        <p>One email. No spam. Just the download link.</p>
+      </div>
+      <div class="rr">
+        <div id="wlArea">
+          <div class="wl-fields">
+            <div class="wl-row2">
+              <input class="wi" type="text" id="wl-name" placeholder="Your name" />
+              <input class="wi" type="email" id="wl-email" placeholder="your@email.com" />
+            </div>
+            <div class="wl-row2">
+              <button class="bwl" onclick="doWaitlist()">
+                <i data-lucide="bell" style="width:15px;height:15px"></i> Notify Me
+              </button>
+            </div>
+          </div>
+          <p class="wl-note" style="margin-top:10px">No spam. Unsubscribe anytime. The web app is <a href="/app" style="color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(148,134,97,.25)">live right now →</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="w">
+    <div class="ft-top">
+      <div class="fb">
+        <a href="/" style="display:flex;align-items:center;gap:9px;text-decoration:none;color:#fff">
+          <img src="/logo.png" height="28" alt="MonieMatch" onerror="this.style.display='none'" />
+          <span style="font-size:16px;font-weight:700;letter-spacing:-.3px">MonieMatch</span>
+        </a>
+        <p>Matchmaking miracles for Nigerian small businesses and everyday mini-investors.</p>
+      </div>
+      <div class="fc"><h4>Platform</h4><a href="/join-investor">For Investors</a><a href="/join-business">For Businesses</a><a href="/app">Web App</a><a href="/signin">Sign In</a></div>
+      <div class="fc"><h4>Company</h4><a href="#about-us">About</a><a href="#how-it-works">How It Works</a><a href="#faq">FAQ</a><a href="#contact">Contact</a></div>
+      <div class="fc"><h4>Legal</h4><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Use</a><a href="#">Risk Disclosure</a></div>
+    </div>
+    <div class="ft-bot">
+      <p class="ft-copy">© 2026 MonieMatch Technologies Ltd. All rights reserved. Lagos, Nigeria.</p>
+      <div class="ft-leg"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div>
+    </div>
+  </div>
+</footer>
+
+<!-- Lucide Icons CDN -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+<script>
+  // Init Lucide icons
+  lucide.createIcons();
+
+  // ── SCROLL PROGRESS
+  const bar = document.getElementById('bar');
+  window.addEventListener('scroll', () => {
+    bar.style.width = (scrollY / (document.body.scrollHeight - innerHeight) * 100) + '%';
+  }, { passive: true });
+
+  // ── NAV SCROLL STATE
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => nav.classList.toggle('on', scrollY > 50), { passive: true });
+  nav.querySelector('.n-cta').addEventListener('mouseover', function(){ this.querySelector('.arr') && (this.querySelector('.arr').style.transform = 'translateX(4px)'); });
+  nav.querySelector('.n-cta').addEventListener('mouseout', function(){ this.querySelector('.arr') && (this.querySelector('.arr').style.transform = ''); });
+
+  // ── HAMBURGER
+  const hbg = document.getElementById('hbg'), mobm = document.getElementById('mobm');
+  hbg.addEventListener('click', () => {
+    hbg.classList.toggle('o'); mobm.classList.toggle('o');
+    document.body.style.overflow = mobm.classList.contains('o') ? 'hidden' : '';
+  });
+  mobm.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    hbg.classList.remove('o'); mobm.classList.remove('o'); document.body.style.overflow = '';
+  }));
+
+  // ── REVEAL ON SCROLL
+  const els = document.querySelectorAll('.rv, .rl, .rr');
+  const obs = new IntersectionObserver(ee => ee.forEach(e => { if (e.isIntersecting) e.target.classList.add('v'); }), { threshold: .1, rootMargin: '0px 0px -36px 0px' });
+  els.forEach(el => obs.observe(el));
+
+  // ── HOW IT WORKS TABS
+  document.querySelectorAll('.ht').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.ht').forEach(x => x.classList.remove('on'));
+    document.querySelectorAll('.hp').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('tab-' + t.dataset.tab).classList.add('on');
+  }));
+
+  // ── FAQ ACCORDION
+  document.querySelectorAll('.fq-q').forEach(q => q.addEventListener('click', () => {
+    const item = q.parentElement, open = item.classList.contains('o');
+    document.querySelectorAll('.fq-item').forEach(i => i.classList.remove('o'));
+    if (!open) item.classList.add('o');
+    lucide.createIcons(); // re-init icons inside newly opened items
+  }));
+
+  // ── RESPONSIVE NAV
+  function checkNav() {
+    const mob = innerWidth <= 768;
+    document.getElementById('nlinks').style.display = mob ? 'none' : 'flex';
+    document.querySelector('.n-cta').style.display = mob ? 'none' : '';
+    document.getElementById('hbg').style.display = mob ? 'flex' : 'none';
+  }
+  checkNav(); window.addEventListener('resize', checkNav);
+
+  // ── SMOOTH ANCHORS
+  document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }));
+
+  // ─────────────────────────────────────────
+  // GOOGLE FORMS INTEGRATION
+  // ─────────────────────────────────────────
+
+  // CONTACT FORM
+  // Form ID: 1FAIpQLSfc9KSB-AtK3NkKuKgWMcC7opEUyYEMmMICY_1FrR7F6xYHSA
+  // Fields: entry.1110611512 = name, entry.272099443 = email,
+  //         entry.1462487102 = role/type, entry.891114078 = message
+  async function submitContact(e) {
+    e.preventDefault();
+    const btn = document.getElementById('ctBtn');
+    const success = document.getElementById('ctSuccess');
+    const name  = document.getElementById('ct-name').value;
+    const email = document.getElementById('ct-email').value;
+    const role  = document.getElementById('ct-role').value;
+    const msg   = document.getElementById('ct-msg').value;
+
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+
+    const fd = new FormData();
+    fd.append('entry.1110611512', name);
+    fd.append('entry.272099443', email);
+    fd.append('entry.1462487102', role);
+    fd.append('entry.891114078', msg);
+
+    try {
+      await fetch(
+        'https://docs.google.com/forms/d/e/1FAIpQLSfc9KSB-AtK3NkKuKgWMcC7opEUyYEMmMICY_1FrR7F6xYHSA/formResponse',
+        { method: 'POST', body: fd, mode: 'no-cors' }
+      );
+    } catch (_) { /* no-cors: fetch always throws, response unreadable — still submitted */ }
+
+    btn.style.display = 'none';
+    success.classList.add('show');
+    lucide.createIcons();
+    document.getElementById('ctForm').reset();
+  }
+
+  // WAITLIST / APP NOTIFICATION FORM
+  // Form ID: 1FAIpQLScMduQI5K_WOSm3-9UN3MchcPwLIZMNv597nkCDeiJ2SciubA
+  // Fields: entry.1110611512 = name, entry.272099443 = email
+  async function doWaitlist() {
+    const name  = document.getElementById('wl-name').value.trim();
+    const email = document.getElementById('wl-email').value.trim();
+    if (!email || !email.includes('@')) { alert('Enter a valid email address.'); return; }
+
+    const fd = new FormData();
+    fd.append('entry.1110611512', name);
+    fd.append('entry.272099443', email);
+
+    try {
+      await fetch(
+        'https://docs.google.com/forms/d/e/1FAIpQLScMduQI5K_WOSm3-9UN3MchcPwLIZMNv597nkCDeiJ2SciubA/formResponse',
+        { method: 'POST', body: fd, mode: 'no-cors' }
+      );
+    } catch (_) {}
+
+    document.getElementById('wlArea').innerHTML = `
+      <div style="padding:14px 22px;background:rgba(148,134,97,.12);border:1px solid rgba(148,134,97,.25);border-radius:100px;font-size:13.5px;color:var(--gold-l);font-weight:600;display:flex;align-items:center;gap:10px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        You're on the list! We'll drop the link in your inbox.
+      </div>
+      <p style="font-size:11px;color:rgba(247,241,232,.2);margin-top:10px">The web app is <a href="/app" style="color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(148,134,97,.25)">live right now →</a></p>`;
+  }
+</script>
+
+</body>
+</html>

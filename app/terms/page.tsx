@@ -44,5 +44,5 @@ const TERMS_SECTIONS = [
   { title: '11. Risk Disclaimer', body: '<strong>IMPORTANT RISK WARNING:</strong> Investment in small and micro businesses involves substantial risk. You should only invest money you can afford to lose. MonieMatch is not a licensed financial institution and does not provide regulated financial advice. Please seek independent financial advice before making investment decisions.' },
   { title: '12. Governing Law', body: 'These Terms are governed by the laws of the Federal Republic of Nigeria. Any disputes shall be resolved in the courts of Lagos State, Nigeria.' },
   { title: '13. Changes to Terms', body: 'MonieMatch reserves the right to modify these Terms at any time. Material changes will be communicated via email and platform notification. Continued use after notification constitutes acceptance of the revised Terms.' },
-  { title: '14. Contact', body: 'For questions about these Terms, contact us at <a href="mailto:hello@moniematch.com" style="color:var(--amber)">hello@moniematch.com</a>.' },
+  { title: '14. Contact', body: 'For questions about these Terms, contact us at <a href="mailto:admin@moniematch.com" style="color:var(--amber)">admin@moniematch.com</a>.' },
 ]
