@@ -1,4 +1,53 @@
-// ── Adapted UI shapes (output of db.ts adapters) ──────────────────────────────
+// ── Landing page types ────────────────────────────────────────────────────────
+
+export interface NavLink {
+  label: string
+  href: string
+}
+
+export interface FeatureCard {
+  num: string
+  title: string
+  description: string
+  visual: 'score' | 'pills-verified' | 'chat' | 'report' | 'portfolio' | 'pills-return'
+}
+
+export interface ProblemPair {
+  flip?: boolean
+  left: {
+    icon: string
+    tag: string
+    title: string
+    desc: string
+  }
+  right: {
+    icon: string
+    tag: string
+    title: string
+    desc: string
+  }
+}
+
+export interface HowItWorksStep {
+  num: string
+  icon: string
+  title: string
+  desc: string
+}
+
+export interface FAQItem {
+  question: string
+  answer: string
+}
+
+export interface AlgoRow {
+  icon: string
+  label: string
+  pct: number
+  points: number
+}
+
+// ── App types (investor + business screens) ───────────────────────────────────
 
 export interface Business {
   id: string
@@ -12,6 +61,7 @@ export interface Business {
   returnHeadline: string
   returnStructures: string[]
   reportingCadence: string[]
+  cadence?: string[]
   askMin: number
   askMax: number
   matchScore: number
@@ -25,10 +75,8 @@ export interface Business {
   ownerId: string
   ownerName?: string
   ownerPhone?: string
-  // extra fields used in detail view
+  name?: string
   pitch?: string
-  name?: string       // owner name alias
-  cadence?: string[]
   risk?: string
   seasonality?: string
   yearsRunning?: number
@@ -52,7 +100,6 @@ export interface Investor {
   initials: string
   color: string
   isVerified: boolean
-  // with match context
   matchId?: string
   status?: string
   whenISO?: string
@@ -76,6 +123,9 @@ export interface UserProfile {
   interests?: string[]
   returnStructures?: string[]
   reportingCadence?: string[]
+  rangeMin?: number
+  rangeMax?: number
+  returnGoal?: string
   // business owner fields
   bizName?: string
   businessId?: string
@@ -84,10 +134,6 @@ export interface UserProfile {
   // computed
   initials: string
   color: string
-  // prefs helpers
-  rangeMin?: number
-  rangeMax?: number
-  returnGoal?: string
 }
 
 export interface Deal {
@@ -96,7 +142,6 @@ export interface Deal {
   status: 'proposed' | 'signed' | 'active' | 'completed' | 'defaulted'
   returnType: string | null
   biz: Business | null
-  // portfolio display
   invested?: number
   paidBack?: number
   structure?: string
