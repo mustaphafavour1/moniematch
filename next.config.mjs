@@ -10,7 +10,7 @@ const nextConfig = {
       { source: '/join/investor',         destination: '/investor/onboarding' },
       { source: '/join/business',         destination: '/business/onboarding' },
 
-      // Legacy React app (still in public/) — these are LAST so Next.js routes take priority
+      // Legacy React app (still in public/) — fallback while migration completes
       { source: '/app',                   destination: '/app/index.html' },
       { source: '/app/investor',          destination: '/app/index.html' },
       { source: '/app/investor/:path*',   destination: '/app/index.html' },
