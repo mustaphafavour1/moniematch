@@ -9,9 +9,9 @@ const nextConfig = {
       // Landing page static routes
       { source: '/join/investor',         destination: '/join-investor.html' },
       { source: '/join/business',         destination: '/join-business.html' },
-      { source: '/signin',                destination: '/signin.html' },
+      // NOTE: /signin is now a Next.js page — no rewrite needed
 
-      // Legacy React app (still in public/) — these are LAST so Next.js routes take priority
+      // Legacy React app (still in public/) — fallback while migration completes
       { source: '/app',                   destination: '/app/index.html' },
       { source: '/app/investor',          destination: '/app/index.html' },
       { source: '/app/investor/:path*',   destination: '/app/index.html' },
