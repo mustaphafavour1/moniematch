@@ -1,0 +1,75 @@
+/* ── MonieMatch App CSS ─────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --forest:       #2D5D3F;
+  --clay:         #B45A3C;
+  --clay-deep:    #8B3A22;
+  --sun:          #E5A04A;
+  --cream:        #F7F1E8;
+  --ink:          #1F1A14;
+  --ink-2:        #4A4440;
+  --ink-3:        #7A7370;
+  --ink-4:        #A09D9A;
+  --bone:         #F4EDE3;
+  --linen:        #EDE5D8;
+  --canvas:       #1c1813;
+  --forest-tint:  rgba(45,93,63,0.12);
+  --forest-soft:  rgba(45,93,63,0.30);
+  --clay-tint:    rgba(180,90,60,0.12);
+  --sun-tint:     rgba(229,160,74,0.18);
+  --cream-tab:    rgba(247,241,232,0.85);
+  --line:         rgba(31,26,20,0.08);
+  --line-strong:  rgba(31,26,20,0.14);
+  --shadow-sm:    0 2px 8px rgba(31,26,20,0.08);
+  --shadow-md:    0 4px 16px rgba(31,26,20,0.12);
+  --font-display: 'Fraunces', 'Georgia', serif;
+  --font-body:    'Nunito', -apple-system, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+.app-screen {
+  font-family: var(--font-body);
+  background: var(--cream);
+  width: 100%; height: 100%;
+  overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  display: flex; flex-direction: column;
+}
+.cream-bg { background: var(--cream) !important; }
+.pad  { padding-left: 22px; padding-right: 22px; }
+.scroll { overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+.statusbar-spacer { height: env(safe-area-inset-top, 20px); min-height: 20px; flex-shrink: 0; }
+.row   { display: flex; flex-direction: row; align-items: center; }
+.col   { display: flex; flex-direction: column; }
+.between { justify-content: space-between; }
+.gap-4{gap:4px}.gap-6{gap:6px}.gap-8{gap:8px}.gap-10{gap:10px}.gap-12{gap:12px}.gap-14{gap:14px}.gap-16{gap:16px}.gap-20{gap:20px}
+.h1 { font-family:var(--font-display);font-size:32px;font-weight:600;color:var(--ink);line-height:1.12;letter-spacing:-0.01em; }
+.h2 { font-family:var(--font-display);font-size:24px;font-weight:600;color:var(--ink);line-height:1.2; }
+.eyebrow { font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3); }
+.naira { font-feature-settings: 'tnum'; }
+.card { background:var(--bone);border:1px solid var(--line-strong);border-radius:18px;padding:16px;box-shadow:var(--shadow-sm); }
+.card.ink { background:var(--canvas);border-color:rgba(255,255,255,0.07); }
+.card.sand { background:#EFE6D8;border-color:rgba(31,26,20,0.10); }
+.card.linen { background:var(--linen);border-color:rgba(31,26,20,0.09); }
+.btn { display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:14px;padding:13px 20px;font-family:var(--font-body);font-size:15px;font-weight:700;cursor:pointer;transition:all 160ms;user-select:none;-webkit-tap-highlight-color:transparent; }
+.btn-primary { background:var(--ink);color:var(--cream); }
+.btn-primary:active { background:#332C24; }
+.btn-soft { background:var(--linen);color:var(--ink);border:1px solid var(--line-strong); }
+.btn-soft:active { background:var(--bone); }
+.btn-block { width:100%; }
+.btn:disabled { opacity:0.45;pointer-events:none; }
+.chip { display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--linen);color:var(--ink-2); }
+.chip.clay   { background:var(--clay-tint);color:var(--clay); }
+.chip.forest { background:var(--forest-tint);color:var(--forest); }
+.chip.sun    { background:var(--sun-tint);color:#8B5E1A; }
+.chip.outline{ background:transparent;border:1px solid var(--line-strong);color:var(--ink-2); }
+.hr { height:1px;background:var(--line);width:100%; }
+@keyframes fadein { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse-soft { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.06);opacity:0.85} }
+@keyframes escrow-flow { 0%{left:50px;opacity:0} 15%{opacity:1} 85%{opacity:1} 100%{left:154px;opacity:0} }
+.fadein{animation:fadein 320ms ease both}
+.fadein.d1{animation-delay:60ms}.fadein.d2{animation-delay:120ms}.fadein.d3{animation-delay:180ms}
+.fadein.d4{animation-delay:240ms}.fadein.d5{animation-delay:300ms}
+.screen-enter{animation:fadein 280ms ease both}
