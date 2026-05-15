@@ -310,3 +310,25 @@ export async function uploadAvatar(file: File): Promise<string> {
   await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', authUser.id)
   return publicUrl
 }
+
+export async function getRecentBusinesses(limit = 3): Promise<Business[]> {
+  const { data } = await supabase
+    .from('businesses')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (!data) return []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).map(b => adaptBusiness(b, 0))
+}
+
+export async function getRecentInvestors(limit = 3): Promise<Investor[]> {
+  const { data } = await supabase
+    .from('investors')
+    .select('*, users (id, name, city, state, occupation)')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (!data) return []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).map(inv => adaptInvestor(inv, inv.users || {}, 0))
+}
