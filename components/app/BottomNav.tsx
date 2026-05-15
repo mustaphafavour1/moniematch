@@ -1,16 +1,25 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Zap, BarChart2, User } from 'lucide-react'
+import { Home, Zap, BarChart2, User, Users, Mic } from 'lucide-react'
 
-const TABS = [
+// ── Investor tabs ──────────────────────────────────────────────────────────────
+const INV_TABS = [
   { href:'/investor',           icon: Home,     label:'Home'      },
   { href:'/investor/matches',   icon: Zap,      label:'Matches'   },
   { href:'/investor/portfolio', icon: BarChart2, label:'Portfolio' },
   { href:'/investor/profile',   icon: User,     label:'Profile'   },
 ]
 
-export function InvestorBottomNav() {
+// ── Business tabs ─────────────────────────────────────────────────────────────
+const BIZ_TABS = [
+  { href:'/business',            icon: Home,  label:'Home'      },
+  { href:'/business/investors',  icon: Users, label:'Investors' },
+  { href:'/business/reporting',  icon: Mic,   label:'Reports'   },
+  { href:'/business/profile',    icon: User,  label:'Profile'   },
+]
+
+function BottomNav({ tabs }: { tabs: typeof INV_TABS }) {
   const path = usePathname()
   return (
     <nav style={{
@@ -20,8 +29,8 @@ export function InvestorBottomNav() {
       display:'flex', alignItems:'stretch',
       paddingBottom:'env(safe-area-inset-bottom, 0px)',
     }}>
-      {TABS.map(tab => {
-        const active = path === tab.href || (tab.href !== '/investor' && path.startsWith(tab.href))
+      {tabs.map(tab => {
+        const active = path === tab.href || (tab.href.length > 1 && path.startsWith(tab.href))
         const Ic = tab.icon
         return (
           <Link key={tab.href} href={tab.href} style={{
@@ -40,3 +49,6 @@ export function InvestorBottomNav() {
     </nav>
   )
 }
+
+export function InvestorBottomNav() { return <BottomNav tabs={INV_TABS} /> }
+export function BusinessBottomNav() { return <BottomNav tabs={BIZ_TABS} /> }
