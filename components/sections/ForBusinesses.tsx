@@ -66,21 +66,7 @@ export default function ForBusinesses() {
               List My Business →
             </a>
 
-            {/* Testimonial */}
-            <div className="tcard">
-              <span className="tq">&ldquo;</span>
-              <p className="tt">
-                &ldquo;Listed my fashion business on a Monday. Had three investor offers by Friday.
-                No bank ever moved that fast.&rdquo;
-              </p>
-              <div className="ta">
-                <div className="tav">TK</div>
-                <div>
-                  <span className="tn">Tolu K.</span>
-                  <span className="tr">Fashion Designer · Abuja</span>
-                </div>
-              </div>
-            </div>
+            
           </div>
 
           {/* Algorithm card */}
