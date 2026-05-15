@@ -70,8 +70,8 @@ export default function BizOnboardingPage() {
       if (user && !skip) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await supabase.from('businesses').upsert(
-          { owner_id:user.id, name:bizName, category } as any,
-          { onConflict:'owner_id' }
+          { owner_id: user.id, name: bizName, category, owner_name: name } as any,
+          { onConflict: 'owner_id' }
         )
       }
       router.replace('/business')

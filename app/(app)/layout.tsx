@@ -10,11 +10,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       const isOnboarding = pathname.includes('/onboarding')
-      if (!session && !isOnboarding) { router.replace('/signin'); return }
+
+      if (!session) {
+        if (!isOnboarding) router.replace('/signin')
+        else setReady(true)
+        return
+      }
+
+      // Fetch role and enforce correct app side
+      const { data: profile } = await supabase
+        .from('users').select('role').eq('id', session.user.id).maybeSingle()
+
+      const role = profile?.role
+      const onInvestor = pathname.startsWith('/investor')
+      const onBusiness = pathname.startsWith('/business')
+
+      if (role === 'investor' && onBusiness) { router.replace('/investor'); return }
+      if (role === 'business_owner' && onInvestor) { router.replace('/business'); return }
+
       setReady(true)
     })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') router.replace('/signin')
     })
@@ -24,25 +42,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <style>{`
-        /* ── Reset ──────────────────────────────────────── */
         *, *::before, *::after { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #1c1813; }
-
-        /* ── Outer wrapper ──────────────────────────────── */
         #app-outer {
           width: 100%; height: 100dvh;
           display: flex; align-items: center; justify-content: center;
         }
-
-        /* ── App frame — mobile first ───────────────────── */
         #app-frame {
           width: 100%; height: 100dvh;
           overflow: hidden; position: relative;
           background: var(--cream);
           display: flex; flex-direction: column;
         }
-
-        /* ── Desktop: centred phone ─────────────────────── */
         @media (min-width: 600px) {
           body {
             background:
@@ -66,12 +77,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div id="app-outer">
         <div id="app-frame">
           {!ready ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--canvas)' }}>
+            <div style={{
+              flex: 1, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              background: 'var(--canvas)', gap: 20,
+            }}>
+              {/* MonieMatch logo */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="MonieMatch" style={{ width: 56, height: 56, objectFit: 'contain' }} />
+              {/* Subtle pulse dots */}
               <div style={{ display: 'flex', gap: 6 }}>
                 {[0, 1, 2].map(i => (
                   <div key={i} style={{
-                    width: 8, height: 8, borderRadius: 999, background: 'var(--clay)', opacity: 0.7,
-                    animation: `fadein 0.6s ease ${i * 0.2}s infinite alternate`,
+                    width: 6, height: 6, borderRadius: 999,
+                    background: 'var(--clay)', opacity: 0.6,
+                    animation: `fadein 0.7s ease ${i * 0.18}s infinite alternate`,
                   }} />
                 ))}
               </div>
