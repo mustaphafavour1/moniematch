@@ -81,11 +81,21 @@ export async function getMyProfile(): Promise<UserProfile | null> {
 
   if (!userRow) return null
 
-  const base = {
-    ...userRow,
+  // Build the base profile object — userRow is any so spread is safe
+  const base: UserProfile = {
+    id:       userRow.id,
+    name:     userRow.name || '',
+    role:     userRow.role || 'investor',
+    email:    userRow.email,
+    city:     userRow.city,
+    state:    userRow.state,
+    occupation: userRow.occupation,
+    username: userRow.username,
+    avatar_url: userRow.avatar_url,
+    must_change_password: userRow.must_change_password,
     initials: initialsFor(userRow.name || ''),
     color:    colorFor(userRow.name || ''),
-  } as UserProfile
+  }
 
   if (userRow.role === 'investor') {
     const { data: inv } = await supabase
@@ -93,7 +103,6 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     const range = parseNairaRange(inv?.investment_range || '')
     return {
       ...base,
-      ...inv,
       investorId:       inv?.id,
       investmentRange:  inv?.investment_range || '',
       interests:        inv?.interests || [],
@@ -112,7 +121,7 @@ export async function getMyProfile(): Promise<UserProfile | null> {
       ...(biz ? adaptBusiness(biz, 0) : {}),
       bizName:     biz?.name,
       businessId:  biz?.id,
-      category:    biz?.category || undefined,
+      category:    biz?.category  || undefined,
       description: biz?.description || undefined,
     }
   }
