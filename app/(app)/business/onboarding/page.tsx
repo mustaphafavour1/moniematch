@@ -49,10 +49,11 @@ export default function BizOnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await supabase.from('users').upsert(
+        const { error: e } = await supabase.from('users').upsert(
           { id:user.id, name, username, role:'business_owner', email:user.email ?? null } as any,
           { onConflict:'id' }
         )
+        if (e) throw e
       }
       setStep(3)
     } catch(e: unknown) {
@@ -64,19 +65,23 @@ export default function BizOnboardingPage() {
   }
 
   const handleSaveBiz = async (skip = false) => {
-    setBusy(true)
+    setBusy(true); setError('')
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (user && !skip) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await supabase.from('businesses').upsert(
+        const { error: e } = await supabase.from('businesses').upsert(
           { owner_id: user.id, name: bizName, category, owner_name: name } as any,
           { onConflict: 'owner_id' }
         )
+        if (e) throw e
       }
       router.replace('/business')
-    } catch(e) { console.warn('[MM] save biz:', e); router.replace('/business') }
-    setBusy(false)
+    } catch(e: unknown) {
+      const msg = (e instanceof Error ? e.message : '').toLowerCase()
+      setError(msg || 'Couldn\'t save your business. Try again.')
+      setBusy(false)
+    }
   }
 
   return (
