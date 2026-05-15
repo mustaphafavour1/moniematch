@@ -79,6 +79,8 @@ export interface UserProfile {
   // business owner fields
   bizName?: string
   businessId?: string
+  category?: string
+  description?: string
   // computed
   initials: string
   color: string

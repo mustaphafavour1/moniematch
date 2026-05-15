@@ -110,8 +110,10 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     return {
       ...base,
       ...(biz ? adaptBusiness(biz, 0) : {}),
-      bizName:    biz?.name,
-      businessId: biz?.id,
+      bizName:     biz?.name,
+      businessId:  biz?.id,
+      category:    biz?.category || undefined,
+      description: biz?.description || undefined,
     }
   }
 

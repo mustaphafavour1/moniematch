@@ -22,9 +22,9 @@ export default function BizProfileEditPage() {
   useEffect(() => {
     getMyProfile().then(p => {
       if (!p) return
-      if (p.bizName)     setBizName(p.bizName)
-      if (p.category as string)    setCategory(p.category as string)
-      if (p.description as string) setDesc(p.description as string)
+      if (p.bizName)    setBizName(p.bizName)
+      if (p.category)   setCategory(p.category)
+      if (p.description) setDesc(p.description)
     })
   }, [])
 
