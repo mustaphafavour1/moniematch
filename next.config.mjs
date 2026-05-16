@@ -6,8 +6,6 @@ const nextConfig = {
 
   async rewrites() {
     return [
-      // Sign-in → existing signin.html (phone-frame styled)
-      { source: '/signin',                destination: '/signin.html' },
       // Join flows → new Next.js onboarding pages
       { source: '/join/investor',         destination: '/investor/onboarding' },
       { source: '/join/business',         destination: '/business/onboarding' },

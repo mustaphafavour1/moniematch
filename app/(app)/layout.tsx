@@ -12,9 +12,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const isOnboarding = pathname.includes('/onboarding')
+      const isSignin     = pathname === '/signin'
+      const isPublic     = isOnboarding || isSignin
 
       if (!session) {
-        if (!isOnboarding) router.replace('/signin')
+        if (!isPublic) router.replace('/signin')
         else setReady(true)
         return
       }
@@ -24,11 +26,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         .from('users').select('role').eq('id', session.user.id).maybeSingle()
 
       const role = profile?.role
+
+      // Logged-in user on the sign-in page → redirect to their home
+      if (isSignin) {
+        if (role === 'investor')           { router.replace('/investor'); return }
+        if (role === 'business_owner') { router.replace('/business'); return }
+        setReady(true) // no role yet — let them pick
+        return
+      }
+
       const onInvestor = pathname.startsWith('/investor')
       const onBusiness = pathname.startsWith('/business')
 
-      if (role === 'investor' && onBusiness) { router.replace('/investor'); return }
-      if (role === 'business_owner' && onInvestor) { router.replace('/business'); return }
+      if (role === 'investor'       && onBusiness && !isOnboarding) { router.replace('/investor'); return }
+      if (role === 'business_owner' && onInvestor && !isOnboarding) { router.replace('/business'); return }
 
       setReady(true)
     })
