@@ -77,7 +77,7 @@ export default function BizMediaPage() {
             style={{
               padding: '7px 14px', borderRadius: 999, border: 'none', cursor: 'pointer',
               fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: tab === t.key ? 600 : 400,
-              background: tab === t.key ? 'var(--ink)' : 'transparent',
+              background: tab === t.key ? 'var(--forest)' : 'transparent',
               color: tab === t.key ? 'var(--cream)' : 'var(--ink-3)',
               marginBottom: -1, transition: 'all 180ms',
             }}
@@ -131,7 +131,7 @@ export default function BizMediaPage() {
                   background: 'var(--linen)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Icon name={docIcon(doc)} size={18} color="var(--ink-2)" />
+                  <Icon name={docIcon(doc)} size={18} color="var(--forest)" />
                 </div>
 
                 {/* Info */}
@@ -153,8 +153,8 @@ export default function BizMediaPage() {
                     flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
                     background: 'var(--linen)', borderRadius: 999, padding: '3px 8px',
                   }}>
-                    <Icon name="check" size={11} color="var(--ink)" />
-                    <span style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600 }}>Verified</span>
+                    <Icon name="check" size={11} color="var(--forest)" />
+                    <span style={{ fontSize: 11, color: 'var(--forest)', fontWeight: 600 }}>Verified</span>
                   </div>
                 )}
 
