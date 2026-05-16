@@ -6,10 +6,9 @@ const nextConfig = {
 
   async rewrites() {
     return [
-      // Landing page static routes
-      { source: '/join/investor',         destination: '/join-investor.html' },
-      { source: '/join/business',         destination: '/join-business.html' },
-      // NOTE: /signin is now a Next.js page — no rewrite needed
+      // Join flows → new Next.js onboarding pages
+      { source: '/join/investor',         destination: '/investor/onboarding' },
+      { source: '/join/business',         destination: '/business/onboarding' },
 
       // Legacy React app (still in public/) — fallback while migration completes
       { source: '/app',                   destination: '/app/index.html' },
