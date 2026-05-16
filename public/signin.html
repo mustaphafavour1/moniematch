@@ -46,9 +46,9 @@
       const { data: { user } } = await window.sb.auth.getUser();
       if (!user) return;
       const { data: p } = await window.sb.from("users").select("role").eq("id", user.id).maybeSingle();
-      if (p?.role === "investor")           window.location.href = "/app/investor";
-      else if (p?.role === "business_owner") window.location.href = "/app/business";
-      else window.location.href = "/app";
+      if (p?.role === "investor")           window.location.href = "/investor";
+      else if (p?.role === "business_owner") window.location.href = "/business";
+      else window.location.href = "/";
     }
 
     function SignIn() {
@@ -148,9 +148,9 @@
 
             <p style={{ fontSize:13, color:"var(--ink-3)", marginTop:20, textAlign:"center" }}>
               New here?{" "}
-              <a href="/join-investor" style={{ color:"var(--clay)", fontWeight:600, textDecoration:"none" }}>Investor</a>
+              <a href="/investor/onboarding" style={{ color:"var(--clay)", fontWeight:600, textDecoration:"none" }}>Investor</a>
               {" · "}
-              <a href="/join-business" style={{ color:"var(--forest)", fontWeight:600, textDecoration:"none" }}>Business</a>
+              <a href="/business/onboarding" style={{ color:"var(--forest)", fontWeight:600, textDecoration:"none" }}>Business</a>
             </p>
           </>) : (<>
             {resetDone ? (
