@@ -4,7 +4,7 @@ import {
   BarChart2, Zap, TrendingUp, AlertTriangle, CheckCircle2, Shield,
   Banknote, Settings, LogOut, Store, Calendar, User, Lock, X,
   Mic, Sparkles, FileText, Wallet, Check, MessageCircle, MoreVertical,
-  Image, Flag, Link, Upload, PlusCircle, BookOpen, ClipboardList,
+  Image, Flag, Link, Upload, PlusCircle, BookOpen, ClipboardList, Star,
 } from 'lucide-react'
 
 type IconProps = { size?: number; color?: string; strokeWidth?: number }
@@ -42,6 +42,7 @@ const MAP: Record<string, React.FC<IconProps>> = {
   plus:       p => <PlusCircle      size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   book:       p => <BookOpen        size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   clipboard:  p => <ClipboardList   size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  star:       p => <Star             size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
 }
 
 export function Icon({ name, size=20, color, strokeWidth, style }: {

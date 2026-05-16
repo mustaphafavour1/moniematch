@@ -8,7 +8,7 @@ const FORMATS = [
     icon: 'doc',
     label: 'Write a report',
     sub: 'Type out revenue, highlights, and notes in a structured form',
-    href: '/business/reporting?format=written',
+    href: '/business/records/new-report/write',
   },
   {
     icon: 'mic',
@@ -20,7 +20,7 @@ const FORMATS = [
     icon: 'photo',
     label: 'Attach media',
     sub: 'Upload photos or screenshots of receipts, dashboards, or progress',
-    href: '/business/reporting?format=media',
+    href: '/business/records/new-report/media',
   },
 ]
 

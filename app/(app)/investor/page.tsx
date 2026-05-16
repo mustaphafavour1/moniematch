@@ -79,7 +79,7 @@ export default function InvHomePage() {
             <div style={{ fontSize:15, fontWeight:500, color:'var(--ink)' }}>{userName.split(' ')[0]}</div>
           </div>
         </div>
-        <RoundBtn onClick={() => router.push('/investor/profile')}>
+        <RoundBtn onClick={() => router.push('/investor/notifications')}>
           <Icon name="bell" size={18} />
         </RoundBtn>
       </div>
