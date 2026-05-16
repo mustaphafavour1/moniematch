@@ -3,8 +3,8 @@ import {
   ChevronLeft, ChevronRight, Bell, Search, Filter, Send,
   BarChart2, Zap, TrendingUp, AlertTriangle, CheckCircle2, Shield,
   Banknote, Settings, LogOut, Store, Calendar, User, Lock, X,
-  Mic, Sparkles, FileText, Wallet, Check, MessageCircle, MoreHorizontal,
-  Image, Flag,
+  Mic, Sparkles, FileText, Wallet, Check, MessageCircle, MoreVertical,
+  Image, Flag, Link, Upload, PlusCircle, BookOpen, ClipboardList,
 } from 'lucide-react'
 
 type IconProps = { size?: number; color?: string; strokeWidth?: number }
@@ -34,9 +34,14 @@ const MAP: Record<string, React.FC<IconProps>> = {
   doc:        p => <FileText      size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   wallet:     p => <Wallet         size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   chat:       p => <MessageCircle  size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
-  more:       p => <MoreHorizontal size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  more:       p => <MoreVertical    size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   photo:      p => <Image           size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   flag:       p => <Flag            size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  link:       p => <Link            size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  upload:     p => <Upload          size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  plus:       p => <PlusCircle      size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  book:       p => <BookOpen        size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  clipboard:  p => <ClipboardList   size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
 }
 
 export function Icon({ name, size=20, color, strokeWidth, style }: {

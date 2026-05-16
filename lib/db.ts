@@ -310,20 +310,19 @@ export async function getOrCreateMatchForBusiness(bizId: string): Promise<string
   if (!authUser) return null
   const { data: inv } = await supabase.from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
   if (!inv) return null
+  // Check for existing row first
   const { data: existing } = await supabase.from('matches').select('id')
     .eq('investor_id', inv.id).eq('business_id', bizId).maybeSingle()
   if (existing) return existing.id
-  const { data: created, error } = await supabase.from('matches')
-    .insert({ investor_id: inv.id, business_id: bizId, compatibility_score: 0, status: 'interested' })
-    .select('id').single()
-  if (created?.id) return created.id
-  // Insert may have failed due to unique constraint (row already exists). Re-query.
-  if (error) {
-    const { data: retry } = await supabase.from('matches').select('id')
-      .eq('investor_id', inv.id).eq('business_id', bizId).maybeSingle()
-    if (retry) return retry.id
-  }
-  return null
+  // Generate UUID client-side so we always know the ID regardless of RLS SELECT restrictions
+  const newId = crypto.randomUUID()
+  const { error } = await supabase.from('matches')
+    .insert({ id: newId, investor_id: inv.id, business_id: bizId, compatibility_score: 0, status: 'interested' })
+  if (!error) return newId
+  // Insert failed (unique constraint — row already exists from a race). Re-query.
+  const { data: retry } = await supabase.from('matches').select('id')
+    .eq('investor_id', inv.id).eq('business_id', bizId).maybeSingle()
+  return retry?.id || null
 }
 
 export async function getOrCreateMatchForInvestor(invId: string): Promise<string | null> {
@@ -334,16 +333,13 @@ export async function getOrCreateMatchForInvestor(invId: string): Promise<string
   const { data: existing } = await supabase.from('matches').select('id')
     .eq('business_id', biz.id).eq('investor_id', invId).maybeSingle()
   if (existing) return existing.id
-  const { data: created, error } = await supabase.from('matches')
-    .insert({ investor_id: invId, business_id: biz.id, compatibility_score: 0, status: 'interested' })
-    .select('id').single()
-  if (created?.id) return created.id
-  if (error) {
-    const { data: retry } = await supabase.from('matches').select('id')
-      .eq('business_id', biz.id).eq('investor_id', invId).maybeSingle()
-    if (retry) return retry.id
-  }
-  return null
+  const newId = crypto.randomUUID()
+  const { error } = await supabase.from('matches')
+    .insert({ id: newId, investor_id: invId, business_id: biz.id, compatibility_score: 0, status: 'interested' })
+  if (!error) return newId
+  const { data: retry } = await supabase.from('matches').select('id')
+    .eq('business_id', biz.id).eq('investor_id', invId).maybeSingle()
+  return retry?.id || null
 }
 
 export async function sendMessage(matchId: string, content: string): Promise<ChatMessage> {
@@ -479,4 +475,189 @@ export async function getMatchCounterpartyName(matchId: string, role: 'investor'
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (data as any)?.investors?.users?.name || 'Investor'
   }
+}
+
+// ── Offers ────────────────────────────────────────────────────────────────────
+
+export interface OfferTerms {
+  amount: number
+  is_milestoned: boolean
+  milestones?: { amount: number; description: string }[]
+  return_type: 'fixed' | 'revenue_share' | 'equity'
+  reporting_frequency: 'weekly' | 'monthly' | 'quarterly'
+  roi_percent?: number
+  total_return_amount?: number
+  repayment_method?: 'monthly_payment' | 'end_date'
+  monthly_payment?: number
+  end_date?: string
+  revenue_percent?: number
+  equity_percent?: number
+  has_voting_rights?: boolean
+  notes?: string
+  is_template?: boolean
+  template_name?: string
+  parent_offer_id?: string
+}
+
+export async function saveOffer(matchId: string, terms: OfferTerms): Promise<string> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) throw new Error('Not authenticated')
+  const id = crypto.randomUUID()
+  const { error } = await supabase.from('offers').insert({
+    id,
+    match_id:            matchId,
+    proposer_id:         authUser.id,
+    amount:              terms.amount,
+    return_type:         terms.return_type,
+    return_rate:         terms.roi_percent,
+    duration_months:     terms.repayment_method === 'end_date' ? null : null,
+    notes:               terms.notes,
+    status:              terms.is_template ? 'template' : 'pending',
+    is_milestoned:       terms.is_milestoned,
+    milestones:          terms.milestones || null,
+    monthly_payment:     terms.monthly_payment,
+    end_date:            terms.end_date,
+    revenue_percent:     terms.revenue_percent,
+    equity_percent:      terms.equity_percent,
+    has_voting_rights:   terms.has_voting_rights,
+    reporting_frequency: terms.reporting_frequency,
+    total_return_amount: terms.total_return_amount,
+    is_template:         terms.is_template || false,
+    template_name:       terms.template_name,
+    parent_offer_id:     terms.parent_offer_id,
+  })
+  if (error) throw error
+  return id
+}
+
+export async function getOffersForMatch(matchId: string): Promise<(OfferTerms & { id: string; status: string; proposer_id: string; created_at: string })[]> {
+  const { data } = await supabase
+    .from('offers').select('*').eq('match_id', matchId).neq('status', 'template')
+    .order('created_at', { ascending: false })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]) || []
+}
+
+export async function getOfferTemplates(): Promise<(OfferTerms & { id: string; template_name: string })[]> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return []
+  const { data } = await supabase
+    .from('offers').select('*').eq('proposer_id', authUser.id).eq('is_template', true)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]) || []
+}
+
+export async function updateOfferStatus(offerId: string, status: string): Promise<void> {
+  await supabase.from('offers').update({ status }).eq('id', offerId)
+}
+
+// ── Issue Reports ─────────────────────────────────────────────────────────────
+
+export async function submitIssueReport(matchId: string, category: string, description: string): Promise<void> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) throw new Error('Not authenticated')
+  const { error } = await supabase.from('issue_reports').insert({
+    match_id:    matchId,
+    reporter_id: authUser.id,
+    category,
+    description,
+  })
+  if (error) throw error
+}
+
+// ── Business Documents / Links ────────────────────────────────────────────────
+
+export interface BusinessDocument {
+  id: string
+  business_id: string
+  uploader_id: string
+  doc_type: string
+  item_type: 'file' | 'link'
+  file_name: string
+  file_url: string
+  storage_path?: string
+  file_size?: number
+  link_title?: string
+  is_verified: boolean
+  uploaded_at: string
+}
+
+export async function getBusinessDocumentsForMatch(matchId: string): Promise<BusinessDocument[]> {
+  // Get the business_id from the match
+  const { data: match } = await supabase.from('matches').select('business_id').eq('id', matchId).maybeSingle()
+  if (!match?.business_id) return []
+  const { data } = await supabase
+    .from('business_documents').select('*').eq('business_id', match.business_id)
+    .order('uploaded_at', { ascending: false })
+  return (data as BusinessDocument[]) || []
+}
+
+export async function getMyBusinessDocuments(): Promise<BusinessDocument[]> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return []
+  const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', authUser.id).maybeSingle()
+  if (!biz) return []
+  const { data } = await supabase
+    .from('business_documents').select('*').eq('business_id', biz.id)
+    .order('uploaded_at', { ascending: false })
+  return (data as BusinessDocument[]) || []
+}
+
+export async function uploadBusinessFile(file: File, docType: string): Promise<BusinessDocument> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) throw new Error('Not authenticated')
+  const { data: biz } = await supabase.from('businesses').select('id, name').eq('owner_id', authUser.id).maybeSingle()
+  if (!biz) throw new Error('No business found')
+
+  const bucket  = docType === 'photo' ? 'business-photos' : docType === 'bank_statement' ? 'deal-files' : 'documents'
+  const ext     = file.name.split('.').pop() || 'bin'
+  const path    = `${biz.name}/${docType}/${Date.now()}.${ext}`
+  const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type })
+  if (upErr) throw upErr
+  const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path)
+
+  const id = crypto.randomUUID()
+  const { error } = await supabase.from('business_documents').insert({
+    id,
+    business_id:  biz.id,
+    uploader_id:  authUser.id,
+    doc_type:     docType,
+    item_type:    'file',
+    file_name:    file.name,
+    file_url:     publicUrl,
+    storage_path: path,
+    file_size:    file.size,
+    uploaded_at:  new Date().toISOString(),
+  })
+  if (error) throw error
+  return { id, business_id: biz.id, uploader_id: authUser.id, doc_type: docType, item_type: 'file',
+    file_name: file.name, file_url: publicUrl, storage_path: path, file_size: file.size,
+    is_verified: false, uploaded_at: new Date().toISOString() }
+}
+
+export async function addBusinessLink(url: string, title: string, docType: string): Promise<BusinessDocument> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) throw new Error('Not authenticated')
+  const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', authUser.id).maybeSingle()
+  if (!biz) throw new Error('No business found')
+
+  const id = crypto.randomUUID()
+  const { error } = await supabase.from('business_documents').insert({
+    id,
+    business_id: biz.id,
+    uploader_id: authUser.id,
+    doc_type:    docType,
+    item_type:   'link',
+    file_name:   title,
+    file_url:    url,
+    link_title:  title,
+    uploaded_at: new Date().toISOString(),
+  })
+  if (error) throw error
+  return { id, business_id: biz.id, uploader_id: authUser.id, doc_type: docType, item_type: 'link',
+    file_name: title, file_url: url, link_title: title, is_verified: false, uploaded_at: new Date().toISOString() }
+}
+
+export async function deleteBusinessDocument(docId: string): Promise<void> {
+  await supabase.from('business_documents').delete().eq('id', docId)
 }
