@@ -10,8 +10,8 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
 }
 
 const platformLinks = [
-  { label: 'For Investors',   href: '/join-investor' },
-  { label: 'For Businesses',  href: '/join-business' },
+  { label: 'For Investors',   href: '/investor/onboarding' },
+  { label: 'For Businesses',  href: '/business/onboarding' },
   { label: 'Web App',         href: '/app' },
   { label: 'Sign In',         href: '/signin' },
 ]

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { NAV_LINKS } from '@/lib/constants'
 
 // Routes that are static HTML files in public/ — must use <a>, not Next.js <Link>
-const STATIC_ROUTES = ['/join-investor', '/join-business', '/app']
+const STATIC_ROUTES = ['/app']
 function isStatic(href: string) {
   return STATIC_ROUTES.some(r => href.startsWith(r)) || href.startsWith('http')
 }
@@ -73,7 +73,7 @@ export default function Nav() {
         </ul>
 
         {/* CTA — static route */}
-        <a href="/join-investor" className="n-cta nav-cta-desk">
+        <a href="/investor/onboarding" className="n-cta nav-cta-desk">
           Try A Match <span className="arr" style={{ marginLeft: 4 }}>→</span>
         </a>
 
@@ -113,12 +113,12 @@ export default function Nav() {
             )
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 260, marginTop: 12 }}>
-            <a href="/join-investor" onClick={closeMenu}
+            <a href="/investor/onboarding" onClick={closeMenu}
               style={{ background: 'var(--ink)', color: '#fff', padding: '14px 24px', borderRadius: 100, fontWeight: 600, textDecoration: 'none', textAlign: 'center' }}
             >
               I am an Investor →
             </a>
-            <a href="/join-business" onClick={closeMenu}
+            <a href="/business/onboarding" onClick={closeMenu}
               style={{ background: 'transparent', color: 'var(--ink)', border: '1.5px solid rgba(28,24,19,.2)', padding: '14px 24px', borderRadius: 100, fontWeight: 600, textDecoration: 'none', textAlign: 'center' }}
             >
               I own a Business →
