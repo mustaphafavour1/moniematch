@@ -8,8 +8,14 @@ import { Avatar } from '@/components/app/Avatar'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 import { MatchDial } from '@/components/app/MatchDial'
 import { Progress } from '@/components/app/Progress'
-import { AppHeader } from '@/components/app/AppHeader'
 import { Photo } from '@/components/app/Photo'
+
+const RETURN_LABEL: Record<string, string> = {
+  revenue_share: 'Revenue share',
+  fixed:         'Fixed returns',
+  equity:        'Equity',
+  balanced:      'Either works',
+}
 
 export default function BusinessDetailPage() {
   const router       = useRouter()
@@ -19,6 +25,7 @@ export default function BusinessDetailPage() {
   const [biz,     setBiz]     = useState<Business | null>(null)
   const [matchId, setMatchId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [starting, setStarting] = useState(false)
 
   useEffect(() => {
     if (!bizId) { setLoading(false); return }
@@ -28,6 +35,18 @@ export default function BusinessDetailPage() {
       setLoading(false)
     })
   }, [bizId])
+
+  const handleStartConversation = async () => {
+    if (starting) return
+    let mid = matchId
+    if (!mid) {
+      setStarting(true)
+      mid = await getOrCreateMatchForBusiness(bizId)
+      setMatchId(mid)
+      setStarting(false)
+    }
+    router.push(mid ? `/investor/chat/${mid}` : '/investor/chat')
+  }
 
   if (loading) return (
     <div className="app-screen" style={{display:'flex', alignItems:'center', justifyContent:'center'}}>
@@ -70,7 +89,13 @@ export default function BusinessDetailPage() {
           <div className="h1" style={{fontSize:32}}>{biz.business}</div>
           {biz.ownerName && (
             <div className="row gap-8" style={{marginTop:8, color:'var(--ink-2)'}}>
-              <Avatar name={biz.ownerName} initials={(biz.ownerName||'?').split(' ').map((w:string)=>w[0]).join('').slice(0,2).toUpperCase()} color={biz.color} size={26} />
+              {biz.ownerAvatar
+                ? <img src={biz.ownerAvatar} alt={biz.ownerName}
+                    style={{width:26, height:26, borderRadius:999, objectFit:'cover', flexShrink:0}} />
+                : <Avatar name={biz.ownerName}
+                    initials={(biz.ownerName||'?').split(' ').map((w:string)=>w[0]).join('').slice(0,2).toUpperCase()}
+                    color={biz.color} size={26} />
+              }
               <span style={{fontSize:13.5}}>{biz.ownerName} · owner</span>
             </div>
           )}
@@ -90,7 +115,7 @@ export default function BusinessDetailPage() {
         <div className="pad" style={{marginTop:14}}>
           <div className="card">
             <div className="eyebrow" style={{marginBottom:6}}>What the money does</div>
-            <div style={{fontFamily:'var(--font-display)', fontSize:22, lineHeight:1.2, color:'var(--ink)'}}>{biz.use}</div>
+            <div style={{fontSize:14, lineHeight:1.55, color:'var(--ink)'}}>{biz.use}</div>
           </div>
         </div>
 
@@ -114,8 +139,8 @@ export default function BusinessDetailPage() {
           <div className="eyebrow" style={{marginBottom:8}}>Deal terms</div>
           <div className="card" style={{padding:0, overflow:'hidden'}}>
             <DetailRow icon="money"    label="Investment range"   value={fmtNairaRange(biz.askMin, biz.askMax)} />
-            <DetailRow icon="trend-up" label="Return offered"     value={biz.returnHeadline} />
-            <DetailRow icon="bell"     label="Reporting cadence"  value={(biz.cadence||['Monthly']).join(' or ')} />
+            <ChipRow   icon="trend-up" label="Return offered"     chips={biz.returnStructures} labelMap={RETURN_LABEL} />
+            <ChipRow   icon="bell"     label="Reporting cadence"  chips={biz.cadence || biz.reportingCadence} />
             <DetailRow icon="calendar" label="Duration"           value={biz.duration || 'Open'} last />
           </div>
         </div>
@@ -139,9 +164,10 @@ export default function BusinessDetailPage() {
         background:'linear-gradient(180deg, rgba(247,241,232,0) 0%, var(--cream) 30%)',
         display:'flex', flexDirection:'column', gap:8}}>
         <button className="btn btn-primary btn-block"
-          onClick={() => router.push(matchId ? `/investor/chat/${matchId}` : '/investor/chat')}
+          onClick={handleStartConversation}
+          disabled={starting}
           style={{background:'var(--ink)', color:'var(--cream)'}}>
-          Start conversation
+          {starting ? 'Opening chat…' : 'Start conversation'}
         </button>
       </div>
     </div>
@@ -159,6 +185,33 @@ function DetailRow({ icon, label, value, last }: { icon:string; label:string; va
       <div style={{flex:1, minWidth:0}}>
         <div style={{fontSize:11, color:'var(--ink-3)', letterSpacing:0.04, textTransform:'uppercase'}}>{label}</div>
         <div style={{fontSize:14, color:'var(--ink)', marginTop:2}}>{value}</div>
+      </div>
+    </div>
+  )
+}
+
+function ChipRow({ icon, label, chips, labelMap, last }: {
+  icon:string; label:string; chips:string[]; labelMap?:Record<string,string>; last?:boolean
+}) {
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:12, padding:'14px 16px',
+      borderBottom: last ? 0 : '1px solid var(--line)'}}>
+      <div style={{width:30, height:30, borderRadius:8, background:'var(--linen)', color:'var(--ink-2)',
+        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+        <Icon name={icon} size={16} />
+      </div>
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{fontSize:11, color:'var(--ink-3)', letterSpacing:0.04, textTransform:'uppercase'}}>{label}</div>
+        {chips.length > 0
+          ? <div className="row gap-6" style={{marginTop:5, flexWrap:'wrap'}}>
+              {chips.map(c => (
+                <span key={c} className="chip" style={{fontSize:12}}>
+                  {labelMap?.[c] || c}
+                </span>
+              ))}
+            </div>
+          : <div style={{fontSize:14, color:'var(--ink)', marginTop:2}}>—</div>
+        }
       </div>
     </div>
   )
