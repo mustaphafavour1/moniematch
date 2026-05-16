@@ -19,6 +19,7 @@ export default function InvMatchesPage() {
   const [recent,  setRecent]  = useState<Business[]>([])
   const [filter,  setFilter]  = useState('all')
   const [query,   setQuery]   = useState('')
+  const [draft,   setDraft]   = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -85,10 +86,22 @@ export default function InvMatchesPage() {
       <div className="pad" style={{ marginTop: 14 }}>
         <div className="row gap-10" style={{ background: 'var(--bone)', border: '1px solid var(--line-strong)',
           borderRadius: 14, padding: '10px 14px' }}>
-          <Icon name="search" size={18} color="var(--ink-3)" />
-          <input placeholder="Search by business name" value={query} onChange={e => setQuery(e.target.value)}
+          <button onClick={() => setQuery(draft)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+            <Icon name="search" size={18} color="var(--ink-3)" />
+          </button>
+          <input placeholder="Search by business name"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') setQuery(draft) }}
             style={{ flex: 1, border: 0, background: 'transparent', outline: 'none',
               fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)' }} />
+          {(draft || query) && (
+            <button onClick={() => { setDraft(''); setQuery('') }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink-3)' }}>
+              <Icon name="close" size={16} />
+            </button>
+          )}
         </div>
       </div>
 

@@ -12,7 +12,6 @@ interface Notif {
   title: string
   body: string
   href: string
-  read: boolean
   created_at: string
 }
 
@@ -34,116 +33,116 @@ export default function InvestorNotificationsPage() {
   const router = useRouter()
   const [notifs, setNotifs] = useState<Notif[]>([])
   const [loading, setLoading] = useState(true)
-  const [myId, setMyId] = useState('')
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
-      setMyId(user.id)
-      buildNotifs(user.id)
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { setLoading(false); return }
+
+      // Resolve investor row id
+      const { data: inv } = await supabase
+        .from('investors').select('id').eq('user_id', user.id).maybeSingle()
+      if (!inv) { setLoading(false); return }
+
+      const list: Notif[] = []
+
+      // All matches for this investor
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('id, created_at, businesses(name)')
+        .eq('investor_id', inv.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      const matchIds = (matches || []).map(m => m.id)
+
+      if (matches) {
+        for (const m of matches) {
+          const biz = m.businesses as { name?: string } | null
+          list.push({
+            id: `match-${m.id}`,
+            type: 'match',
+            title: 'New match',
+            body: `You matched with ${biz?.name || 'a business'}`,
+            href: `/investor/chat/${m.id}`,
+            created_at: m.created_at,
+          })
+        }
+      }
+
+      // New messages in investor's matches (not sent by investor)
+      if (matchIds.length > 0) {
+        const { data: msgs } = await supabase
+          .from('messages')
+          .select('id, match_id, content, sender_id, created_at')
+          .in('match_id', matchIds)
+          .neq('sender_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(30)
+
+        if (msgs) {
+          const seen = new Set<string>()
+          for (const msg of msgs) {
+            if (seen.has(msg.match_id)) continue
+            seen.add(msg.match_id)
+            list.push({
+              id: `msg-${msg.id}`,
+              type: 'message',
+              title: 'New message',
+              body: msg.content?.slice(0, 80) || 'Sent you a message',
+              href: `/investor/chat/${msg.match_id}`,
+              created_at: msg.created_at,
+            })
+          }
+        }
+
+        // New offers in investor's matches
+        const { data: offers } = await supabase
+          .from('offers')
+          .select('id, match_id, amount, created_at')
+          .in('match_id', matchIds)
+          .order('created_at', { ascending: false })
+          .limit(20)
+
+        if (offers) {
+          for (const o of offers) {
+            list.push({
+              id: `offer-${o.id}`,
+              type: 'offer',
+              title: 'Offer received',
+              body: `An offer of ₦${Number(o.amount).toLocaleString()} was made`,
+              href: `/investor/chat/${o.match_id}`,
+              created_at: o.created_at,
+            })
+          }
+        }
+
+        // New reports submitted
+        const { data: reports } = await supabase
+          .from('business_reports')
+          .select('id, match_id, title, created_at')
+          .in('match_id', matchIds)
+          .order('created_at', { ascending: false })
+          .limit(20)
+
+        if (reports) {
+          for (const r of reports) {
+            list.push({
+              id: `report-${r.id}`,
+              type: 'report',
+              title: 'New report',
+              body: r.title || 'A business report was submitted',
+              href: `/investor/chat/${r.match_id}`,
+              created_at: r.created_at,
+            })
+          }
+        }
+      }
+
+      list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      setNotifs(list)
+      setLoading(false)
     })
   }, [])
-
-  const buildNotifs = async (uid: string) => {
-    const list: Notif[] = []
-
-    // New matches
-    const { data: matches } = await supabase
-      .from('matches')
-      .select('id, created_at, businesses(name)')
-      .eq('investor_id', uid)
-      .order('created_at', { ascending: false })
-      .limit(20)
-
-    if (matches) {
-      for (const m of matches) {
-        const biz = (m.businesses as { name?: string } | null)
-        list.push({
-          id: `match-${m.id}`,
-          type: 'match',
-          title: 'New match',
-          body: `You matched with ${biz?.name || 'a business'}`,
-          href: `/investor/chat/${m.id}`,
-          read: false,
-          created_at: m.created_at,
-        })
-      }
-    }
-
-    // New messages (last message in each match where sender != me)
-    const { data: msgs } = await supabase
-      .from('messages')
-      .select('id, match_id, content, sender_id, created_at, matches!inner(investor_id)')
-      .eq('matches.investor_id', uid)
-      .neq('sender_id', uid)
-      .order('created_at', { ascending: false })
-      .limit(30)
-
-    if (msgs) {
-      const seen = new Set<string>()
-      for (const msg of msgs) {
-        if (seen.has(msg.match_id)) continue
-        seen.add(msg.match_id)
-        list.push({
-          id: `msg-${msg.id}`,
-          type: 'message',
-          title: 'New message',
-          body: msg.content?.slice(0, 80) || 'Sent you a message',
-          href: `/investor/chat/${msg.match_id}`,
-          read: false,
-          created_at: msg.created_at,
-        })
-      }
-    }
-
-    // New offers received
-    const { data: offers } = await supabase
-      .from('offers')
-      .select('id, match_id, amount, created_at, matches!inner(investor_id)')
-      .eq('matches.investor_id', uid)
-      .order('created_at', { ascending: false })
-      .limit(20)
-
-    if (offers) {
-      for (const o of offers) {
-        list.push({
-          id: `offer-${o.id}`,
-          type: 'offer',
-          title: 'Offer received',
-          body: `An offer of ₦${Number(o.amount).toLocaleString()} was made`,
-          href: `/investor/chat/${o.match_id}`,
-          read: false,
-          created_at: o.created_at,
-        })
-      }
-    }
-
-    // New reports submitted
-    const { data: reports } = await supabase
-      .from('business_reports')
-      .select('id, match_id, title, created_at, matches!inner(investor_id)')
-      .eq('matches.investor_id', uid)
-      .order('created_at', { ascending: false })
-      .limit(20)
-
-    if (reports) {
-      for (const r of reports) {
-        list.push({
-          id: `report-${r.id}`,
-          type: 'report',
-          title: 'New report',
-          body: r.title || 'A business report was submitted',
-          href: `/investor/chat/${r.match_id}`,
-          read: false,
-          created_at: r.created_at,
-        })
-      }
-    }
-
-    list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    setNotifs(list)
-    setLoading(false)
-  }
 
   return (
     <div className="app-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
