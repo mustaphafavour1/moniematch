@@ -25,10 +25,10 @@ export default function Hero() {
         </p>
 
         <div className="h-ctas">
-          <a href="/join-investor" className="btn-dark">
+          <a href="/investor/onboarding" className="btn-dark">
             I am an Investor <span className="arr">→</span>
           </a>
-          <a href="/join-business" className="btn-outline">
+          <a href="/business/onboarding" className="btn-outline">
             I own a Business <span className="arr">→</span>
           </a>
         </div>

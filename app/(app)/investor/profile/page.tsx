@@ -36,7 +36,15 @@ export default function InvProfilePage() {
         <div style={{fontSize:13, color:'var(--ink-3)', marginTop:2}}>Investor · {user?.city || 'Nigeria'}</div>
       </div>
 
-      <div className="pad" style={{marginTop:22}}>
+      {/* Edit personal info button */}
+      <div className="pad" style={{marginTop:16, textAlign:'center'}}>
+        <button onClick={() => router.push('/investor/profile/edit')}
+          className="btn btn-soft" style={{fontSize:13, padding:'8px 18px'}}>
+          Edit personal info
+        </button>
+      </div>
+
+      <div className="pad" style={{marginTop:20}}>
         <div className="row between" style={{marginBottom:10}}>
           <div className="eyebrow">Investment preferences</div>
           <button onClick={() => router.push('/investor/preferences')}
@@ -57,7 +65,7 @@ export default function InvProfilePage() {
       <div className="pad" style={{marginTop:14}}>
         <div className="card" style={{padding:0, overflow:'hidden'}}>
           <ActionRow icon="calendar" label="Deal history"  onClick={() => router.push('/investor/history')} />
-          <ActionRow icon="settings" label="Settings"      onClick={() => {}} />
+          <ActionRow icon="settings" label="Settings"      onClick={() => router.push('/investor/settings')} />
           <ActionRow icon="logout"   label="Sign out"      onClick={handleSignOut} danger />
         </div>
       </div>

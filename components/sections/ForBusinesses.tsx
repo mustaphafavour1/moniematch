@@ -62,7 +62,7 @@ export default function ForBusinesses() {
               ))}
             </div>
 
-            <a href="/join-business" className="btn-amber" style={{ marginTop: 32, display: 'inline-flex' }}>
+            <a href="/business/onboarding" className="btn-amber" style={{ marginTop: 32, display: 'inline-flex' }}>
               List My Business →
             </a>
 

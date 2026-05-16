@@ -87,6 +87,7 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     name:     userRow.name || '',
     role:     userRow.role || 'investor',
     email:    userRow.email,
+    phone:    userRow.phone,
     city:     userRow.city,
     state:    userRow.state,
     occupation: userRow.occupation,

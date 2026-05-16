@@ -111,6 +111,7 @@ export interface UserProfile {
   name: string
   role: 'investor' | 'business_owner'
   email?: string
+  phone?: string
   city?: string
   state?: string
   occupation?: string

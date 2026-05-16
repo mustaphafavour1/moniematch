@@ -62,7 +62,7 @@ export default function ForInvestors() {
               ))}
             </ul>
 
-            <a href="/join-investor" className="btn-dark" style={{ marginTop: 34, display: 'inline-flex' }}>
+            <a href="/investor/onboarding" className="btn-dark" style={{ marginTop: 34, display: 'inline-flex' }}>
               Start Investing →
             </a>
           </div>
