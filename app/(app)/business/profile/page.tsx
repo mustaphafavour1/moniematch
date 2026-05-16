@@ -32,7 +32,7 @@ export default function BizProfilePage() {
           : <Avatar name={name} initials={initials} color={color} size={80} />
         }
         <div className="h1" style={{fontSize:26, marginTop:14}}>{name}</div>
-        <button onClick={() => router.push('/business/profile/edit')}
+        <button onClick={() => router.push('/business/profile/owner-edit')}
           className="btn btn-soft" style={{fontSize:13, padding:'8px 18px', marginTop:8}}>
           Edit profile
         </button>

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { getInvestorById } from '@/lib/db'
+import { getInvestorById, getMatchIdForInvestor } from '@/lib/db'
 import type { Investor } from '@/lib/types'
 import { Avatar } from '@/components/app/Avatar'
 import { Icon, RoundBtn } from '@/components/app/Icon'
@@ -12,14 +12,21 @@ export default function BizInvestorDetailPage() {
   const params       = useParams()
   const searchParams = useSearchParams()
   const invId        = params.id as string
-  const matchId      = searchParams.get('matchId')
-
   const [inv,     setInv]     = useState<Investor | null>(null)
+  const [matchId, setMatchId] = useState<string | null>(searchParams.get('matchId'))
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!invId) { setLoading(false); return }
-    getInvestorById(invId).then(data => { setInv(data); setLoading(false) })
+    const urlMatchId = searchParams.get('matchId')
+    Promise.all([
+      getInvestorById(invId),
+      urlMatchId ? Promise.resolve(urlMatchId) : getMatchIdForInvestor(invId),
+    ]).then(([data, mid]) => {
+      setInv(data)
+      setMatchId(mid)
+      setLoading(false)
+    })
   }, [invId])
 
   if (loading) return (

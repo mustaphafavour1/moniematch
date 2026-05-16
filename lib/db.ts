@@ -303,6 +303,15 @@ export async function getMatchIdForBusiness(bizId: string): Promise<string | nul
   return match?.id || null
 }
 
+export async function getMatchIdForInvestor(invId: string): Promise<string | null> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
+  const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', authUser.id).maybeSingle()
+  if (!biz) return null
+  const { data: match } = await supabase.from('matches').select('id').eq('business_id', biz.id).eq('investor_id', invId).maybeSingle()
+  return match?.id || null
+}
+
 export async function sendMessage(matchId: string, content: string): Promise<ChatMessage> {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser) throw new Error('Not authenticated')

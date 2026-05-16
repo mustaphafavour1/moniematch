@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMyProfile } from '@/lib/db'
 import { saveBusinessProfile } from '@/lib/auth'
+import { fmtNaira } from '@/lib/utils'
 import { AppHeader } from '@/components/app/AppHeader'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 
@@ -53,8 +54,9 @@ export default function BizProfileEditPage() {
         description:       desc,
         revenue_range:     revenue,
         use_of_funds:      useOfFunds,
-        ask_min:           minAsk || null,
-        ask_max:           maxAsk || null,
+        investment_needed: minAsk || maxAsk
+          ? `${fmtNaira(minAsk, {compact:true})} – ${fmtNaira(maxAsk, {compact:true})}`
+          : null,
         reporting_cadence: cadence,
       })
       router.back()
