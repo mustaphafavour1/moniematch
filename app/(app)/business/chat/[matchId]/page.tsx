@@ -21,8 +21,9 @@ export default function BizChatConvPage() {
   const [sending,    setSending]    = useState(false)
   const [loading,    setLoading]    = useState(true)
   const [menuOpen,   setMenuOpen]   = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQ,    setSearchQ]    = useState('')
+  const [searchOpen,  setSearchOpen]  = useState(false)
+  const [searchDraft, setSearchDraft] = useState('')
+  const [searchQ,     setSearchQ]     = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const menuRef   = useRef<HTMLDivElement>(null)
 
@@ -129,16 +130,19 @@ export default function BizChatConvPage() {
           display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ flex: 1, background: 'var(--cream)', border: '1px solid var(--line-strong)',
             borderRadius: 20, padding: '8px 14px', display: 'flex', gap: 8, alignItems: 'center' }}>
-            <Icon name="search" size={14} color="var(--ink-3)" />
-            <input autoFocus value={searchQ} onChange={e => setSearchQ(e.target.value)}
+            <button onClick={() => setSearchQ(searchDraft)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+              <Icon name="search" size={14} color="var(--ink-3)" />
+            </button>
+            <input autoFocus value={searchDraft} onChange={e => setSearchDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') setSearchQ(searchDraft) }}
               placeholder="Search messages…"
               style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none',
                 fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)' }} />
-            {searchQ && <button onClick={() => setSearchQ('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            {searchDraft && <button onClick={() => { setSearchDraft(''); setSearchQ('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               <Icon name="close" size={14} color="var(--ink-3)" />
             </button>}
           </div>
-          <button onClick={() => { setSearchOpen(false); setSearchQ('') }}
+          <button onClick={() => { setSearchOpen(false); setSearchDraft(''); setSearchQ('') }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-body)' }}>
             Cancel
           </button>

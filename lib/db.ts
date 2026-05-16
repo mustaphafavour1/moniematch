@@ -611,7 +611,7 @@ export async function uploadBusinessFile(file: File, docType: string): Promise<B
 
   const bucket  = docType === 'photo' ? 'business-photos' : docType === 'bank_statement' ? 'deal-files' : 'documents'
   const ext     = file.name.split('.').pop() || 'bin'
-  const path    = `${biz.name}/${docType}/${Date.now()}.${ext}`
+  const path    = `${biz.id}/${docType}/${Date.now()}.${ext}`
   const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type })
   if (upErr) throw upErr
   const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path)

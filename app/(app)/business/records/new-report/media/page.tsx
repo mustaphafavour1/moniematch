@@ -26,11 +26,12 @@ export default function MediaReportPage() {
       if (!user) return
       supabase.from('businesses').select('id').eq('owner_id', user.id).single().then(({ data: biz }) => {
         if (!biz) return
-        supabase.from('matches').select('id, investors(full_name)').eq('business_id', biz.id).then(({ data: ms }) => {
-          setMatches((ms || []).map(m => ({
-            id: m.id,
-            name: (m.investors as { full_name?: string } | null)?.full_name || 'Investor',
-          })))
+        supabase.from('matches').select('id, investors(users(name))').eq('business_id', biz.id).then(({ data: ms }) => {
+          setMatches((ms || []).map((m: Record<string, unknown>) => {
+            const inv = (m.investors as unknown) as Record<string, unknown> | null
+            const usr = (inv?.users as unknown) as Record<string, unknown> | null
+            return { id: m.id as string, name: (usr?.name as string) || 'Investor' }
+          }))
         })
       })
     })
@@ -50,7 +51,7 @@ export default function MediaReportPage() {
       const uploaded: string[] = []
       for (const file of files) {
         const ext  = file.name.split('.').pop()
-        const path = `${biz.name}/reports/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const path = `${biz.id}/reports/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
         const bucket = file.type.startsWith('image/') ? 'business-photos' : 'documents'
         const { error: upErr } = await supabase.storage.from(bucket).upload(path, file)
         if (upErr) throw upErr

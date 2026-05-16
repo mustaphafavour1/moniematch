@@ -6,55 +6,86 @@ import { Icon, RoundBtn } from '@/components/app/Icon'
 import { AppHeader } from '@/components/app/AppHeader'
 
 const TEMPLATES = [
-  { id: 'monthly',  label: 'Monthly update',    icon: 'doc' },
-  { id: 'weekly',   label: 'Weekly snapshot',   icon: 'doc' },
-  { id: 'sales',    label: 'Sales report',      icon: 'money' },
-  { id: 'assets',   label: 'Asset update',      icon: 'clipboard' },
-  { id: 'health',   label: 'Business health',   icon: 'star' },
+  { id: 'blank',   label: 'Start from scratch', sub: 'Free-form title and content — write exactly what you want', icon: 'doc' },
+  { id: 'monthly', label: 'Monthly update',     sub: 'Revenue, highlights, challenges, and next steps', icon: 'calendar' },
+  { id: 'weekly',  label: 'Weekly snapshot',    sub: 'Quick progress check — what happened this week', icon: 'chart' },
+  { id: 'sales',   label: 'Sales report',       sub: 'Revenue figures, top products/services, conversion', icon: 'money' },
+  { id: 'assets',  label: 'Asset update',       sub: 'Equipment, inventory, and capital allocation', icon: 'clipboard' },
+  { id: 'health',  label: 'Business health',    sub: 'Holistic overview — team, cash flow, risk, outlook', icon: 'star' },
 ]
 
 interface Match { id: string; name: string }
+
+// format number with commas while preserving cursor position
+function toComma(val: string) {
+  const digits = val.replace(/[^0-9]/g, '')
+  return digits ? Number(digits).toLocaleString() : ''
+}
+function fromComma(val: string) {
+  return Number(val.replace(/,/g, '')) || 0
+}
 
 export default function WriteReportPage() {
   const router = useRouter()
   const params = useSearchParams()
   const preselectedMatch = params.get('matchId') || ''
 
-  const [step,          setStep]          = useState<'template' | 'form' | 'preview' | 'sent'>('template')
+  const [step,          setStep]          = useState<'template' | 'form' | 'preview' | 'send' | 'sent'>('template')
   const [template,      setTemplate]      = useState('')
   const [matches,       setMatches]       = useState<Match[]>([])
   const [selectedMatch, setSelectedMatch] = useState<string>(preselectedMatch)
-  const [period,        setPeriod]        = useState('')
-  const [revenue,       setRevenue]       = useState('')
-  const [highlights,    setHighlights]    = useState('')
-  const [challenges,    setChallenges]    = useState('')
-  const [nextSteps,     setNextSteps]     = useState('')
-  const [extraNote,     setExtraNote]     = useState('')
   const [bizName,       setBizName]       = useState('')
-  const [sending,       setSending]       = useState(false)
-  const [error,         setError]         = useState('')
+  const [bizId,         setBizId]         = useState('')
+  const [uid,           setUid]           = useState('')
+
+  // Blank template fields
+  const [blankTitle,   setBlankTitle]   = useState('')
+  const [blankContent, setBlankContent] = useState('')
+
+  // Structured template fields
+  const [period,     setPeriod]     = useState('')
+  const [revenue,    setRevenue]    = useState('')   // stored as formatted string
+  const [highlights, setHighlights] = useState('')
+  const [challenges, setChallenges] = useState('')
+  const [nextSteps,  setNextSteps]  = useState('')
+  const [extraNote,  setExtraNote]  = useState('')
+
+  const [sending, setSending] = useState(false)
+  const [error,   setError]   = useState('')
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
+      setUid(user.id)
       supabase.from('businesses').select('id, name').eq('owner_id', user.id).single().then(({ data: biz }) => {
         if (!biz) return
         setBizName(biz.name)
-        supabase.from('matches').select('id, investors(full_name)').eq('business_id', biz.id).then(({ data: ms }) => {
-          const list = (ms || []).map(m => ({
-            id: m.id,
-            name: (m.investors as { full_name?: string } | null)?.full_name || 'Investor',
-          }))
-          setMatches(list)
-        })
+        setBizId(biz.id)
+        // Use the correct join path: matches → investors → users
+        supabase
+          .from('matches')
+          .select('id, investors(users(name))')
+          .eq('business_id', biz.id)
+          .then(({ data: ms }) => {
+            const list = (ms || []).map((m: Record<string, unknown>) => {
+              const inv = (m.investors as unknown) as Record<string, unknown> | null
+              const usr = (inv?.users as unknown) as Record<string, unknown> | null
+              return { id: m.id as string, name: (usr?.name as string) || 'Investor' }
+            })
+            setMatches(list)
+          })
       })
     })
   }, [])
 
-  const templateLabel = TEMPLATES.find(t => t.id === template)?.label || ''
+  const templateMeta = TEMPLATES.find(t => t.id === template)
+  const isBlank = template === 'blank'
 
-  const previewText = `
-**${templateLabel} — ${bizName}**
+  const today = new Date().toLocaleDateString('en-NG', { month: 'long', year: 'numeric' })
+
+  const previewText = isBlank
+    ? blankContent
+    : `${templateMeta?.label || ''} — ${bizName}
 Period: ${period}
 
 Revenue / Sales: ${revenue || '—'}
@@ -67,38 +98,38 @@ ${challenges || '—'}
 
 Next steps:
 ${nextSteps || '—'}
-${extraNote ? `\nAdditional notes:\n${extraNote}` : ''}
-  `.trim()
+${extraNote ? `\nAdditional notes:\n${extraNote}` : ''}`.trim()
+
+  const reportTitle = isBlank ? blankTitle : `${templateMeta?.label || ''} — ${period || today}`
+
+  const canPreview = isBlank
+    ? blankTitle.trim() && blankContent.trim()
+    : period.trim()
 
   const handleSend = async () => {
     if (!selectedMatch || sending) return
     setSending(true)
     setError('')
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not signed in')
-
-      const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', user.id).single()
-      if (!biz) throw new Error('Business not found')
+      if (!uid || !bizId) throw new Error('Not signed in')
 
       const id = crypto.randomUUID()
       const { error: rErr } = await supabase.from('business_reports').insert({
         id,
-        business_id: biz.id,
+        business_id: bizId,
         match_id: selectedMatch,
         template,
-        title: `${templateLabel} — ${period}`,
+        title: reportTitle,
         content: previewText,
         status: 'sent',
       })
       if (rErr) throw rErr
 
-      // Send as a chat message too
       await supabase.from('messages').insert({
         id: crypto.randomUUID(),
         match_id: selectedMatch,
-        sender_id: user.id,
-        content: `📋 ${templateLabel}${period ? ` — ${period}` : ''}`,
+        sender_id: uid,
+        content: `📋 ${reportTitle}`,
         content_type: 'report',
         ref_id: id,
       })
@@ -111,28 +142,34 @@ ${extraNote ? `\nAdditional notes:\n${extraNote}` : ''}
     }
   }
 
-  const canContinueForm = period.trim() && selectedMatch
+  const backLabel = () => {
+    if (step === 'form')    return () => setStep('template')
+    if (step === 'preview') return () => setStep('form')
+    if (step === 'send')    return () => setStep('preview')
+    return () => router.back()
+  }
+
+  const headerTitle = {
+    template: 'Choose template',
+    form:     isBlank ? 'Write report' : templateMeta?.label || 'Report',
+    preview:  'Preview',
+    send:     'Send report',
+    sent:     'Sent',
+  }[step]
 
   return (
     <div className="app-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <AppHeader
-        title={step === 'template' ? 'Choose template' : step === 'preview' ? 'Preview' : 'Write a report'}
-        leading={
-          <RoundBtn onClick={() => {
-            if (step === 'form') setStep('template')
-            else if (step === 'preview') setStep('form')
-            else router.back()
-          }}>
-            <Icon name="back" size={18} />
-          </RoundBtn>
-        }
+        title={headerTitle}
+        leading={<RoundBtn onClick={backLabel()}><Icon name="back" size={18} /></RoundBtn>}
         sticky
       />
 
+      {/* ── TEMPLATE PICKER ── */}
       {step === 'template' && (
         <div className="scroll" style={{ flex: 1, padding: '16px 16px 40px' }}>
           <p style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 20, lineHeight: 1.55 }}>
-            Pick a template to structure your report.
+            Pick a template or start with a blank page.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {TEMPLATES.map(t => (
@@ -147,37 +184,61 @@ ${extraNote ? `\nAdditional notes:\n${extraNote}` : ''}
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name={t.icon} size={20} color="var(--forest)" />
                 </div>
-                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{t.label}</span>
-                <Icon name="fwd" size={14} color="var(--ink-4)" style={{ marginLeft: 'auto' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{t.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{t.sub}</div>
+                </div>
+                <Icon name="fwd" size={14} color="var(--ink-4)" />
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {step === 'form' && (
+      {/* ── FORM (blank) ── */}
+      {step === 'form' && isBlank && (
+        <div className="scroll" style={{ flex: 1, padding: '16px 16px 40px' }}>
+          <Label>Report title</Label>
+          <Input value={blankTitle} onChange={e => setBlankTitle(e.target.value)} placeholder="e.g. April 2025 update" />
+
+          <Label>Date</Label>
+          <Input value={today} onChange={() => {}} style={{ color: 'var(--ink-3)' }} />
+
+          <Label>Content</Label>
+          <textarea value={blankContent} onChange={e => setBlankContent(e.target.value)}
+            placeholder="Write your full report here…" rows={12}
+            style={{ width: '100%', padding: '12px 14px', borderRadius: 12, marginBottom: 16,
+              border: '1.5px solid var(--line-strong)', background: 'var(--bone)',
+              fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)',
+              outline: 'none', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }} />
+
+          <button onClick={() => setStep('preview')} disabled={!canPreview}
+            className="btn btn-forest btn-block">
+            Preview report
+          </button>
+        </div>
+      )}
+
+      {/* ── FORM (template) ── */}
+      {step === 'form' && !isBlank && (
         <div className="scroll" style={{ flex: 1, padding: '16px 16px 40px' }}>
           <p style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 20 }}>
-            Fill in the details for your <strong>{templateLabel}</strong>.
+            Fill in the details for your <strong>{templateMeta?.label}</strong>.
           </p>
-
-          {/* Investor select */}
-          <Label>Send to</Label>
-          <select value={selectedMatch} onChange={e => setSelectedMatch(e.target.value)}
-            style={{ width: '100%', padding: '12px 14px', borderRadius: 12,
-              border: '1.5px solid var(--line-strong)', background: 'var(--bone)',
-              fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', marginBottom: 16 }}>
-            <option value="">Select investor…</option>
-            {matches.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
 
           <Label>Period covered (e.g. April 2025)</Label>
           <Input value={period} onChange={e => setPeriod(e.target.value)} placeholder="e.g. April 2025" />
 
-          {(template === 'monthly' || template === 'weekly' || template === 'sales') && <>
-            <Label>Revenue / Sales</Label>
-            <Input value={revenue} onChange={e => setRevenue(e.target.value)} placeholder="₦0" />
-          </>}
+          {(template === 'monthly' || template === 'weekly' || template === 'sales') && (
+            <>
+              <Label>Revenue / Sales (₦)</Label>
+              <Input
+                value={revenue}
+                onChange={e => setRevenue(toComma(e.target.value))}
+                placeholder="e.g. 500,000"
+              />
+            </>
+          )}
 
           <Label>Highlights</Label>
           <Textarea value={highlights} onChange={e => setHighlights(e.target.value)}
@@ -195,13 +256,14 @@ ${extraNote ? `\nAdditional notes:\n${extraNote}` : ''}
           <Textarea value={extraNote} onChange={e => setExtraNote(e.target.value)}
             placeholder="Anything else your investor should know…" />
 
-          <button onClick={() => setStep('preview')} disabled={!canContinueForm}
+          <button onClick={() => setStep('preview')} disabled={!canPreview}
             className="btn btn-forest btn-block" style={{ marginTop: 8 }}>
             Preview report
           </button>
         </div>
       )}
 
+      {/* ── PREVIEW ── */}
       {step === 'preview' && (
         <div className="scroll" style={{ flex: 1, padding: '16px 16px 40px' }}>
           <p style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>
@@ -209,23 +271,69 @@ ${extraNote ? `\nAdditional notes:\n${extraNote}` : ''}
           </p>
           <div style={{ background: 'var(--bone)', border: '1px solid var(--line)', borderRadius: 16,
             padding: '18px 16px', marginBottom: 20 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--ink)', marginBottom: 12 }}>
+              {reportTitle}
+            </div>
             <pre style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink)',
               lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>
               {previewText}
             </pre>
           </div>
-          {error && <p style={{ fontSize: 13, color: 'var(--clay)', marginBottom: 12 }}>{error}</p>}
-          <button onClick={handleSend} disabled={sending} className="btn btn-forest btn-block">
-            {sending ? 'Sending…' : 'Send report'}
+          <button onClick={() => setStep('send')} className="btn btn-forest btn-block">
+            Choose who to send to →
           </button>
           <button onClick={() => setStep('form')}
             style={{ marginTop: 10, background: 'none', border: 'none', cursor: 'pointer',
               fontSize: 14, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', width: '100%' }}>
-            Edit
+            Edit report
           </button>
         </div>
       )}
 
+      {/* ── SEND (select investor) ── */}
+      {step === 'send' && (
+        <div className="scroll" style={{ flex: 1, padding: '16px 16px 40px' }}>
+          <p style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 20 }}>
+            Choose which investor to send this report to.
+          </p>
+
+          {matches.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)', fontSize: 14 }}>
+              No investor conversations yet. Start a chat from the Investors tab first.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+              {matches.map(m => (
+                <button key={m.id} onClick={() => setSelectedMatch(m.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    background: selectedMatch === m.id ? 'var(--linen)' : 'var(--bone)',
+                    border: `1.5px solid ${selectedMatch === m.id ? 'var(--forest)' : 'var(--line)'}`,
+                    borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', width: '100%',
+                  }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--linen)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    border: '1px solid var(--line-strong)', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
+                    {m.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)', flex: 1 }}>{m.name}</span>
+                  {selectedMatch === m.id && <Icon name="check" size={16} color="var(--forest)" />}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {error && <p style={{ fontSize: 13, color: 'var(--clay)', marginBottom: 12 }}>{error}</p>}
+
+          <button onClick={handleSend}
+            disabled={!selectedMatch || sending}
+            className="btn btn-forest btn-block">
+            {sending ? 'Sending…' : 'Send report'}
+          </button>
+        </div>
+      )}
+
+      {/* ── SENT ── */}
       {step === 'sent' && (
         <div className="scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
@@ -254,17 +362,26 @@ function Label({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Input({ value, onChange, placeholder }: { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder?: string }) {
+function Input({ value, onChange, placeholder, style }: {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  placeholder?: string
+  style?: React.CSSProperties
+}) {
   return (
     <input value={value} onChange={onChange} placeholder={placeholder}
       style={{ width: '100%', padding: '12px 14px', borderRadius: 12, marginBottom: 16,
         border: '1.5px solid var(--line-strong)', background: 'var(--bone)',
         fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)',
-        outline: 'none', boxSizing: 'border-box' }} />
+        outline: 'none', boxSizing: 'border-box', ...style }} />
   )
 }
 
-function Textarea({ value, onChange, placeholder }: { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder?: string }) {
+function Textarea({ value, onChange, placeholder }: {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  placeholder?: string
+}) {
   return (
     <textarea value={value} onChange={onChange} placeholder={placeholder} rows={3}
       style={{ width: '100%', padding: '12px 14px', borderRadius: 12, marginBottom: 16,
