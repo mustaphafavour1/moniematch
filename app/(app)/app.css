@@ -27,6 +27,17 @@
   --font-body:    'Nunito', -apple-system, sans-serif;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Strip browser autofill yellow/white fill from all inputs in the app */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--bone) inset !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  caret-color: var(--ink);
+  transition: background-color 9999s ease-in-out 0s;
+}
 .app-screen {
   font-family: var(--font-body);
   background: var(--cream);
