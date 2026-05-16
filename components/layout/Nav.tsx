@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { NAV_LINKS } from '@/lib/constants'
 
 // Routes that are static HTML files in public/ — must use <a>, not Next.js <Link>
-const STATIC_ROUTES = ['/signin', '/join-investor', '/join-business', '/app']
+const STATIC_ROUTES = ['/join-investor', '/join-business', '/app']
 function isStatic(href: string) {
   return STATIC_ROUTES.some(r => href.startsWith(r)) || href.startsWith('http')
 }
