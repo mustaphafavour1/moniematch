@@ -14,13 +14,15 @@ export default function InvChatConvPage() {
   const params  = useParams()
   const matchId = params.matchId as string
 
-  const [msgs,         setMsgs]         = useState<ChatMessage[]>([])
-  const [myId,         setMyId]         = useState('')
-  const [name,         setName]         = useState('')
-  const [draft,        setDraft]        = useState('')
-  const [sending,      setSending]      = useState(false)
-  const [loading,      setLoading]      = useState(true)
+  const [msgs,    setMsgs]    = useState<ChatMessage[]>([])
+  const [myId,    setMyId]    = useState('')
+  const [name,    setName]    = useState('')
+  const [draft,   setDraft]   = useState('')
+  const [sending, setSending] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const menuRef   = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     Promise.all([
@@ -35,7 +37,6 @@ export default function InvChatConvPage() {
     })
   }, [matchId])
 
-  // Supabase realtime subscription
   useEffect(() => {
     const ch = supabase
       .channel(`chat-inv-${matchId}`)
@@ -53,6 +54,16 @@ export default function InvChatConvPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs])
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
+
   const handleSend = async () => {
     if (!draft.trim() || sending) return
     const text = draft.trim()
@@ -64,11 +75,42 @@ export default function InvChatConvPage() {
   const color    = colorFor(name)
   const initials = initialsFor(name)
 
+  const menuItems = [
+    { icon: 'doc',      label: 'View uploaded media',  action: () => { setMenuOpen(false); router.push(`/investor/chat/${matchId}/media`) } },
+    { icon: 'money',    label: 'Make offer',            action: () => { setMenuOpen(false); router.push(`/investor/chat/${matchId}/offer`) } },
+    { icon: 'bell',     label: 'Report an issue',       action: () => { setMenuOpen(false); router.push(`/investor/chat/${matchId}/report`) } },
+  ]
+
   return (
     <div className="app-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <AppHeader
         title={name || '…'}
         leading={<RoundBtn onClick={() => router.back()}><Icon name="back" size={18} /></RoundBtn>}
+        trailing={
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <RoundBtn onClick={() => setMenuOpen(v => !v)}>
+              <Icon name="more" size={18} />
+            </RoundBtn>
+            {menuOpen && (
+              <div style={{
+                position: 'absolute', top: '110%', right: 0, zIndex: 200,
+                background: 'var(--cream)', border: '1px solid var(--line)',
+                borderRadius: 14, boxShadow: 'var(--shadow-md)',
+                minWidth: 200, overflow: 'hidden',
+              }}>
+                {menuItems.map(item => (
+                  <div key={item.label} onClick={item.action}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px',
+                      cursor: 'pointer', borderBottom: '1px solid var(--line)' }}
+                    className="menu-row">
+                    <Icon name={item.icon} size={16} color="var(--ink-2)" />
+                    <span style={{ fontSize: 14, color: 'var(--ink)' }}>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        }
         sticky
       />
 

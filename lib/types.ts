@@ -75,6 +75,7 @@ export interface Business {
   ownerId: string
   ownerName?: string
   ownerPhone?: string
+  ownerAvatar?: string
   name?: string
   pitch?: string
   risk?: string
@@ -100,6 +101,7 @@ export interface Investor {
   initials: string
   color: string
   isVerified: boolean
+  avatar_url?: string
   matchId?: string
   status?: string
   whenISO?: string

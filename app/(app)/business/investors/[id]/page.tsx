@@ -12,9 +12,10 @@ export default function BizInvestorDetailPage() {
   const params       = useParams()
   const searchParams = useSearchParams()
   const invId        = params.id as string
-  const [inv,     setInv]     = useState<Investor | null>(null)
-  const [matchId, setMatchId] = useState<string | null>(searchParams.get('matchId'))
-  const [loading, setLoading] = useState(true)
+  const [inv,      setInv]      = useState<Investor | null>(null)
+  const [matchId,  setMatchId]  = useState<string | null>(searchParams.get('matchId'))
+  const [loading,  setLoading]  = useState(true)
+  const [starting, setStarting] = useState(false)
 
   useEffect(() => {
     if (!invId) { setLoading(false); return }
@@ -28,6 +29,18 @@ export default function BizInvestorDetailPage() {
       setLoading(false)
     })
   }, [invId])
+
+  const handleStartConversation = async () => {
+    if (starting) return
+    let mid = matchId
+    if (!mid) {
+      setStarting(true)
+      mid = await getOrCreateMatchForInvestor(invId)
+      setMatchId(mid)
+      setStarting(false)
+    }
+    router.push(mid ? `/business/chat/${mid}` : '/business/chat')
+  }
 
   if (loading) return (
     <div className="app-screen" style={{display:'flex', alignItems:'center', justifyContent:'center'}}>
@@ -52,7 +65,11 @@ export default function BizInvestorDetailPage() {
 
         {/* Identity */}
         <div className="pad" style={{paddingTop:6, display:'flex', flexDirection:'column', alignItems:'center'}}>
-          <Avatar name={inv.name} initials={inv.initials} color={inv.color} size={88} />
+          {inv.avatar_url
+            ? <img src={inv.avatar_url} alt={inv.name}
+                style={{width:88, height:88, borderRadius:999, objectFit:'cover'}} />
+            : <Avatar name={inv.name} initials={inv.initials} color={inv.color} size={88} />
+          }
           <div className="h1" style={{fontSize:28, marginTop:14}}>{inv.name}</div>
           <div style={{fontSize:13, color:'var(--ink-3)'}}>{inv.role}</div>
           <div className="row gap-6" style={{justifyContent:'center', marginTop:10, flexWrap:'wrap'}}>
@@ -99,8 +116,9 @@ export default function BizInvestorDetailPage() {
       <div style={{position:'absolute', left:0, right:0, bottom:0, padding:'14px 16px 22px',
         background:'linear-gradient(180deg, rgba(247,241,232,0) 0%, var(--cream) 30%)'}}>
         <button className="btn btn-forest btn-block"
-          onClick={() => router.push(matchId ? `/business/chat/${matchId}` : '/business/chat')}>
-          Start conversation
+          onClick={handleStartConversation}
+          disabled={starting}>
+          {starting ? 'Opening chat…' : 'Start conversation'}
         </button>
       </div>
     </div>

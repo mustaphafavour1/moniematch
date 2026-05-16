@@ -38,6 +38,7 @@ export function adaptBusiness(biz: any, matchScore = 0): Business {
     ownerId:          biz.owner_id,
     ownerName:        biz.users?.name,
     ownerPhone:       biz.users?.phone,
+    ownerAvatar:      biz.users?.avatar_url,
     name:             biz.users?.name,
     risk:             'Medium',
     seasonality:      'Year-round',
@@ -67,6 +68,7 @@ export function adaptInvestor(inv: any, userRow: any = {}, matchScore = 0): Inve
     initials:         initialsFor(name),
     color:            colorFor(name),
     isVerified:       inv.is_verified || false,
+    avatar_url:       userRow?.avatar_url || undefined,
   }
 }
 
@@ -311,10 +313,17 @@ export async function getOrCreateMatchForBusiness(bizId: string): Promise<string
   const { data: existing } = await supabase.from('matches').select('id')
     .eq('investor_id', inv.id).eq('business_id', bizId).maybeSingle()
   if (existing) return existing.id
-  const { data: created } = await supabase.from('matches')
+  const { data: created, error } = await supabase.from('matches')
     .insert({ investor_id: inv.id, business_id: bizId, compatibility_score: 0, status: 'interested' })
     .select('id').single()
-  return created?.id || null
+  if (created?.id) return created.id
+  // Insert may have failed due to unique constraint (row already exists). Re-query.
+  if (error) {
+    const { data: retry } = await supabase.from('matches').select('id')
+      .eq('investor_id', inv.id).eq('business_id', bizId).maybeSingle()
+    if (retry) return retry.id
+  }
+  return null
 }
 
 export async function getOrCreateMatchForInvestor(invId: string): Promise<string | null> {
@@ -325,10 +334,16 @@ export async function getOrCreateMatchForInvestor(invId: string): Promise<string
   const { data: existing } = await supabase.from('matches').select('id')
     .eq('business_id', biz.id).eq('investor_id', invId).maybeSingle()
   if (existing) return existing.id
-  const { data: created } = await supabase.from('matches')
+  const { data: created, error } = await supabase.from('matches')
     .insert({ investor_id: invId, business_id: biz.id, compatibility_score: 0, status: 'interested' })
     .select('id').single()
-  return created?.id || null
+  if (created?.id) return created.id
+  if (error) {
+    const { data: retry } = await supabase.from('matches').select('id')
+      .eq('business_id', biz.id).eq('investor_id', invId).maybeSingle()
+    if (retry) return retry.id
+  }
+  return null
 }
 
 export async function sendMessage(matchId: string, content: string): Promise<ChatMessage> {
