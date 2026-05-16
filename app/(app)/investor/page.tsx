@@ -35,7 +35,7 @@ export default function InvHomePage() {
       getMyPortfolio(),
       getRecentBusinesses(3),
     ]).then(([profile, m, d, r]) => {
-      if (!profile) { router.replace('/signin'); return }
+      if (!profile) { router.replace('/investor/onboarding'); return }
       if (!profile.name) { router.replace('/investor/onboarding'); return }
       setUser(profile)
       setMatches(m)

@@ -79,7 +79,15 @@ export async function getMyProfile(): Promise<UserProfile | null> {
   const { data: userRow } = await supabase
     .from('users').select('*').eq('id', authUser.id).maybeSingle()
 
-  if (!userRow) return null
+  if (!userRow) {
+    // User exists in auth but has no public.users row (trigger may not have run).
+    // Upsert a minimal row so they can proceed to onboarding rather than looping.
+    await supabase.from('users').upsert(
+      { id: authUser.id, email: authUser.email || null },
+      { onConflict: 'id' }
+    )
+    return null
+  }
 
   // Build the base profile object — userRow is any so spread is safe
   const base: UserProfile = {
