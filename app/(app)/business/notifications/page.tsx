@@ -56,8 +56,8 @@ export default function BusinessNotificationsPage() {
 
       if (matches) {
         for (const m of matches) {
-          const inv = m.investors as Record<string, unknown> | null
-          const invName = (inv?.users as Record<string, unknown> | null)?.name as string | undefined
+          const inv = (m.investors as unknown) as Record<string, unknown> | null
+          const invName = ((inv?.users as unknown) as Record<string, unknown> | null)?.name as string | undefined
           list.push({
             id: `match-${m.id}`,
             type: 'match',

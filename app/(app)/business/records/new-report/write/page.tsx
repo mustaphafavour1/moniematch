@@ -68,8 +68,8 @@ export default function WriteReportPage() {
           .eq('business_id', biz.id)
           .then(({ data: ms }) => {
             const list = (ms || []).map((m: Record<string, unknown>) => {
-              const inv = m.investors as Record<string, unknown> | null
-              const usr = inv?.users as Record<string, unknown> | null
+              const inv = (m.investors as unknown) as Record<string, unknown> | null
+              const usr = (inv?.users as unknown) as Record<string, unknown> | null
               return { id: m.id as string, name: (usr?.name as string) || 'Investor' }
             })
             setMatches(list)
