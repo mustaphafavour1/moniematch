@@ -3,7 +3,7 @@ import {
   ChevronLeft, ChevronRight, Bell, Search, Filter, Send,
   BarChart2, Zap, TrendingUp, AlertTriangle, CheckCircle2, Shield,
   Banknote, Settings, LogOut, Store, Calendar, User, Lock, X,
-  Mic, Sparkles, FileText, Wallet, Check,
+  Mic, Sparkles, FileText, Wallet, Check, MessageCircle,
 } from 'lucide-react'
 
 type IconProps = { size?: number; color?: string; strokeWidth?: number }
@@ -31,7 +31,8 @@ const MAP: Record<string, React.FC<IconProps>> = {
   mic:        p => <Mic           size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   sparkle:    p => <Sparkles      size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   doc:        p => <FileText      size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
-  wallet:     p => <Wallet        size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  wallet:     p => <Wallet         size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  chat:       p => <MessageCircle size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
 }
 
 export function Icon({ name, size=20, color, strokeWidth, style }: {

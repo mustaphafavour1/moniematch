@@ -135,7 +135,8 @@ export default function InvMatchesPage() {
 }
 
 function BizCard({ biz, onClick, showScore }: { biz: Business; onClick: () => void; showScore: boolean }) {
-  const pct = biz.target > 0 ? Math.round((biz.raised / biz.target) * 100) : 0
+  const pct     = biz.target > 0 ? Math.round((biz.raised / biz.target) * 100) : 0
+  const cadence = biz.reportingCadence?.[0] || biz.cadence?.[0] || ''
   return (
     <div onClick={onClick} className="card" style={{ padding: 14, cursor: 'pointer' }}>
       <div className="row gap-12">
@@ -145,19 +146,23 @@ function BizCard({ biz, onClick, showScore }: { biz: Business; onClick: () => vo
           {biz.initials}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="row between">
-            <div style={{ fontSize: 15, color: 'var(--ink)', fontWeight: 500 }}>{biz.business}</div>
-            {showScore ? (
-              <MatchDial score={biz.matchScore} size={36} label={false} />
-            ) : (
-              <span className="chip outline" style={{ fontSize: 11 }}>{biz.category}</span>
-            )}
+          <div className="row between" style={{ alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, color: 'var(--ink)', fontWeight: 500, lineHeight: 1.2 }}>{biz.business}</div>
+              {biz.ownerName && (
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 1 }}>by {biz.ownerName}</div>
+              )}
+            </div>
+            {showScore && <MatchDial score={biz.matchScore} size={36} label={false} />}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--ink-2)' }}>{biz.category} · {biz.city}</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 4 }}>{biz.category} · {biz.city}</div>
           <div className="row gap-6" style={{ marginTop: 6, flexWrap: 'wrap' }}>
             <span className="chip" style={{ background: `${biz.color}15`, color: biz.color, fontSize: 11 }}>
-              {biz.returnHeadline.split(' · ')[0]}
+              {biz.returnStructures?.[0] || biz.returnHeadline.split(' · ')[0]}
             </span>
+            {cadence && (
+              <span className="chip outline" style={{ fontSize: 11 }}>{cadence} updates</span>
+            )}
             <span className="chip outline" style={{ fontSize: 11 }}>
               {fmtNaira(biz.askMin, { compact: true })} – {fmtNaira(biz.askMax, { compact: true })}
             </span>

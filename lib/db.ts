@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Business, Investor, UserProfile, Deal, Report, Notification, ChatMessage } from './types'
+import type { Business, Investor, UserProfile, Deal, Report, Notification, ChatMessage, ChatThread } from './types'
 import { colorFor, initialsFor, parseNairaRange } from './utils'
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
@@ -331,4 +331,87 @@ export async function getRecentInvestors(limit = 3): Promise<Investor[]> {
   if (!data) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data as any[]).map(inv => adaptInvestor(inv, inv.users || {}, 0))
+}
+
+export async function getMyChats(): Promise<ChatThread[]> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return []
+
+  const { data: userRow } = await supabase.from('users').select('role').eq('id', authUser.id).maybeSingle()
+  const role = userRow?.role
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let matches: any[] = []
+
+  if (role === 'investor') {
+    const { data: inv } = await supabase.from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
+    if (!inv) return []
+    const { data } = await supabase
+      .from('matches')
+      .select('id, businesses (id, name)')
+      .eq('investor_id', inv.id)
+    matches = data || []
+  } else {
+    const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', authUser.id).maybeSingle()
+    if (!biz) return []
+    const { data } = await supabase
+      .from('matches')
+      .select('id, investors (id, user_id, users (id, name))')
+      .eq('business_id', biz.id)
+    matches = data || []
+  }
+
+  if (matches.length === 0) return []
+
+  const matchIds = matches.map(m => m.id)
+  const { data: msgs } = await supabase
+    .from('messages')
+    .select('match_id, content, created_at, sender_id')
+    .in('match_id', matchIds)
+    .order('created_at', { ascending: false })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const latestByMatch = new Map<string, any>()
+  for (const msg of msgs || []) {
+    if (!latestByMatch.has(msg.match_id)) latestByMatch.set(msg.match_id, msg)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return matches
+    .filter(m => latestByMatch.has(m.id))
+    .map(m => {
+      const lastMsg = latestByMatch.get(m.id)
+      let name = 'Unknown'
+      if (role === 'investor') {
+        name = (m.businesses as { name?: string })?.name || 'Business'
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const u = (m.investors as any)?.users
+        name = u?.name || 'Investor'
+      }
+      return {
+        matchId:              m.id,
+        counterparty:         name,
+        counterpartyInitials: initialsFor(name),
+        counterpartyColor:    colorFor(name),
+        lastMessage:          lastMsg?.content || '',
+        lastMessageTime:      lastMsg?.created_at || '',
+        isMine:               lastMsg?.sender_id === authUser.id,
+      }
+    })
+    .sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime))
+}
+
+export async function getMatchCounterpartyName(matchId: string, role: 'investor' | 'business_owner'): Promise<string> {
+  if (role === 'investor') {
+    const { data } = await supabase
+      .from('matches').select('businesses (name)').eq('id', matchId).maybeSingle()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data as any)?.businesses?.name || 'Business'
+  } else {
+    const { data } = await supabase
+      .from('matches').select('investors (users (name))').eq('id', matchId).maybeSingle()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data as any)?.investors?.users?.name || 'Investor'
+  }
 }

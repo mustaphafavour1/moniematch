@@ -181,3 +181,13 @@ export interface ChatMessage {
   content: string
   created_at: string
 }
+
+export interface ChatThread {
+  matchId: string
+  counterparty: string
+  counterpartyInitials: string
+  counterpartyColor: string
+  lastMessage: string
+  lastMessageTime: string
+  isMine: boolean
+}
