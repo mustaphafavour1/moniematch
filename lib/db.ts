@@ -294,6 +294,15 @@ export async function updateMatchStatus(matchId: string, status: string): Promis
   await supabase.from('matches').update({ status }).eq('id', matchId)
 }
 
+export async function getMatchIdForBusiness(bizId: string): Promise<string | null> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
+  const { data: inv } = await supabase.from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
+  if (!inv) return null
+  const { data: match } = await supabase.from('matches').select('id').eq('investor_id', inv.id).eq('business_id', bizId).maybeSingle()
+  return match?.id || null
+}
+
 export async function sendMessage(matchId: string, content: string): Promise<ChatMessage> {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser) throw new Error('Not authenticated')

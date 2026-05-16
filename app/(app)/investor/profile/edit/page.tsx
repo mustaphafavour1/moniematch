@@ -7,14 +7,13 @@ import { AppHeader } from '@/components/app/AppHeader'
 import { Avatar } from '@/components/app/Avatar'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 
-const CITIES = ['Lagos','Abuja','Port Harcourt','Ibadan','Kano','Enugu','Benin City','Kaduna','Jos','Owerri','Other']
-
 export default function InvProfileEditPage() {
   const router    = useRouter()
   const fileRef   = useRef<HTMLInputElement>(null)
 
   const [name,       setName]       = useState('')
   const [phone,      setPhone]      = useState('')
+  const [state,      setState]      = useState('')
   const [city,       setCity]       = useState('')
   const [occupation, setOccupation] = useState('')
   const [avatarUrl,  setAvatarUrl]  = useState('')
@@ -29,6 +28,7 @@ export default function InvProfileEditPage() {
       if (!p) return
       setName(p.name || '')
       setPhone(p.phone || '')
+      setState(p.state || '')
       setCity(p.city || '')
       setOccupation(p.occupation || '')
       setAvatarUrl(p.avatar_url || '')
@@ -62,7 +62,8 @@ export default function InvProfileEditPage() {
       await saveProfile({
         name:       name.trim(),
         phone:      phone.trim() || null,
-        city:       city || null,
+        state:      state.trim() || null,
+        city:       city.trim() || null,
         occupation: occupation.trim() || null,
       })
       router.back()
@@ -141,21 +142,21 @@ export default function InvProfileEditPage() {
             </div>
           </div>
 
+          {/* State */}
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 8 }}>State</p>
+            <div style={fieldWrap}>
+              <input value={state} onChange={e => setState(e.target.value)}
+                placeholder="e.g. Lagos" style={inputStyle} />
+            </div>
+          </div>
+
           {/* City */}
           <div>
             <p className="eyebrow" style={{ marginBottom: 8 }}>City</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-              {CITIES.map(c => (
-                <button key={c} onClick={() => setCity(c)} style={{
-                  appearance: 'none', border: '1.5px solid',
-                  borderColor: city === c ? 'var(--forest)' : 'var(--line-strong)',
-                  background:  city === c ? 'var(--forest-tint)' : 'transparent',
-                  color:       city === c ? 'var(--forest)' : 'var(--ink-2)',
-                  padding: '7px 12px', borderRadius: 999,
-                  fontSize: 12.5, fontWeight: city === c ? 600 : 500,
-                  cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 160ms',
-                }}>{c}</button>
-              ))}
+            <div style={fieldWrap}>
+              <input value={city} onChange={e => setCity(e.target.value)}
+                placeholder="e.g. Lekki" style={inputStyle} />
             </div>
           </div>
 

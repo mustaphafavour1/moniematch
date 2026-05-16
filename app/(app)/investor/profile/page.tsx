@@ -30,7 +30,10 @@ export default function InvProfilePage() {
   return (
     <div className="app-screen scroll" style={{paddingBottom:40}}>
       <div className="pad" style={{paddingTop:14, display:'flex', flexDirection:'column', alignItems:'center'}}>
-        <Avatar name={name} initials={initials} color={color} size={88} />
+        {user?.avatar_url
+          ? <img src={user.avatar_url} alt="avatar" style={{ width: 88, height: 88, borderRadius: 999, objectFit: 'cover' }} />
+          : <Avatar name={name} initials={initials} color={color} size={88} />
+        }
         <div className="h1" style={{fontSize:26, marginTop:14}}>{name}</div>
         {uname && <div style={{fontSize:13, color:'var(--clay)', marginTop:2, fontWeight:600}}>{uname}</div>}
         <div style={{fontSize:13, color:'var(--ink-3)', marginTop:2}}>Investor · {user?.city || 'Nigeria'}</div>
