@@ -8,21 +8,36 @@ import type { UserProfile } from '@/lib/types'
 import { Avatar } from '@/components/app/Avatar'
 import { Icon } from '@/components/app/Icon'
 
+const RETURN_LABEL: Record<string, string> = {
+  revenue_share: 'Revenue share',
+  fixed:         'Fixed returns',
+  equity:        'Equity',
+  balanced:      'Either works',
+}
+
 export default function BizProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<UserProfile | null>(null)
 
   useEffect(() => { getMyProfile().then(setUser) }, [])
 
-  const name     = user?.bizName || 'My Business'
-  const ownerName = user?.name   || 'Owner'
-  const initials = user?.initials || '?'
-  const color    = user?.color   || 'var(--clay)'
+  const name      = user?.bizName  || 'My Business'
+  const ownerName = user?.name     || 'Owner'
+  const initials  = user?.initials || '?'
+  const color     = user?.color    || 'var(--clay)'
 
   const handleSignOut = async () => {
     await signOut()
     router.replace('/signin')
   }
+
+  const ownerLoc = [ownerName, user?.city || user?.state || 'Lagos'].filter(Boolean).join(' · ')
+
+  const askMin       = user?.askMin || 0
+  const askMax       = user?.askMax || 0
+  const investRange  = askMin || askMax ? fmtNairaRange(askMin, askMax) : '—'
+  const returnChips  = (user?.returnStructures || []).filter(Boolean)
+  const cadenceChips = (user?.reportingCadence || []).filter(Boolean)
 
   return (
     <div className="app-screen scroll" style={{paddingBottom:40}}>
@@ -36,7 +51,7 @@ export default function BizProfilePage() {
           className="btn btn-soft" style={{fontSize:13, padding:'8px 18px', marginTop:8}}>
           Edit profile
         </button>
-        <div style={{fontSize:13, color:'var(--ink-3)'}}>{ownerName} · {user?.city || 'Lagos'}</div>
+        <div style={{fontSize:13, color:'var(--ink-3)', marginTop:6}}>{ownerLoc}</div>
         <div className="row gap-6" style={{justifyContent:'center', marginTop:12, flexWrap:'wrap'}}>
           <span className="chip forest"><Icon name="check" size={11}/> Verified</span>
           <span className="chip clay">78% complete</span>
@@ -54,19 +69,19 @@ export default function BizProfilePage() {
           </button>
         </div>
         <div className="card" style={{padding:0, overflow:'hidden'}}>
-          <ProfRow icon="money"    label="Raising"    value={user ? fmtNairaRange(user.rangeMin||0, user.rangeMax||0) : '—'} />
-          <ProfRow icon="trend-up" label="Structure"  value={(user?.returnStructures||[]).join(', ') || '—'} />
-          <ProfRow icon="bell"     label="Reporting"  value={(user?.reportingCadence||[]).join(', ') || 'Monthly'} />
-          <ProfRow icon="doc"      label="Category"   value={user?.category as string || '—'} last />
+          <ProfRow icon="money"    label="Investment range" value={investRange} />
+          <ChipRow icon="trend-up" label="Return type"      chips={returnChips}  labelMap={RETURN_LABEL} fallback="—" />
+          <ChipRow icon="bell"     label="Reporting"        chips={cadenceChips} fallback="—" />
+          <ProfRow icon="doc"      label="Category"         value={user?.category as string || '—'} last />
         </div>
       </div>
 
       <div className="pad" style={{marginTop:14}}>
         <div className="card" style={{padding:0, overflow:'hidden'}}>
-          <ActionRow icon="calendar" label="Deal history"    onClick={() => {}} />
+          <ActionRow icon="calendar" label="Deal history"      onClick={() => {}} />
           <ActionRow icon="doc"      label="Submitted reports" onClick={() => {}} />
-          <ActionRow icon="settings" label="Settings"        onClick={() => router.push('/business/settings')} />
-          <ActionRow icon="logout"   label="Sign out"        onClick={handleSignOut} danger />
+          <ActionRow icon="settings" label="Settings"          onClick={() => router.push('/business/settings')} />
+          <ActionRow icon="logout"   label="Sign out"          onClick={handleSignOut} danger />
         </div>
       </div>
     </div>
@@ -84,6 +99,33 @@ function ProfRow({ icon, label, value, last }: { icon:string; label:string; valu
       <div style={{flex:1, minWidth:0}}>
         <div style={{fontSize:11, color:'var(--ink-3)', letterSpacing:0.04, textTransform:'uppercase'}}>{label}</div>
         <div style={{fontSize:14, color:'var(--ink)', marginTop:2}}>{value}</div>
+      </div>
+    </div>
+  )
+}
+
+function ChipRow({ icon, label, chips, labelMap, fallback, last }: {
+  icon:string; label:string; chips:string[]; labelMap?:Record<string,string>; fallback:string; last?:boolean
+}) {
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:12, padding:'14px 16px',
+      borderBottom: last ? 0 : '1px solid var(--line)'}}>
+      <div style={{width:30, height:30, borderRadius:8, background:'var(--linen)', color:'var(--ink-2)',
+        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+        <Icon name={icon} size={16} />
+      </div>
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{fontSize:11, color:'var(--ink-3)', letterSpacing:0.04, textTransform:'uppercase'}}>{label}</div>
+        {chips.length > 0
+          ? <div className="row gap-6" style={{marginTop:5, flexWrap:'wrap'}}>
+              {chips.map(c => (
+                <span key={c} className="chip" style={{fontSize:12}}>
+                  {labelMap?.[c] || c}
+                </span>
+              ))}
+            </div>
+          : <div style={{fontSize:14, color:'var(--ink)', marginTop:2}}>{fallback}</div>
+        }
       </div>
     </div>
   )

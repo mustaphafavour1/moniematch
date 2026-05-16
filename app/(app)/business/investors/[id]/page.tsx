@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { getInvestorById, getMatchIdForInvestor } from '@/lib/db'
+import { getInvestorById, getOrCreateMatchForInvestor } from '@/lib/db'
 import type { Investor } from '@/lib/types'
 import { Avatar } from '@/components/app/Avatar'
 import { Icon, RoundBtn } from '@/components/app/Icon'
@@ -21,7 +21,7 @@ export default function BizInvestorDetailPage() {
     const urlMatchId = searchParams.get('matchId')
     Promise.all([
       getInvestorById(invId),
-      urlMatchId ? Promise.resolve(urlMatchId) : getMatchIdForInvestor(invId),
+      urlMatchId ? Promise.resolve(urlMatchId) : getOrCreateMatchForInvestor(invId),
     ]).then(([data, mid]) => {
       setInv(data)
       setMatchId(mid)
@@ -66,8 +66,8 @@ export default function BizInvestorDetailPage() {
           <div className="eyebrow" style={{marginBottom:8}}>Investment preferences</div>
           <div className="card" style={{padding:0, overflow:'hidden'}}>
             <PrefRow icon="money"    label="Investment range"   value={inv.investmentRange || '—'} />
-            <PrefRow icon="trend-up" label="Return structures"  value={(inv.returnStructures||[]).join(', ') || '—'} />
-            <PrefRow icon="bell"     label="Reporting cadence"  value={(inv.reportingCadence||[]).join(' or ') || '—'} last />
+            <ChipRow icon="trend-up" label="Return type"       chips={inv.returnStructures||[]} />
+            <ChipRow icon="bell"     label="Reporting cadence" chips={inv.reportingCadence||[]} last />
           </div>
         </div>
 
@@ -107,6 +107,13 @@ export default function BizInvestorDetailPage() {
   )
 }
 
+const RETURN_LABEL: Record<string, string> = {
+  revenue_share: 'Revenue share',
+  fixed:         'Fixed returns',
+  equity:        'Equity',
+  balanced:      'Either works',
+}
+
 function PrefRow({ icon, label, value, last }: { icon:string; label:string; value:string; last?:boolean }) {
   return (
     <div style={{display:'flex', alignItems:'center', gap:12, padding:'14px 16px',
@@ -118,6 +125,27 @@ function PrefRow({ icon, label, value, last }: { icon:string; label:string; valu
       <div style={{flex:1, minWidth:0}}>
         <div style={{fontSize:11, color:'var(--ink-3)', letterSpacing:0.04, textTransform:'uppercase'}}>{label}</div>
         <div style={{fontSize:14, color:'var(--ink)', marginTop:2}}>{value}</div>
+      </div>
+    </div>
+  )
+}
+
+function ChipRow({ icon, label, chips, last }: { icon:string; label:string; chips:string[]; last?:boolean }) {
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:12, padding:'14px 16px',
+      borderBottom: last ? 0 : '1px solid var(--line)'}}>
+      <div style={{width:30, height:30, borderRadius:8, background:'var(--linen)', color:'var(--ink-2)',
+        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+        <Icon name={icon} size={16} />
+      </div>
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{fontSize:11, color:'var(--ink-3)', letterSpacing:0.04, textTransform:'uppercase'}}>{label}</div>
+        {chips.length > 0
+          ? <div className="row gap-6" style={{marginTop:5, flexWrap:'wrap'}}>
+              {chips.map(c => <span key={c} className="chip" style={{fontSize:12}}>{RETURN_LABEL[c] || c}</span>)}
+            </div>
+          : <div style={{fontSize:14, color:'var(--ink)', marginTop:2}}>—</div>
+        }
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { getBusinessById, getMatchIdForBusiness } from '@/lib/db'
+import { getBusinessById, getOrCreateMatchForBusiness } from '@/lib/db'
 import { fmtNaira, fmtNairaRange } from '@/lib/utils'
 import type { Business } from '@/lib/types'
 import { Avatar } from '@/components/app/Avatar'
@@ -22,7 +22,7 @@ export default function BusinessDetailPage() {
 
   useEffect(() => {
     if (!bizId) { setLoading(false); return }
-    Promise.all([getBusinessById(bizId), getMatchIdForBusiness(bizId)]).then(([data, mid]) => {
+    Promise.all([getBusinessById(bizId), getOrCreateMatchForBusiness(bizId)]).then(([data, mid]) => {
       setBiz(data)
       setMatchId(mid)
       setLoading(false)

@@ -10,6 +10,11 @@ import { Icon, RoundBtn } from '@/components/app/Icon'
 const CATS     = ['Bakery','Fashion','Food','Barbing','Beauty','Repair','Retail','Laundry','Tailoring','Photography','Other']
 const REVENUES = ['Under ₦50,000','₦50k – ₦150k','₦150k – ₦500k','₦500k – ₦1M','Over ₦1M']
 const CADENCE  = ['Weekly','Monthly','Quarterly']
+const RETURNS  = [
+  { val: 'revenue_share', label: 'Revenue share' },
+  { val: 'fixed',         label: 'Fixed returns' },
+  { val: 'equity',        label: 'Equity' },
+]
 
 const fmtNum   = (v: number) => v === 0 ? '' : v.toLocaleString('en-NG')
 const parseNum = (s: string) => { const n = parseInt(s.replace(/,/g, ''), 10); return isNaN(n) ? 0 : n }
@@ -24,6 +29,7 @@ export default function BizProfileEditPage() {
   const [maxAsk,    setMaxAsk]    = useState(0)
   const [useOfFunds,setUseOfFunds]= useState('')
   const [cadence,   setCadence]   = useState<string[]>(['Monthly'])
+  const [returns,   setReturns]   = useState<string[]>([])
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
 
@@ -34,6 +40,7 @@ export default function BizProfileEditPage() {
       if (p.category)   setCategory(p.category)
       if (p.description) setDesc(p.description)
       if (p.reportingCadence?.length) setCadence(p.reportingCadence)
+      if (p.returnStructures?.length) setReturns(p.returnStructures)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pa = p as any
       if (pa.askMin) setMinAsk(pa.askMin)
@@ -42,6 +49,7 @@ export default function BizProfileEditPage() {
   }, [])
 
   const toggleCad = (c: string) => setCadence(cs => cs.includes(c) ? cs.filter(x=>x!==c) : [...cs, c])
+  const toggleReturn = (v: string) => setReturns(rs => rs.includes(v) ? rs.filter(x=>x!==v) : [...rs, v])
 
   const save = async () => {
     if (minAsk > 0 && maxAsk > 0 && minAsk >= maxAsk) { setError('Minimum ask must be less than maximum.'); return }
@@ -58,6 +66,7 @@ export default function BizProfileEditPage() {
           ? `${fmtNaira(minAsk, {compact:true})} – ${fmtNaira(maxAsk, {compact:true})}`
           : null,
         reporting_cadence: cadence,
+        return_structures: returns,
       })
       router.back()
     } catch(e) { setError('Failed to save. Please try again.'); console.warn('[MM] save biz profile:', e) }
@@ -159,6 +168,38 @@ export default function BizProfileEditPage() {
               <textarea value={useOfFunds} onChange={e=>setUseOfFunds(e.target.value)}
                 placeholder="e.g. New industrial oven (₦300k) and 3 months of raw materials (₦200k)"
                 rows={3} style={{...inputStyle, resize:'none', lineHeight:1.5}} />
+            </div>
+          </div>
+
+          {/* Return structure */}
+          <div>
+            <p className="eyebrow" style={{marginBottom:8}}>Return type offered to investors</p>
+            <p style={{fontSize:13, color:'var(--ink-3)', margin:'0 0 10px', lineHeight:1.45}}>
+              How will investors get their money back?
+            </p>
+            <div style={{display:'flex', flexWrap:'wrap', gap:7}}>
+              {RETURNS.map(r => {
+                const on = returns.includes(r.val)
+                return (
+                  <button key={r.val} onClick={() => toggleReturn(r.val)} style={{
+                    appearance:'none', border:'1.5px solid',
+                    borderColor: on ? 'var(--forest)' : 'var(--line-strong)',
+                    background:  on ? 'var(--forest-tint)' : 'transparent',
+                    color:       on ? 'var(--forest)' : 'var(--ink-2)',
+                    padding:'7px 14px', borderRadius:999,
+                    fontSize:13, fontWeight: on ? 600 : 500,
+                    cursor:'pointer', fontFamily:'var(--font-body)', transition:'all 160ms',
+                    display:'flex', alignItems:'center', gap:6,
+                  }}>
+                    <span style={{width:14, height:14, borderRadius:3, border:`1.5px solid ${on ? 'var(--forest)' : 'var(--line-strong)'}`,
+                      background: on ? 'var(--forest)' : 'transparent', display:'inline-flex',
+                      alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                      {on && <span style={{color:'#fff', fontSize:9, lineHeight:1}}>✓</span>}
+                    </span>
+                    {r.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 

@@ -132,6 +132,8 @@ export interface UserProfile {
   businessId?: string
   category?: string
   description?: string
+  askMin?: number
+  askMax?: number
   // computed
   initials: string
   color: string
