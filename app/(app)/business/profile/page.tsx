@@ -31,8 +31,7 @@ export default function BizProfilePage() {
     router.replace('/signin')
   }
 
-  const bizCityState = [user?.bizCity, user?.bizState].filter(Boolean).join(', ')
-  const ownerLoc     = [ownerName, bizCityState || user?.city || 'Lagos'].filter(Boolean).join(' · ')
+  const ownerLoc = [ownerName, user?.city || user?.state || 'Lagos'].filter(Boolean).join(' · ')
 
   const askMin       = user?.askMin || 0
   const askMax       = user?.askMax || 0
