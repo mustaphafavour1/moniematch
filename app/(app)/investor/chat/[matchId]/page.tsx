@@ -43,7 +43,7 @@ export default function InvChatConvPage() {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `match_id=eq.${matchId}`,
       }, (payload: { new: Record<string, unknown> }) => {
-        setMsgs((prev: ChatMessage[]) => [...prev, payload.new as ChatMessage])
+        setMsgs((prev: ChatMessage[]) => [...prev, payload.new as unknown as ChatMessage])
       })
       .subscribe()
     return () => { supabase.removeChannel(ch) }
