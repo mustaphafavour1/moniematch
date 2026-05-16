@@ -29,12 +29,11 @@ function fmtDate(iso: string): string {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function PillTabs<T extends string>({
-  tabs, active, onSelect,
-}: { tabs: { key: T; label: string }[]; active: T; onSelect: (k: T) => void }) {
+  tabs, active, onSelect, style,
+}: { tabs: { key: T; label: string }[]; active: T; onSelect: (k: T) => void; style?: React.CSSProperties }) {
   return (
     <div style={{
-      display: 'flex', gap: 6, padding: '0 22px 14px',
-      overflowX: 'auto', scrollbarWidth: 'none',
+      display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', flex: 1, ...style,
     }}>
       {tabs.map(t => (
         <button key={t.key} onClick={() => onSelect(t.key)} style={{
@@ -110,11 +109,10 @@ function ReportsTab() {
       body="Reports you create will appear here. Investors love receiving regular updates."
       action={
         <button
-          onClick={() => router.push('/business/reporting')}
+          onClick={() => router.push('/business/records/new-report')}
           className="btn btn-primary"
           style={{ fontSize: 14, padding: '12px 24px' }}
         >
-          <Icon name="plus" size={16} color="var(--cream)" />
           Create report
         </button>
       }
@@ -194,8 +192,8 @@ function filterDocs(docs: BusinessDocument[], sub: InfoSubTab): BusinessDocument
 }
 
 function BusinessInfoTab({
-  docs, loading, onRefresh,
-}: { docs: BusinessDocument[]; loading: boolean; onRefresh: () => void }) {
+  docs, loading, onRefresh, onAdd,
+}: { docs: BusinessDocument[]; loading: boolean; onRefresh: () => void; onAdd: () => void }) {
   const [sub, setSub] = useState<InfoSubTab>('all')
 
   const subTabs: { key: InfoSubTab; label: string }[] = [
@@ -208,15 +206,30 @@ function BusinessInfoTab({
   const filtered = filterDocs(docs, sub)
 
   const emptyMessages: Record<InfoSubTab, { title: string; body: string; icon: string }> = {
-    all:       { icon: 'upload', title: 'No files yet',      body: 'Add documents, media, or links to share with investors.' },
-    documents: { icon: 'doc',    title: 'No documents',      body: 'Upload your CAC certificate, bank statements, or other files.' },
-    media:     { icon: 'photo',  title: 'No media',          body: 'Upload photos or videos that showcase your business.' },
-    links:     { icon: 'link',   title: 'No links added',    body: 'Add links to your website, social profiles, or portfolio.' },
+    all:       { icon: 'upload', title: 'No files yet',   body: 'Add documents, media, or links to share with investors.' },
+    documents: { icon: 'doc',    title: 'No documents',   body: 'Upload your CAC certificate, bank statements, or other files.' },
+    media:     { icon: 'photo',  title: 'No media',       body: 'Upload photos or videos that showcase your business.' },
+    links:     { icon: 'link',   title: 'No links added', body: 'Add links to your website, social profiles, or portfolio.' },
   }
+
+  const addBtn = (
+    <button onClick={onAdd} className="btn btn-primary" style={{ fontSize: 14, padding: '12px 24px' }}>
+      Add item
+    </button>
+  )
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <PillTabs tabs={subTabs} active={sub} onSelect={setSub} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 22px 14px' }}>
+        <PillTabs tabs={subTabs} active={sub} onSelect={setSub} />
+        <button onClick={onAdd} style={{
+          flexShrink: 0, width: 36, height: 36, borderRadius: 999,
+          background: 'var(--ink)', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="plus" size={18} color="var(--cream)" />
+        </button>
+      </div>
 
       {loading ? (
         <div>
@@ -225,7 +238,7 @@ function BusinessInfoTab({
           <SkeletonRow />
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState {...emptyMessages[sub]} />
+        <EmptyState {...emptyMessages[sub]} action={addBtn} />
       ) : (
         <div>
           {filtered.map(doc => <DocRow key={doc.id} doc={doc} />)}
@@ -636,7 +649,7 @@ export default function BizRecordsPage() {
         <AppHeader title="Records" sticky />
 
         {/* Top-level tabs */}
-        <div style={{ paddingTop: 14 }}>
+        <div style={{ paddingTop: 14, padding: '14px 22px 0' }}>
           <PillTabs tabs={topTabs} active={topTab} onSelect={setTopTab} />
         </div>
 
@@ -648,7 +661,7 @@ export default function BizRecordsPage() {
             </div>
           ) : (
             <div className="scroll" style={{ flex: 1, paddingBottom: 100 }}>
-              <BusinessInfoTab docs={docs} loading={loading} onRefresh={loadDocs} />
+              <BusinessInfoTab docs={docs} loading={loading} onRefresh={loadDocs} onAdd={() => setSheetOpen(true)} />
             </div>
           )}
         </div>

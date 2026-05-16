@@ -6,11 +6,13 @@ import { Icon, RoundBtn } from '@/components/app/Icon'
 import { AppHeader } from '@/components/app/AppHeader'
 
 const CATEGORIES = [
-  { label: 'Fraud or scam',         value: 'fraud'        },
-  { label: 'Harassment',            value: 'harassment'   },
-  { label: 'Misleading information',value: 'misleading'   },
-  { label: 'Spam',                   value: 'spam'         },
-  { label: 'Other',                  value: 'other'        },
+  { label: 'Fraud or scam',           value: 'fraud'                },
+  { label: 'Harassment',              value: 'harassment'           },
+  { label: 'Misleading information',  value: 'misleading'           },
+  { label: 'Unmet obligations',       value: 'unmet_obligations'    },
+  { label: 'Unsubmitted report(s)',   value: 'unsubmitted_reports'  },
+  { label: 'Spam',                    value: 'spam'                 },
+  { label: 'Other',                   value: 'other'                },
 ]
 
 export default function InvReportPage() {
