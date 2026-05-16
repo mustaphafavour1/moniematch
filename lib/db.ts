@@ -128,9 +128,13 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     return {
       ...base,
       ...(biz ? adaptBusiness(biz, 0) : {}),
+      // Explicitly restore owner fields that adaptBusiness may overwrite with undefined
+      name:        userRow.name || '',
+      initials:    base.initials,
+      color:       base.color,
       bizName:     biz?.name,
       businessId:  biz?.id,
-      category:    biz?.category  || undefined,
+      category:    biz?.category   || undefined,
       description: biz?.description || undefined,
     }
   }

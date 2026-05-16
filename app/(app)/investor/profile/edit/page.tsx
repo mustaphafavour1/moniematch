@@ -91,7 +91,7 @@ export default function InvProfileEditPage() {
         <div className="pad col gap-20" style={{ paddingTop: 16, paddingBottom: 32 }}>
 
           {/* Avatar picker */}
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block' }}>
               {avatarUrl
                 ? <img src={avatarUrl} alt="avatar" style={{ width: 88, height: 88, borderRadius: 999, objectFit: 'cover' }} />

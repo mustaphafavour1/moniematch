@@ -36,7 +36,6 @@ export default function InvHomePage() {
       getRecentBusinesses(3),
     ]).then(([profile, m, d, r]) => {
       if (!profile) { router.replace('/investor/onboarding'); return }
-      if (!profile.name) { router.replace('/investor/onboarding'); return }
       setUser(profile)
       setMatches(m)
       setDeals(d)

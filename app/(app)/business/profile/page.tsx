@@ -26,7 +26,7 @@ export default function BizProfilePage() {
 
   return (
     <div className="app-screen scroll" style={{paddingBottom:40}}>
-      <div className="pad" style={{paddingTop:14, textAlign:'center'}}>
+      <div className="pad" style={{paddingTop:14, display:'flex', flexDirection:'column', alignItems:'center'}}>
         <Avatar name={name} initials={initials} color={color} size={80} />
         <div className="h1" style={{fontSize:26, marginTop:14}}>{name}</div>
         <div style={{fontSize:13, color:'var(--ink-3)'}}>{ownerName} · {user?.city || 'Lagos'}</div>
