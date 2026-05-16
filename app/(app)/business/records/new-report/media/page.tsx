@@ -51,7 +51,7 @@ export default function MediaReportPage() {
       const uploaded: string[] = []
       for (const file of files) {
         const ext  = file.name.split('.').pop()
-        const path = `${biz.name}/reports/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const path = `${biz.id}/reports/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
         const bucket = file.type.startsWith('image/') ? 'business-photos' : 'documents'
         const { error: upErr } = await supabase.storage.from(bucket).upload(path, file)
         if (upErr) throw upErr
