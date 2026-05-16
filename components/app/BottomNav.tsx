@@ -1,22 +1,24 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Zap, BarChart2, User, Users, Mic } from 'lucide-react'
+import { Home, Zap, BarChart2, User, Users, Mic, MessageCircle } from 'lucide-react'
 
 // ── Investor tabs ──────────────────────────────────────────────────────────────
 const INV_TABS = [
-  { href:'/investor',           icon: Home,     label:'Home'      },
-  { href:'/investor/matches',   icon: Zap,      label:'Matches'   },
-  { href:'/investor/portfolio', icon: BarChart2, label:'Portfolio' },
-  { href:'/investor/profile',   icon: User,     label:'Profile'   },
+  { href:'/investor',           icon: Home,          label:'Home'      },
+  { href:'/investor/matches',   icon: Zap,           label:'Matches'   },
+  { href:'/investor/chat',      icon: MessageCircle, label:'Messages'  },
+  { href:'/investor/portfolio', icon: BarChart2,     label:'Portfolio' },
+  { href:'/investor/profile',   icon: User,          label:'Profile'   },
 ]
 
 // ── Business tabs ─────────────────────────────────────────────────────────────
 const BIZ_TABS = [
-  { href:'/business',            icon: Home,  label:'Home'      },
-  { href:'/business/investors',  icon: Users, label:'Investors' },
-  { href:'/business/reporting',  icon: Mic,   label:'Reports'   },
-  { href:'/business/profile',    icon: User,  label:'Profile'   },
+  { href:'/business',            icon: Home,          label:'Home'      },
+  { href:'/business/investors',  icon: Users,         label:'Investors' },
+  { href:'/business/chat',       icon: MessageCircle, label:'Messages'  },
+  { href:'/business/reporting',  icon: Mic,           label:'Reports'   },
+  { href:'/business/profile',    icon: User,          label:'Profile'   },
 ]
 
 function BottomNav({ tabs }: { tabs: typeof INV_TABS }) {
