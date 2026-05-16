@@ -79,7 +79,15 @@ export async function getMyProfile(): Promise<UserProfile | null> {
   const { data: userRow } = await supabase
     .from('users').select('*').eq('id', authUser.id).maybeSingle()
 
-  if (!userRow) return null
+  if (!userRow) {
+    // User exists in auth but has no public.users row (trigger may not have run).
+    // Upsert a minimal row so they can proceed to onboarding rather than looping.
+    await supabase.from('users').upsert(
+      { id: authUser.id, email: authUser.email || null },
+      { onConflict: 'id' }
+    )
+    return null
+  }
 
   // Build the base profile object — userRow is any so spread is safe
   const base: UserProfile = {
@@ -120,9 +128,13 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     return {
       ...base,
       ...(biz ? adaptBusiness(biz, 0) : {}),
+      // Explicitly restore owner fields that adaptBusiness may overwrite with undefined
+      name:        userRow.name || '',
+      initials:    base.initials,
+      color:       base.color,
       bizName:     biz?.name,
       businessId:  biz?.id,
-      category:    biz?.category  || undefined,
+      category:    biz?.category   || undefined,
       description: biz?.description || undefined,
     }
   }
@@ -280,6 +292,24 @@ export async function submitReport(payload: {
 
 export async function updateMatchStatus(matchId: string, status: string): Promise<void> {
   await supabase.from('matches').update({ status }).eq('id', matchId)
+}
+
+export async function getMatchIdForBusiness(bizId: string): Promise<string | null> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
+  const { data: inv } = await supabase.from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
+  if (!inv) return null
+  const { data: match } = await supabase.from('matches').select('id').eq('investor_id', inv.id).eq('business_id', bizId).maybeSingle()
+  return match?.id || null
+}
+
+export async function getMatchIdForInvestor(invId: string): Promise<string | null> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
+  const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', authUser.id).maybeSingle()
+  if (!biz) return null
+  const { data: match } = await supabase.from('matches').select('id').eq('business_id', biz.id).eq('investor_id', invId).maybeSingle()
+  return match?.id || null
 }
 
 export async function sendMessage(matchId: string, content: string): Promise<ChatMessage> {

@@ -26,9 +26,16 @@ export default function BizProfilePage() {
 
   return (
     <div className="app-screen scroll" style={{paddingBottom:40}}>
-      <div className="pad" style={{paddingTop:14, textAlign:'center'}}>
-        <Avatar name={name} initials={initials} color={color} size={80} />
+      <div className="pad" style={{paddingTop:14, display:'flex', flexDirection:'column', alignItems:'center'}}>
+        {user?.avatar_url
+          ? <img src={user.avatar_url} alt="avatar" style={{ width: 80, height: 80, borderRadius: 999, objectFit: 'cover' }} />
+          : <Avatar name={name} initials={initials} color={color} size={80} />
+        }
         <div className="h1" style={{fontSize:26, marginTop:14}}>{name}</div>
+        <button onClick={() => router.push('/business/profile/owner-edit')}
+          className="btn btn-soft" style={{fontSize:13, padding:'8px 18px', marginTop:8}}>
+          Edit profile
+        </button>
         <div style={{fontSize:13, color:'var(--ink-3)'}}>{ownerName} · {user?.city || 'Lagos'}</div>
         <div className="row gap-6" style={{justifyContent:'center', marginTop:12, flexWrap:'wrap'}}>
           <span className="chip forest"><Icon name="check" size={11}/> Verified</span>

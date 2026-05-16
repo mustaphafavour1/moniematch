@@ -8,6 +8,10 @@ import { AppHeader } from '@/components/app/AppHeader'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 
 const ALL_CATS = ['Bakery','Fashion','Food','Barbing','Beauty','Repair','Retail','Laundry','Tailoring','Photography']
+const CADENCE  = ['Weekly','Monthly','Quarterly']
+
+const fmtNum  = (v: number) => v === 0 ? '' : v.toLocaleString('en-NG')
+const parseNum = (s: string) => { const n = parseInt(s.replace(/,/g, ''), 10); return isNaN(n) ? 0 : n }
 
 export default function InvPrefsPage() {
   const router = useRouter()
@@ -15,32 +19,49 @@ export default function InvPrefsPage() {
   const [minAmt,     setMinAmt]     = useState(100_000)
   const [maxAmt,     setMaxAmt]     = useState(1_500_000)
   const [returnGoal, setReturnGoal] = useState('balanced')
+  const [cadence,    setCadence]    = useState<string[]>(['Monthly'])
   const [saving,     setSaving]     = useState(false)
+  const [error,      setError]      = useState('')
 
   useEffect(() => {
     getMyProfile().then(p => {
       if (!p) return
-      if (p.interests?.length)  setCats(p.interests)
-      if (p.rangeMin)           setMinAmt(p.rangeMin)
-      if (p.rangeMax)           setMaxAmt(p.rangeMax)
-      if (p.returnStructures?.[0]) setReturnGoal(p.returnStructures[0])
+      if (p.interests?.length)      setCats(p.interests)
+      if (p.rangeMin)               setMinAmt(p.rangeMin)
+      if (p.rangeMax)               setMaxAmt(p.rangeMax)
+      if (p.returnStructures?.[0])  setReturnGoal(p.returnStructures[0])
+      if (p.reportingCadence?.length) setCadence(p.reportingCadence)
     })
   }, [])
 
-  const toggle = (c: string) => setCats(cs => cs.includes(c) ? cs.filter(x=>x!==c) : [...cs, c])
+  const toggle      = (c: string) => setCats(cs => cs.includes(c) ? cs.filter(x=>x!==c) : [...cs, c])
+  const toggleCad   = (c: string) => setCadence(cs => cs.includes(c) ? cs.filter(x=>x!==c) : [...cs, c])
 
   const save = async () => {
+    if (minAmt >= maxAmt) { setError('Minimum must be less than maximum.'); return }
     setSaving(true)
+    setError('')
     try {
       await saveInvestorProfile({
         interests:         cats,
-        investment_range:  `${fmtNaira(minAmt,{compact:true})} – ${fmtNaira(maxAmt,{compact:true})}`,
+        investment_range:  `${fmtNaira(minAmt, {compact:true})} – ${fmtNaira(maxAmt, {compact:true})}`,
         return_structures: [returnGoal],
+        reporting_cadence: cadence,
       })
       router.back()
-    } catch(e) { console.warn('[MM] save prefs:', e) }
+    } catch(e) { setError('Failed to save. Please try again.'); console.warn('[MM] save prefs:', e) }
     setSaving(false)
   }
+
+  const pillStyle = (on: boolean, accent: string) => ({
+    appearance: 'none' as const, border: '1.5px solid',
+    borderColor:  on ? `var(--${accent})` : 'var(--line-strong)',
+    background:   on ? `var(--${accent}-tint)` : 'transparent',
+    color:        on ? `var(--${accent})` : 'var(--ink-2)',
+    padding: '8px 14px', borderRadius: 999,
+    fontSize: 13, fontWeight: on ? 600 : 500,
+    cursor: 'pointer' as const, fontFamily: 'var(--font-body)', transition: 'all 180ms',
+  })
 
   return (
     <div className="app-screen" style={{display:'flex', flexDirection:'column', height:'100%'}}>
@@ -52,25 +73,15 @@ export default function InvPrefsPage() {
             Tell us more about what you&apos;re looking for and we&apos;ll improve your matches.
           </p>
 
+          {/* Business types */}
           <div className="eyebrow">Business types I&apos;m interested in</div>
           <div style={{display:'flex', flexWrap:'wrap', gap:8, margin:'12px 0 24px'}}>
-            {ALL_CATS.map(c => {
-              const on = cats.includes(c)
-              return (
-                <button key={c} onClick={() => toggle(c)} style={{
-                  appearance:'none', border:'1.5px solid',
-                  borderColor: on ? 'var(--clay)' : 'var(--line-strong)',
-                  background:  on ? 'var(--clay-tint)' : 'transparent',
-                  color:       on ? 'var(--clay)' : 'var(--ink-2)',
-                  padding:'8px 14px', borderRadius:999,
-                  fontSize:13, fontWeight: on ? 600 : 500,
-                  cursor:'pointer', fontFamily:'var(--font-body)',
-                  transition:'all 180ms',
-                }}>{c}</button>
-              )
-            })}
+            {ALL_CATS.map(c => (
+              <button key={c} onClick={() => toggle(c)} style={pillStyle(cats.includes(c), 'clay')}>{c}</button>
+            ))}
           </div>
 
+          {/* Investment range */}
           <div className="eyebrow">Investment range</div>
           <div className="card" style={{padding:16, margin:'12px 0 24px'}}>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
@@ -83,7 +94,11 @@ export default function InvPrefsPage() {
                   <div style={{background:'var(--bone)', border:'1px solid var(--line-strong)',
                     borderRadius:10, padding:'10px 12px', display:'flex', alignItems:'center', gap:4}}>
                     <span style={{fontSize:13, color:'var(--ink-3)'}}>₦</span>
-                    <input type="number" value={val} onChange={e => set(Number(e.target.value))}
+                    <input
+                      type="text" inputMode="numeric"
+                      value={fmtNum(val)}
+                      onChange={e => set(parseNum(e.target.value))}
+                      placeholder="0"
                       style={{flex:1, border:0, background:'transparent', outline:'none',
                         fontFamily:'var(--font-body)', fontSize:14, color:'var(--ink)'}} />
                   </div>
@@ -93,6 +108,18 @@ export default function InvPrefsPage() {
             </div>
           </div>
 
+          {/* Reporting cadence */}
+          <div className="eyebrow">Reporting cadence</div>
+          <p style={{fontSize:13, color:'var(--ink-3)', margin:'6px 0 10px', lineHeight:1.45}}>
+            How often do you want updates from businesses?
+          </p>
+          <div style={{display:'flex', flexWrap:'wrap', gap:8, margin:'0 0 24px'}}>
+            {CADENCE.map(c => (
+              <button key={c} onClick={() => toggleCad(c)} style={pillStyle(cadence.includes(c), 'clay')}>{c}</button>
+            ))}
+          </div>
+
+          {/* Return structure */}
           <div className="eyebrow">Preferred return structure</div>
           <div className="col gap-10" style={{margin:'12px 0 32px'}}>
             {[
@@ -123,6 +150,13 @@ export default function InvPrefsPage() {
               )
             })}
           </div>
+
+          {error && (
+            <div style={{background:'var(--clay-tint)', border:'1px solid var(--clay)',
+              borderRadius:12, padding:'10px 14px', fontSize:13, color:'var(--clay)', marginBottom:16}}>
+              {error}
+            </div>
+          )}
         </div>
       </div>
       <div style={{padding:'12px 22px 28px', borderTop:'1px solid var(--line)', background:'var(--cream)'}}>

@@ -31,8 +31,7 @@ export default function BizHomePage() {
       getInterestedInvestors(),
       getRecentInvestors(3),
     ]).then(([profile, inv, rec]) => {
-      if (!profile) { router.replace('/signin'); return }
-      if (!profile.name) { router.replace('/business/onboarding'); return }
+      if (!profile) { router.replace('/business/onboarding'); return }
       setUser(profile)
       setInterested(inv)
       setRecent(rec)

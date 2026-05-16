@@ -129,7 +129,7 @@ export default function BizInvestorsPage() {
                 return (
                   <div key={inv.id} className="fadein" style={{ animationDelay: `${i * 40}ms` }}>
                     <InvestorCard inv={inv} isMatch={isInterested}
-                      onClick={() => router.push(`/business/investors/${inv.id}`)} />
+                      onClick={() => router.push(`/business/investors/${inv.id}${inv.matchId ? `?matchId=${inv.matchId}` : ''}`)} />
                   </div>
                 )
               })

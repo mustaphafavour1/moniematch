@@ -33,11 +33,9 @@ export default function InvMatchesPage() {
 
   const profileComplete = isProfileComplete(user)
 
-  // Merge: real matches first (by score), then fill with recent not already in matches
+  // Always include all businesses so search works across the full catalogue
   const matchIds = new Set(matches.map(b => b.id))
-  const browsable = profileComplete
-    ? matches  // show matched only when profile complete
-    : [...matches, ...recent.filter(b => !matchIds.has(b.id))]  // recent for new users
+  const browsable = [...matches, ...recent.filter(b => !matchIds.has(b.id))]
 
   const cats = ['all', ...Array.from(new Set(browsable.map(b => b.category).filter(Boolean))).slice(0, 5)]
 
@@ -49,13 +47,13 @@ export default function InvMatchesPage() {
     <div className="app-screen scroll" style={{ paddingBottom: 16 }}>
       <div className="pad" style={{ paddingTop: 14 }}>
         <div className="eyebrow">
-          {profileComplete ? 'Matched to your preferences' : 'Browse businesses'}
+          {profileComplete ? `${matches.length} matched · browse all below` : 'Browse businesses'}
         </div>
         <div className="h1" style={{ fontSize: 36, marginTop: 8 }}>Matches</div>
         {!loading && (
           <p style={{ color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.5, margin: '8px 0 0' }}>
             {profileComplete
-              ? `${matches.length} ${matches.length === 1 ? 'business matches' : 'businesses match'} your range, return type and cadence.`
+              ? `${matches.length} ${matches.length === 1 ? 'business matches' : 'businesses match'} your preferences. All ${browsable.length} are searchable below.`
               : `${browsable.length} businesses currently raising on MonieMatch.`}
           </p>
         )}

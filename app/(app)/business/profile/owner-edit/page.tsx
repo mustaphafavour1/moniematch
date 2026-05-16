@@ -7,21 +7,21 @@ import { AppHeader } from '@/components/app/AppHeader'
 import { Avatar } from '@/components/app/Avatar'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 
-export default function InvProfileEditPage() {
-  const router    = useRouter()
-  const fileRef   = useRef<HTMLInputElement>(null)
+export default function BizOwnerEditPage() {
+  const router  = useRouter()
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  const [name,       setName]       = useState('')
-  const [phone,      setPhone]      = useState('')
-  const [state,      setState]      = useState('')
-  const [city,       setCity]       = useState('')
-  const [occupation, setOccupation] = useState('')
-  const [avatarUrl,  setAvatarUrl]  = useState('')
-  const [initials,   setInitials]   = useState('?')
-  const [color,      setColor]      = useState('var(--forest)')
-  const [saving,     setSaving]     = useState(false)
-  const [uploading,  setUploading]  = useState(false)
-  const [error,      setError]      = useState('')
+  const [name,      setName]      = useState('')
+  const [phone,     setPhone]     = useState('')
+  const [state,     setState]     = useState('')
+  const [city,      setCity]      = useState('')
+  const [occupation,setOccupation]= useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [initials,  setInitials]  = useState('?')
+  const [color,     setColor]     = useState('var(--forest)')
+  const [saving,    setSaving]    = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error,     setError]     = useState('')
 
   useEffect(() => {
     getMyProfile().then(p => {
@@ -69,7 +69,7 @@ export default function InvProfileEditPage() {
       router.back()
     } catch (err) {
       setError('Failed to save. Please try again.')
-      console.warn('[MM] save profile:', err)
+      console.warn('[MM] save owner profile:', err)
     }
     setSaving(false)
   }
@@ -85,13 +85,13 @@ export default function InvProfileEditPage() {
 
   return (
     <div className="app-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <AppHeader title="Edit profile"
+      <AppHeader title="Edit personal info"
         leading={<RoundBtn onClick={() => router.back()}><Icon name="back" size={18} /></RoundBtn>} sticky />
 
       <div className="scroll" style={{ flex: 1 }}>
         <div className="pad col gap-20" style={{ paddingTop: 16, paddingBottom: 32 }}>
 
-          {/* Avatar picker */}
+          {/* Avatar */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block' }}>
               {avatarUrl
@@ -101,7 +101,7 @@ export default function InvProfileEditPage() {
               <button onClick={handleAvatarClick} disabled={uploading}
                 style={{ position: 'absolute', bottom: 0, right: 0,
                   width: 28, height: 28, borderRadius: 999,
-                  background: 'var(--ink)', border: '2px solid var(--cream)',
+                  background: 'var(--forest)', border: '2px solid var(--cream)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer' }}>
                 {uploading
@@ -129,7 +129,7 @@ export default function InvProfileEditPage() {
             <p className="eyebrow" style={{ marginBottom: 8 }}>Occupation / title</p>
             <div style={fieldWrap}>
               <input value={occupation} onChange={e => setOccupation(e.target.value)}
-                placeholder="e.g. Business Owner, Banker, Entrepreneur" style={inputStyle} />
+                placeholder="e.g. Business Owner, Entrepreneur" style={inputStyle} />
             </div>
           </div>
 
@@ -153,7 +153,7 @@ export default function InvProfileEditPage() {
 
           {/* City */}
           <div>
-            <p className="eyebrow" style={{ marginBottom: 8 }}>City</p>
+            <p className="eyebrow" style={{ marginBottom: 8 }}>City / area</p>
             <div style={fieldWrap}>
               <input value={city} onChange={e => setCity(e.target.value)}
                 placeholder="e.g. Lekki" style={inputStyle} />
@@ -170,7 +170,7 @@ export default function InvProfileEditPage() {
       </div>
 
       <div style={{ padding: '12px 22px 28px', borderTop: '1px solid var(--line)', background: 'var(--cream)' }}>
-        <button onClick={handleSave} disabled={saving || uploading} className="btn btn-primary btn-block">
+        <button onClick={handleSave} disabled={saving || uploading} className="btn btn-forest btn-block">
           {saving ? 'Saving…' : 'Save changes'}
         </button>
       </div>

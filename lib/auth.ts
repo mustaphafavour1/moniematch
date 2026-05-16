@@ -67,3 +67,17 @@ export async function changePassword(newPassword: string) {
   if (user) await supabase.from('users').update({ must_change_password: false }).eq('id', user.id)
   return data
 }
+
+export async function getSettings(): Promise<Record<string, unknown>> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {}
+  const { data } = await supabase.from('users').select('settings').eq('id', user.id).maybeSingle()
+  return (data?.settings as Record<string, unknown>) || {}
+}
+
+export async function saveSettings(settings: Record<string, unknown>): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  const { error } = await supabase.from('users').update({ settings }).eq('id', user.id)
+  if (error) throw error
+}
