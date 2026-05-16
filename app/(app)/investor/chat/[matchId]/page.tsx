@@ -14,14 +14,16 @@ export default function InvChatConvPage() {
   const params  = useParams()
   const matchId = params.matchId as string
 
-  const [msgs,    setMsgs]    = useState<ChatMessage[]>([])
-  const [myId,    setMyId]    = useState('')
-  const [name,    setName]    = useState('')
-  const [draft,   setDraft]   = useState('')
-  const [sending, setSending] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [msgs,       setMsgs]       = useState<ChatMessage[]>([])
+  const [myId,       setMyId]       = useState('')
+  const [name,       setName]       = useState('')
+  const [draft,      setDraft]      = useState('')
+  const [sending,    setSending]    = useState(false)
+  const [loading,    setLoading]    = useState(true)
+  const [menuOpen,   setMenuOpen]   = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQ,    setSearchQ]    = useState('')
+  const scrollRef = useRef<HTMLDivElement>(null)
   const menuRef   = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,24 +46,27 @@ export default function InvChatConvPage() {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `match_id=eq.${matchId}`,
       }, (payload: { new: Record<string, unknown> }) => {
-        setMsgs((prev: ChatMessage[]) => [...prev, payload.new as unknown as ChatMessage])
+        setMsgs(prev => [...prev, payload.new as unknown as ChatMessage])
       })
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [matchId])
 
+  // Scroll to bottom of the container (not window) — fixes desktop cut-off
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
   }, [msgs])
 
   // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return
-    const handler = (e: MouseEvent) => {
+    const h = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [menuOpen])
 
   const handleSend = async () => {
@@ -75,10 +80,15 @@ export default function InvChatConvPage() {
   const color    = colorFor(name)
   const initials = initialsFor(name)
 
+  const visibleMsgs = searchQ.trim()
+    ? msgs.filter(m => m.content.toLowerCase().includes(searchQ.toLowerCase()))
+    : msgs
+
   const menuItems = [
-    { icon: 'doc',      label: 'View uploaded media',  action: () => { setMenuOpen(false); router.push(`/investor/chat/${matchId}/media`) } },
-    { icon: 'money',    label: 'Make offer',            action: () => { setMenuOpen(false); router.push(`/investor/chat/${matchId}/offer`) } },
-    { icon: 'bell',     label: 'Report an issue',       action: () => { setMenuOpen(false); router.push(`/investor/chat/${matchId}/report`) } },
+    { icon: 'search', label: 'Search conversation', action: () => { setMenuOpen(false); setSearchOpen(true) } },
+    { icon: 'doc',    label: 'View uploaded media',  action: () => { setMenuOpen(false); router.push(`/investor/chat/${matchId}/media`) } },
+    { icon: 'money',  label: 'Make offer',            action: () => { setMenuOpen(false); router.push(`/investor/chat/${matchId}/offer`) } },
+    { icon: 'flag',   label: 'Report an issue',       action: () => { setMenuOpen(false); router.push(`/investor/chat/${matchId}/report`) } },
   ]
 
   return (
@@ -96,13 +106,12 @@ export default function InvChatConvPage() {
                 position: 'absolute', top: '110%', right: 0, zIndex: 200,
                 background: 'var(--cream)', border: '1px solid var(--line)',
                 borderRadius: 14, boxShadow: 'var(--shadow-md)',
-                minWidth: 200, overflow: 'hidden',
+                minWidth: 210, overflow: 'hidden',
               }}>
-                {menuItems.map(item => (
+                {menuItems.map((item, i) => (
                   <div key={item.label} onClick={item.action}
                     style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px',
-                      cursor: 'pointer', borderBottom: '1px solid var(--line)' }}
-                    className="menu-row">
+                      cursor: 'pointer', borderBottom: i < menuItems.length - 1 ? '1px solid var(--line)' : 'none' }}>
                     <Icon name={item.icon} size={16} color="var(--ink-2)" />
                     <span style={{ fontSize: 14, color: 'var(--ink)' }}>{item.label}</span>
                   </div>
@@ -114,36 +123,59 @@ export default function InvChatConvPage() {
         sticky
       />
 
-      {/* Messages area */}
-      <div className="scroll" style={{ flex: 1, padding: '12px 16px 8px' }}>
+      {/* Search bar */}
+      {searchOpen && (
+        <div style={{ padding: '8px 12px', background: 'var(--bone)', borderBottom: '1px solid var(--line)',
+          display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ flex: 1, background: 'var(--cream)', border: '1px solid var(--line-strong)',
+            borderRadius: 20, padding: '8px 14px', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Icon name="search" size={14} color="var(--ink-3)" />
+            <input autoFocus value={searchQ} onChange={e => setSearchQ(e.target.value)}
+              placeholder="Search messages…"
+              style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none',
+                fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)' }} />
+            {searchQ && <button onClick={() => setSearchQ('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <Icon name="close" size={14} color="var(--ink-3)" />
+            </button>}
+          </div>
+          <button onClick={() => { setSearchOpen(false); setSearchQ('') }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-body)' }}>
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Messages area — ref on this div so scrollTop works, not window.scroll */}
+      <div ref={scrollRef} className="scroll" style={{ flex: 1, padding: '12px 16px 8px' }}>
         {loading
           ? <div style={{ textAlign: 'center', paddingTop: 40, color: 'var(--ink-3)', fontSize: 13 }}>Loading…</div>
-          : msgs.length === 0
+          : visibleMsgs.length === 0
             ? (
               <div style={{ textAlign: 'center', paddingTop: 60 }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)', marginBottom: 6 }}>
-                  Start the conversation
+                  {searchQ ? 'No matching messages' : 'Start the conversation'}
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Send a message to {name}.</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+                  {searchQ ? 'Try a different search term.' : `Send a message to ${name}.`}
+                </div>
               </div>
             )
             : (
               <div className="col gap-6">
-                {msgs.map(m => {
+                {visibleMsgs.map(m => {
                   const isMine = m.sender_id === myId
+                  const highlight = searchQ && m.content.toLowerCase().includes(searchQ.toLowerCase())
                   return (
                     <div key={m.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start', gap: 8, alignItems: 'flex-end' }}>
-                      {!isMine && (
-                        <Avatar name={name} initials={initials} color={color} size={28} />
-                      )}
+                      {!isMine && <Avatar name={name} initials={initials} color={color} size={28} />}
                       <div style={{ maxWidth: '72%' }}>
                         <div style={{
                           padding: '10px 14px',
                           borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                          background: isMine ? 'var(--ink)' : 'var(--bone)',
-                          color: isMine ? 'var(--cream)' : 'var(--ink)',
+                          background: highlight ? '#fff3cd' : isMine ? 'var(--ink)' : 'var(--bone)',
+                          color: highlight ? 'var(--ink)' : isMine ? 'var(--cream)' : 'var(--ink)',
                           fontSize: 14, lineHeight: 1.45,
-                          border: isMine ? 'none' : '1px solid var(--line)',
+                          border: isMine && !highlight ? 'none' : '1px solid var(--line)',
                         }}>
                           {m.content}
                         </div>
@@ -155,13 +187,12 @@ export default function InvChatConvPage() {
                     </div>
                   )
                 })}
-                <div ref={bottomRef} />
               </div>
             )
         }
       </div>
 
-      {/* Input bar */}
+      {/* Input bar — font-size 16px prevents iOS auto-zoom */}
       <div style={{ padding: '10px 14px 16px', background: 'var(--cream)',
         borderTop: '1px solid var(--line)', display: 'flex', gap: 10, alignItems: 'flex-end' }}>
         <div style={{ flex: 1, background: 'var(--bone)', border: '1px solid var(--line-strong)',
@@ -172,12 +203,10 @@ export default function InvChatConvPage() {
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
             placeholder="Message…"
             style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none',
-              fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)' }}
+              fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--ink)' }}
           />
         </div>
-        <button
-          onClick={handleSend}
-          disabled={!draft.trim() || sending}
+        <button onClick={handleSend} disabled={!draft.trim() || sending}
           style={{ width: 42, height: 42, borderRadius: 999, border: 'none', cursor: 'pointer',
             background: draft.trim() ? 'var(--ink)' : 'var(--linen)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',

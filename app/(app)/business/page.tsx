@@ -73,7 +73,7 @@ export default function BizHomePage() {
             <div style={{ fontSize:15, fontWeight:500, color:'var(--ink)' }}>{userName.split(' ')[0]}</div>
           </div>
         </div>
-        <RoundBtn onClick={() => router.push('/business/profile')}>
+        <RoundBtn onClick={() => router.push('/business/notifications')}>
           <Icon name="bell" size={18} />
         </RoundBtn>
       </div>
