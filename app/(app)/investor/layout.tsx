@@ -4,7 +4,8 @@ import { InvestorBottomNav } from '@/components/app/BottomNav'
 
 export default function InvestorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const showNav = !pathname.includes('/onboarding')
+  const showNav = !pathname.includes('/onboarding') &&
+                  !(/\/investor\/chat\/.+\//.test(pathname))
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', fontFamily:'var(--font-body)' }}>

@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Zap, BarChart2, User, Users, Mic, MessageCircle } from 'lucide-react'
+import { Home, Zap, BarChart2, User, Users, FolderOpen, MessageCircle } from 'lucide-react'
 
 // ── Investor tabs ──────────────────────────────────────────────────────────────
 const INV_TABS = [
@@ -17,7 +17,7 @@ const BIZ_TABS = [
   { href:'/business',            icon: Home,          label:'Home'      },
   { href:'/business/investors',  icon: Users,         label:'Investors' },
   { href:'/business/chat',       icon: MessageCircle, label:'Messages'  },
-  { href:'/business/reporting',  icon: Mic,           label:'Reports'   },
+  { href:'/business/records',     icon: FolderOpen,    label:'Records'   },
   { href:'/business/profile',    icon: User,          label:'Profile'   },
 ]
 

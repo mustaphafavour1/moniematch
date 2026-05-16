@@ -4,7 +4,8 @@ import { BusinessBottomNav } from '@/components/app/BottomNav'
 
 export default function BusinessLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const showNav = !pathname.includes('/onboarding')
+  const showNav = !pathname.includes('/onboarding') &&
+                  !(/\/business\/chat\/.+\//.test(pathname))
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', fontFamily:'var(--font-body)' }}>
