@@ -125,17 +125,26 @@ export async function getMyProfile(): Promise<UserProfile | null> {
   if (userRow.role === 'business_owner') {
     const { data: biz } = await supabase
       .from('businesses').select('*').eq('owner_id', authUser.id).maybeSingle()
+    const bizAdapted = biz ? adaptBusiness(biz, 0) : {}
     return {
       ...base,
-      ...(biz ? adaptBusiness(biz, 0) : {}),
-      // Explicitly restore owner fields that adaptBusiness may overwrite with undefined
+      ...bizAdapted,
+      // Explicitly restore personal fields that adaptBusiness may overwrite
       name:        userRow.name || '',
       initials:    base.initials,
       color:       base.color,
+      city:        userRow.city  || undefined,
+      state:       userRow.state || undefined,
+      avatar_url:  userRow.avatar_url || undefined,
       bizName:     biz?.name,
       businessId:  biz?.id,
-      category:    biz?.category   || undefined,
+      category:    biz?.category    || undefined,
       description: biz?.description || undefined,
+      // business-specific numeric fields from adaptBusiness
+      askMin:      (bizAdapted as Record<string, unknown>).askMin as number | undefined,
+      askMax:      (bizAdapted as Record<string, unknown>).askMax as number | undefined,
+      returnStructures: biz?.return_structures || [],
+      reportingCadence: biz?.reporting_cadence || [],
     }
   }
 
@@ -294,22 +303,32 @@ export async function updateMatchStatus(matchId: string, status: string): Promis
   await supabase.from('matches').update({ status }).eq('id', matchId)
 }
 
-export async function getMatchIdForBusiness(bizId: string): Promise<string | null> {
+export async function getOrCreateMatchForBusiness(bizId: string): Promise<string | null> {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser) return null
   const { data: inv } = await supabase.from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
   if (!inv) return null
-  const { data: match } = await supabase.from('matches').select('id').eq('investor_id', inv.id).eq('business_id', bizId).maybeSingle()
-  return match?.id || null
+  const { data: existing } = await supabase.from('matches').select('id')
+    .eq('investor_id', inv.id).eq('business_id', bizId).maybeSingle()
+  if (existing) return existing.id
+  const { data: created } = await supabase.from('matches')
+    .insert({ investor_id: inv.id, business_id: bizId, compatibility_score: 0, status: 'interested' })
+    .select('id').single()
+  return created?.id || null
 }
 
-export async function getMatchIdForInvestor(invId: string): Promise<string | null> {
+export async function getOrCreateMatchForInvestor(invId: string): Promise<string | null> {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser) return null
   const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', authUser.id).maybeSingle()
   if (!biz) return null
-  const { data: match } = await supabase.from('matches').select('id').eq('business_id', biz.id).eq('investor_id', invId).maybeSingle()
-  return match?.id || null
+  const { data: existing } = await supabase.from('matches').select('id')
+    .eq('business_id', biz.id).eq('investor_id', invId).maybeSingle()
+  if (existing) return existing.id
+  const { data: created } = await supabase.from('matches')
+    .insert({ investor_id: invId, business_id: biz.id, compatibility_score: 0, status: 'interested' })
+    .select('id').single()
+  return created?.id || null
 }
 
 export async function sendMessage(matchId: string, content: string): Promise<ChatMessage> {

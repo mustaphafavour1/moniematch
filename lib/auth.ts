@@ -42,6 +42,19 @@ export async function saveProfile(updates: Record<string, unknown>) {
   const { error } = await supabase.from('users')
     .upsert({ id: user.id, email: user.email || null, ...updates }, { onConflict: 'id' })
   if (error) throw error
+
+  // Keep city/state in sync with role-specific tables so matches show correct location
+  if (updates.city !== undefined || updates.state !== undefined) {
+    const cityState: Record<string, unknown> = {}
+    if (updates.city  !== undefined) cityState.city  = updates.city
+    if (updates.state !== undefined) cityState.state = updates.state
+    const { data: roleRow } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+    if (roleRow?.role === 'investor') {
+      await supabase.from('investors').update(cityState).eq('user_id', user.id)
+    } else if (roleRow?.role === 'business_owner') {
+      await supabase.from('businesses').update(cityState).eq('owner_id', user.id)
+    }
+  }
 }
 
 export async function saveInvestorProfile(data: Record<string, unknown>) {

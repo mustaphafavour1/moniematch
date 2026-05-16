@@ -18,7 +18,7 @@ export default function InvPrefsPage() {
   const [cats,       setCats]       = useState<string[]>(['Bakery','Fashion','Food'])
   const [minAmt,     setMinAmt]     = useState(100_000)
   const [maxAmt,     setMaxAmt]     = useState(1_500_000)
-  const [returnGoal, setReturnGoal] = useState('balanced')
+  const [returnStructures, setReturnStructures] = useState<string[]>(['revenue_share'])
   const [cadence,    setCadence]    = useState<string[]>(['Monthly'])
   const [saving,     setSaving]     = useState(false)
   const [error,      setError]      = useState('')
@@ -29,13 +29,14 @@ export default function InvPrefsPage() {
       if (p.interests?.length)      setCats(p.interests)
       if (p.rangeMin)               setMinAmt(p.rangeMin)
       if (p.rangeMax)               setMaxAmt(p.rangeMax)
-      if (p.returnStructures?.[0])  setReturnGoal(p.returnStructures[0])
+      if (p.returnStructures?.length) setReturnStructures(p.returnStructures)
       if (p.reportingCadence?.length) setCadence(p.reportingCadence)
     })
   }, [])
 
-  const toggle      = (c: string) => setCats(cs => cs.includes(c) ? cs.filter(x=>x!==c) : [...cs, c])
-  const toggleCad   = (c: string) => setCadence(cs => cs.includes(c) ? cs.filter(x=>x!==c) : [...cs, c])
+  const toggle         = (c: string) => setCats(cs => cs.includes(c) ? cs.filter(x=>x!==c) : [...cs, c])
+  const toggleCad      = (c: string) => setCadence(cs => cs.includes(c) ? cs.filter(x=>x!==c) : [...cs, c])
+  const toggleReturn   = (v: string) => setReturnStructures(rs => rs.includes(v) ? rs.filter(x=>x!==v) : [...rs, v])
 
   const save = async () => {
     if (minAmt >= maxAmt) { setError('Minimum must be less than maximum.'); return }
@@ -45,7 +46,7 @@ export default function InvPrefsPage() {
       await saveInvestorProfile({
         interests:         cats,
         investment_range:  `${fmtNaira(minAmt, {compact:true})} – ${fmtNaira(maxAmt, {compact:true})}`,
-        return_structures: [returnGoal],
+        return_structures: returnStructures,
         reporting_cadence: cadence,
       })
       router.back()
@@ -121,26 +122,29 @@ export default function InvPrefsPage() {
 
           {/* Return structure */}
           <div className="eyebrow">Preferred return structure</div>
-          <div className="col gap-10" style={{margin:'12px 0 32px'}}>
+          <p style={{fontSize:13, color:'var(--ink-3)', margin:'6px 0 12px', lineHeight:1.45}}>
+            Select all that you&apos;re open to.
+          </p>
+          <div className="col gap-10" style={{margin:'0 0 32px'}}>
             {[
-              {val:'revenue_share', label:'Revenue share', desc:'Percentage of monthly revenue until a total is reached'},
-              {val:'fixed',         label:'Fixed return',  desc:'Set monthly repayment over an agreed timeline'},
-              {val:'balanced',      label:'Either works',  desc:'Open to both — maximises your match chances'},
+              {val:'revenue_share', label:'Revenue share', desc:'A percentage of monthly revenue until a target total is reached'},
+              {val:'fixed',         label:'Fixed returns',  desc:'Set monthly repayments over an agreed timeline'},
+              {val:'equity',        label:'Equity',         desc:'An ownership stake in the business in exchange for your investment'},
             ].map(opt => {
-              const on = returnGoal === opt.val
+              const on = returnStructures.includes(opt.val)
               return (
-                <div key={opt.val} onClick={() => setReturnGoal(opt.val)} style={{
+                <div key={opt.val} onClick={() => toggleReturn(opt.val)} style={{
                   background: on ? 'var(--clay-tint)' : 'var(--bone)',
                   border:`1.5px solid ${on ? 'var(--clay)' : 'var(--line-strong)'}`,
                   borderRadius:14, padding:'14px 16px',
                   cursor:'pointer', display:'flex', alignItems:'flex-start', gap:12,
                   transition:'all 180ms',
                 }}>
-                  <div style={{width:18, height:18, borderRadius:999, flexShrink:0, marginTop:2,
+                  <div style={{width:18, height:18, borderRadius:4, flexShrink:0, marginTop:2,
                     border:`2px solid ${on ? 'var(--clay)' : 'var(--line-strong)'}`,
                     background: on ? 'var(--clay)' : 'transparent',
                     display:'flex', alignItems:'center', justifyContent:'center'}}>
-                    {on && <div style={{width:7, height:7, borderRadius:999, background:'#fff'}} />}
+                    {on && <span style={{color:'#fff', fontSize:11, lineHeight:1, fontWeight:700}}>✓</span>}
                   </div>
                   <div>
                     <p style={{fontSize:14, fontWeight:600, color:'var(--ink)', margin:'0 0 3px'}}>{opt.label}</p>
