@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getMyPortfolio, getMyOffers } from '@/lib/db'
+import { getMyPortfolio, getMyOffers, getMyTemplates } from '@/lib/db'
 import type { InvestorOffer } from '@/lib/db'
 import { fmtNaira } from '@/lib/utils'
 import type { Deal } from '@/lib/types'
@@ -33,18 +33,22 @@ function returnSummary(o: InvestorOffer) {
 
 export default function InvPortfolioPage() {
   const router = useRouter()
-  const [deals,  setDeals]  = useState<Deal[] | null>(null)
-  const [offers, setOffers] = useState<InvestorOffer[] | null>(null)
+  const [deals,     setDeals]     = useState<Deal[] | null>(null)
+  const [offers,    setOffers]    = useState<InvestorOffer[] | null>(null)
+  const [templates, setTemplates] = useState<InvestorOffer[] | null>(null)
 
   useEffect(() => {
     getMyPortfolio().then(setDeals).catch(() => setDeals([]))
     getMyOffers().then(setOffers).catch(() => setOffers([]))
+    getMyTemplates().then(setTemplates).catch(() => setTemplates([]))
   }, [])
 
-  const loading      = deals === null
-  const offersLoading = offers === null
-  const items        = deals || []
-  const offerItems   = offers || []
+  const loading         = deals === null
+  const offersLoading   = offers === null
+  const templatesLoading = templates === null
+  const items           = deals || []
+  const offerItems      = offers || []
+  const templateItems   = templates || []
   const total = items.reduce((s, p) => s + (p.invested || p.amount || 0), 0)
   const paid  = items.reduce((s, p) => s + (p.paidBack || 0), 0)
 
@@ -77,7 +81,7 @@ export default function InvPortfolioPage() {
             {[
               {label:'Active',    value: String(items.filter(d=>d.status==='active').length)},
               {label:'Offers',    value: offersLoading ? '…' : String(offerItems.length)},
-              {label:'Watch',     value:'0'},
+              {label:'Templates', value: templates?.length ?? '…'},
             ].map(s => (
               <div key={s.label}>
                 <div style={{fontSize:10, color:'rgba(255,252,245,0.55)', textTransform:'uppercase', letterSpacing:0.05}}>{s.label}</div>
