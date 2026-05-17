@@ -984,6 +984,7 @@ function OffersTab() {
 }
 
 export default function BizRecordsPage() {
+  const router = useRouter()
   const [topTab, setTopTab] = useState<TopTab>('reports')
   const [docs, setDocs] = useState<BusinessDocument[]>([])
   const [loading, setLoading] = useState(true)
