@@ -8,6 +8,7 @@ import { AppHeader } from '@/components/app/AppHeader'
 export default function InvContractsPage() {
   const router = useRouter()
 
+  const [title,        setTitle]        = useState('')
   const [legalName,    setLegalName]    = useState('')
   const [legalAddress, setLegalAddress] = useState('')
   const [existingSig,  setExistingSig]  = useState('')
@@ -24,8 +25,9 @@ export default function InvContractsPage() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
-      const { data } = await supabase.from('users').select('legal_name, legal_address').eq('id', user.id).maybeSingle()
+      const { data } = await supabase.from('users').select('title, legal_name, legal_address').eq('id', user.id).maybeSingle()
       if (data) {
+        setTitle(data.title || '')
         setLegalName(data.legal_name || '')
         setLegalAddress(data.legal_address || '')
       }
@@ -93,6 +95,7 @@ export default function InvContractsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
       const { error: e } = await supabase.from('users').update({
+        title:         title || null,
         legal_name:    legalName.trim() || null,
         legal_address: legalAddress.trim() || null,
       }).eq('id', user.id)
@@ -135,6 +138,18 @@ export default function InvContractsPage() {
         {/* Personal legal identity */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="eyebrow">Legal identity</div>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 8, textTransform: 'none', fontSize: 13, color: 'var(--ink-2)' }}>Title</p>
+            <div style={fieldWrap}>
+              <select value={title} onChange={e => setTitle(e.target.value)}
+                style={{ ...inputStyle, appearance: 'none', WebkitAppearance: 'none' }}>
+                <option value="">Select title</option>
+                {['Mr.', 'Mrs.', 'Miss.', 'Ms.', 'Dr.', 'Prof.', 'Engr.', 'Barr.', 'Hon.'].map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div>
             <p className="eyebrow" style={{ marginBottom: 8, textTransform: 'none', fontSize: 13, color: 'var(--ink-2)' }}>Full legal name</p>
             <div style={fieldWrap}>

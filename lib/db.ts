@@ -704,23 +704,35 @@ export async function getMyOffers(): Promise<InvestorOffer[]> {
   // Get investor record to find all match IDs
   const { data: inv } = await supabase
     .from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
-  if (!inv) return []
 
-  const { data: matchRows } = await supabase
-    .from('matches').select('id').eq('investor_id', inv.id)
-  if (!matchRows?.length) return []
-  const matchIds = matchRows.map((m: { id: string }) => m.id)
+  let matchIds: string[] = []
+  if (inv) {
+    const { data: matchRows } = await supabase
+      .from('matches').select('id').eq('investor_id', inv.id)
+    matchIds = (matchRows || []).map((m: { id: string }) => m.id)
+  }
 
-  // Fetch all offers (sent + received) for those matches, excluding templates
-  const { data } = await supabase
+  if (matchIds.length > 0) {
+    // Fetch all offers (sent + received) for those matches, excluding templates
+    const { data } = await supabase
+      .from('offers')
+      .select(OFFER_SELECT)
+      .in('match_id', matchIds)
+      .neq('status', 'template')
+      .order('created_at', { ascending: false })
+    if (data?.length) return (data as any[]).map(o => mapOffer(o, authUser.id))  // eslint-disable-line @typescript-eslint/no-explicit-any
+  }
+
+  // Fallback: get offers proposed by this user (covers cases where investor record lookup fails)
+  const { data: fallback } = await supabase
     .from('offers')
     .select(OFFER_SELECT)
-    .in('match_id', matchIds)
+    .eq('proposer_id', authUser.id)
     .neq('status', 'template')
     .order('created_at', { ascending: false })
-  if (!data) return []
+  if (!fallback) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data as any[]).map(o => mapOffer(o, authUser.id))
+  return (fallback as any[]).map(o => mapOffer(o, authUser.id))
 }
 
 export async function getMyTemplates(): Promise<InvestorOffer[]> {

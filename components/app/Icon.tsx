@@ -2,7 +2,7 @@
 import {
   ChevronLeft, ChevronRight, Bell, Search, Filter, Send,
   BarChart2, Zap, TrendingUp, AlertTriangle, CheckCircle2, Shield,
-  Banknote, Settings, LogOut, Store, Calendar, User, Lock, X,
+  Banknote, Settings, LogOut, Store, Calendar, User, Users, Lock, X,
   Mic, Sparkles, FileText, Wallet, Check, MessageCircle, MoreVertical,
   Image, Flag, Link, Upload, PlusCircle, BookOpen, ClipboardList, Star,
 } from 'lucide-react'
@@ -27,6 +27,7 @@ const MAP: Record<string, React.FC<IconProps>> = {
   shop:       p => <Store         size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   calendar:   p => <Calendar      size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   user:       p => <User          size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
+  users:      p => <Users         size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   lock:       p => <Lock          size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   close:      p => <X             size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,
   mic:        p => <Mic           size={p.size??20} color={p.color??'var(--ink)'} strokeWidth={p.strokeWidth??2} />,

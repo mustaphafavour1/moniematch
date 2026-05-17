@@ -81,6 +81,8 @@ export default function BizProfilePage() {
         <div className="card" style={{padding:0, overflow:'hidden'}}>
           <ActionRow icon="calendar"  label="Deal history"         onClick={() => {}} />
           <ActionRow icon="doc"       label="Contract information" onClick={() => router.push('/business/contracts')} />
+          <ActionRow icon="users"     label="Refer & invite"      onClick={() => router.push('/business/referral')} />
+          <ActionRow icon="info"      label="Support & legal"     onClick={() => router.push('/business/support')} />
           <ActionRow icon="clipboard" label="Submitted reports"   onClick={() => {}} />
           <ActionRow icon="settings"  label="Settings"            onClick={() => router.push('/business/settings')} />
           <ActionRow icon="logout"    label="Sign out"            onClick={() => setSignOutConfirm(true)} danger />

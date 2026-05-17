@@ -305,7 +305,7 @@ export default function BizOfferViewPage() {
           Offer accepted! The investor will be notified to proceed to payment.
         </div>
       )
-    } else if (!isProposer && statusKey === 'pending') {
+    } else if (!isProposer && (statusKey === 'pending' || statusKey === 'countered')) {
       bottomContent = (
         <div style={{ display: 'flex', gap: 10 }}>
           <button style={{ flex: 1, padding: '13px 0', borderRadius: 12, border: '1px solid var(--ink)',

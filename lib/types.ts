@@ -141,6 +141,7 @@ export interface UserProfile {
   initials: string
   color: string
   // contract / legal fields
+  title?: string
   legal_name?: string
   legal_address?: string
   legal_biz_name?: string

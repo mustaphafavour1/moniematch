@@ -70,6 +70,8 @@ export default function InvProfilePage() {
         <div className="card" style={{padding:0, overflow:'hidden'}}>
           <ActionRow icon="calendar" label="Deal history"         onClick={() => router.push('/investor/history')} />
           <ActionRow icon="doc"      label="Contract information" onClick={() => router.push('/investor/contracts')} />
+          <ActionRow icon="users"    label="Refer & invite"      onClick={() => router.push('/investor/referral')} />
+          <ActionRow icon="info"     label="Support & legal"     onClick={() => router.push('/investor/support')} />
           <ActionRow icon="settings" label="Settings"            onClick={() => router.push('/investor/settings')} />
           <ActionRow icon="logout"   label="Sign out"            onClick={() => setSignOutConfirm(true)} danger />
         </div>
