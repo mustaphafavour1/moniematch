@@ -425,7 +425,7 @@ export default function InvOfferPage() {
           <>
             <Field>
               <Label>Return amount</Label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'center' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'center', minWidth: 0, overflow: 'hidden' }}>
                 <div>
                   <p style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 4 }}>Total (₦)</p>
                   <TextInput value={totalReturnRaw} onChange={handleTotalReturnChange} placeholder="0" prefix="₦" />
@@ -448,7 +448,7 @@ export default function InvOfferPage() {
         {returnType === 'fixed' && (
           <Field>
             <Label>Repayment schedule</Label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'center', minWidth: 0, overflow: 'hidden' }}>
               <div>
                 <p style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 4 }}>Monthly payment (₦)</p>
                 <TextInput value={monthlyPayRaw} onChange={handleMonthlyPayChange} placeholder="0" prefix="₦" />

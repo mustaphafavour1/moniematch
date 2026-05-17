@@ -27,6 +27,24 @@ function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function printReport(title: string, createdAt: string, content: string) {
+  const w = window.open('', '_blank')
+  if (!w) return
+  const date = fmtDate(createdAt)
+  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
+    body{font-family:Georgia,serif;max-width:680px;margin:48px auto;color:#1a1a1a;line-height:1.6}
+    h1{font-size:22px;margin-bottom:4px}
+    .date{font-size:12px;color:#888;margin-bottom:28px}
+    pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.7}
+  </style></head><body>
+    <h1>${title}</h1><div class="date">${date}</div>
+    <pre>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+  </body></html>`)
+  w.document.close()
+  w.focus()
+  w.print()
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 // Line-underline tabs for top level
@@ -194,7 +212,8 @@ function ReportsTab() {
           <div onClick={() => setViewing(null)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(31,26,20,0.45)', zIndex: 100 }} />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101,
+            position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+            width: '100%', maxWidth: 390, zIndex: 101,
             background: 'var(--cream)', borderRadius: '20px 20px 0 0',
             padding: '0 0 env(safe-area-inset-bottom,32px)',
             maxHeight: '80vh', display: 'flex', flexDirection: 'column',
@@ -207,7 +226,7 @@ function ReportsTab() {
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--ink)' }}>
                 {viewing.title || 'Report'}
               </span>
-              <button onClick={() => window.print()} style={{ background: 'none', border: '1px solid var(--line-strong)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              <button onClick={() => printReport(viewing.title, viewing.created_at, viewing.content)} style={{ background: 'none', border: '1px solid var(--line-strong)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                 Print / PDF
               </button>
             </div>
@@ -229,17 +248,43 @@ function ReportsTab() {
 function DocRow({ doc, onDeleted }: { doc: BusinessDocument; onDeleted: () => void }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting]           = useState(false)
+  const [menuOpen, setMenuOpen]           = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
   const isLink  = doc.item_type === 'link'
   const isPhoto = doc.doc_type === 'photo'
   const iconName = isLink ? 'link' : isPhoto ? 'photo' : 'doc'
   const label    = doc.file_name
 
-  async function openDoc() {
-    if (isLink || isPhoto) { window.open(doc.file_url, '_blank', 'noopener,noreferrer'); return }
-    if (!doc.storage_path) { window.open(doc.file_url, '_blank', 'noopener,noreferrer'); return }
+  useEffect(() => {
+    if (!menuOpen) return
+    const h = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [menuOpen])
+
+  async function getFileUrl(): Promise<string> {
+    if (isLink || isPhoto || !doc.storage_path) return doc.file_url
     const bucket = doc.doc_type === 'bank_statement' ? 'deal-files' : 'documents'
     const { data } = await supabase.storage.from(bucket).createSignedUrl(doc.storage_path, 3600)
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+    return data?.signedUrl || doc.file_url
+  }
+
+  async function openDoc() {
+    window.open(await getFileUrl(), '_blank', 'noopener,noreferrer')
+  }
+
+  async function downloadFile() {
+    const url = await getFileUrl()
+    const a = document.createElement('a')
+    a.href = url
+    a.download = doc.file_name
+    a.target = '_blank'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setMenuOpen(false)
   }
 
   async function handleDelete() {
@@ -254,6 +299,12 @@ function DocRow({ doc, onDeleted }: { doc: BusinessDocument; onDeleted: () => vo
     } finally { setDeleting(false); setConfirmDelete(false) }
   }
 
+  const menuActions = [
+    { label: 'Open file',    action: () => { openDoc(); setMenuOpen(false) } },
+    { label: 'Download',     action: downloadFile },
+    { label: 'Delete',       action: () => { setMenuOpen(false); setConfirmDelete(true) }, danger: true },
+  ]
+
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--line)' }}>
@@ -261,6 +312,7 @@ function DocRow({ doc, onDeleted }: { doc: BusinessDocument; onDeleted: () => vo
           flex: 1, display: 'flex', alignItems: 'center', gap: 12,
           padding: '13px 0 13px 22px', background: 'transparent', border: 'none',
           cursor: 'pointer', textAlign: 'left', WebkitTapHighlightColor: 'transparent',
+          minWidth: 0,
         }}>
           <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0,
             background: isLink ? 'var(--sun-tint)' : isPhoto ? 'var(--clay-tint)' : 'var(--forest-tint)',
@@ -268,7 +320,7 @@ function DocRow({ doc, onDeleted }: { doc: BusinessDocument; onDeleted: () => vo
             <Icon name={iconName} size={18} color={isLink ? '#8B5E1A' : isPhoto ? 'var(--clay)' : 'var(--forest)'} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3, maxWidth: '100%' }}>
               {label}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -278,20 +330,47 @@ function DocRow({ doc, onDeleted }: { doc: BusinessDocument; onDeleted: () => vo
             </div>
           </div>
         </button>
-        <button onClick={() => setConfirmDelete(true)} style={{
-          padding: '0 16px 0 8px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0,
-        }}>
-          <Icon name="close" size={15} color="var(--ink-4)" />
-        </button>
+
+        {/* 3-dot menu */}
+        <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button onClick={() => setMenuOpen(v => !v)} style={{
+            padding: '0 16px 0 8px', background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center',
+          }}>
+            <Icon name="more" size={16} color="var(--ink-4)" />
+          </button>
+          {menuOpen && (
+            <div style={{
+              position: 'absolute', right: 8, top: '110%', zIndex: 200,
+              background: 'var(--cream)', border: '1px solid var(--line)',
+              borderRadius: 12, boxShadow: 'var(--shadow-md)', minWidth: 150, overflow: 'hidden',
+            }}>
+              {menuActions.map((item, i) => (
+                <button key={item.label} onClick={item.action} style={{
+                  display: 'block', width: '100%', textAlign: 'left',
+                  padding: '12px 16px', background: 'none', border: 'none',
+                  borderTop: i > 0 ? '1px solid var(--line)' : 'none',
+                  fontSize: 14, color: item.danger ? '#C0392B' : 'var(--ink)',
+                  cursor: 'pointer', fontFamily: 'var(--font-body)',
+                }}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {confirmDelete && (
         <>
           <div onClick={() => setConfirmDelete(false)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(31,26,20,0.45)', zIndex: 100 }} />
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101,
+          <div style={{
+            position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+            width: '100%', maxWidth: 390, zIndex: 101,
             background: 'var(--cream)', borderRadius: '20px 20px 0 0',
-            padding: '24px 22px env(safe-area-inset-bottom,32px)' }}>
+            padding: '24px 22px env(safe-area-inset-bottom,32px)',
+          }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, color: 'var(--ink)', marginBottom: 8 }}>Delete file?</div>
             <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.5 }}>
               "{label}" will be permanently removed. This cannot be undone.
@@ -501,7 +580,8 @@ function BottomSheet({
 
       {/* Panel */}
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: '100%', maxWidth: 390, zIndex: 50,
         background: 'var(--cream)',
         borderRadius: '20px 20px 0 0',
         padding: '0 0 env(safe-area-inset-bottom, 24px)',
@@ -552,7 +632,10 @@ function BottomSheet({
               <button onClick={() => setSheet('menu')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
                 <Icon name="back" size={20} color="var(--ink-2)" />
               </button>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Upload document</span>
+              <div>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Upload document</span>
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 1 }}>Max file size: 2MB</div>
+              </div>
             </div>
 
             <div style={{ marginBottom: 14 }}>
@@ -630,7 +713,10 @@ function BottomSheet({
               <button onClick={() => setSheet('menu')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
                 <Icon name="back" size={20} color="var(--ink-2)" />
               </button>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Upload photo / media</span>
+              <div>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Upload photo / media</span>
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 1 }}>Max file size: 10MB</div>
+              </div>
             </div>
 
             <input
@@ -843,7 +929,8 @@ function OffersTab() {
           <div onClick={() => setViewing(null)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(31,26,20,0.45)', zIndex: 100 }} />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101,
+            position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+            width: '100%', maxWidth: 390, zIndex: 101,
             background: 'var(--cream)', borderRadius: '20px 20px 0 0',
             padding: '0 0 env(safe-area-inset-bottom,32px)',
             maxHeight: '80vh', display: 'flex', flexDirection: 'column',
@@ -873,10 +960,18 @@ function OffersTab() {
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{v}</span>
                       </div>
                     ))}
-                    <button onClick={() => router.push(`/business/chat/${viewing.match_id}`)}
-                      className="btn btn-forest btn-block" style={{ marginTop: 24 }}>
-                      Open conversation
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 24 }}>
+                      <button onClick={() => router.push(`/business/chat/${viewing.match_id}/offer`)}
+                        className="btn btn-forest btn-block">
+                        View / counter offer
+                      </button>
+                      <button onClick={() => router.push(`/business/chat/${viewing.match_id}`)}
+                        style={{ padding: '13px', borderRadius: 12, border: '1px solid var(--line-strong)',
+                          background: 'var(--bone)', fontSize: 14, color: 'var(--ink)', cursor: 'pointer',
+                          fontFamily: 'var(--font-body)', fontWeight: 500 }}>
+                        Open conversation
+                      </button>
+                    </div>
                   </>
                 )
               })()}
@@ -945,7 +1040,25 @@ export default function BizRecordsPage() {
         </div>
       </div>
 
-      {/* Floating + button — only on Business Info tab */}
+      {/* Floating + button — Reports tab */}
+      {topTab === 'reports' && (
+        <button
+          onClick={() => router.push('/business/records/new-report')}
+          style={{
+            position: 'fixed', bottom: 88, right: 22, zIndex: 30,
+            width: 52, height: 52, borderRadius: 999,
+            background: 'var(--forest)', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 18px rgba(31,26,20,0.28)',
+            cursor: 'pointer',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <Icon name="plus" size={22} color="#fff" />
+        </button>
+      )}
+
+      {/* Floating + button — Business Info tab */}
       {topTab === 'business-info' && (
         <button
           onClick={() => setSheetOpen(true)}

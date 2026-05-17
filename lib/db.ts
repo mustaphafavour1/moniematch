@@ -527,6 +527,20 @@ export async function saveOffer(matchId: string, terms: OfferTerms): Promise<str
     parent_offer_id:     terms.parent_offer_id,
   })
   if (error) throw error
+
+  // Create a chat message so the offer appears in the conversation
+  if (!terms.is_template) {
+    const amtStr = terms.amount ? `₦${Number(terms.amount).toLocaleString('en-NG')}` : ''
+    await supabase.from('messages').insert({
+      id:           crypto.randomUUID(),
+      match_id:     matchId,
+      sender_id:    authUser.id,
+      content:      `💰 Offer${amtStr ? `: ${amtStr}` : ''}`,
+      content_type: 'offer',
+      ref_id:       id,
+    })
+  }
+
   return id
 }
 
