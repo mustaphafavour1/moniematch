@@ -265,7 +265,7 @@ function BizSpecialBubble({ msg, isMine }: { msg: ChatMessage; isMine: boolean }
           <div onClick={() => setSheet(null)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(31,26,20,0.45)', zIndex: 100 }} />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101,
+            position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 390, zIndex: 101,
             background: 'var(--cream)', borderRadius: '20px 20px 0 0',
             padding: '0 0 env(safe-area-inset-bottom,32px)',
             maxHeight: '80vh', display: 'flex', flexDirection: 'column',
