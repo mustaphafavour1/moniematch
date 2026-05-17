@@ -767,7 +767,7 @@ interface OfferRow {
   id: string; match_id: string; amount: number; return_type?: string
   total_return_amount?: number; roi_percent?: number; equity_percent?: number
   revenue_percent?: number; status?: string; created_at: string
-  investors?: { users?: { name?: string } }
+  matches?: { investors?: { users?: { name?: string } } }
 }
 
 function OffersTab() {
@@ -804,7 +804,7 @@ function OffersTab() {
   return (
     <>
       {offers.map(o => {
-        const inv = (o.matches as unknown as { investors?: { users?: { name?: string } } } | null)?.investors
+        const inv = (o.matches as unknown as { investors?: { users?: { name?: string } } } | null | undefined)?.investors
         const invName = inv?.users?.name || 'An investor'
         const returnSummary = o.return_type === 'equity'
           ? `${o.equity_percent}% equity`
