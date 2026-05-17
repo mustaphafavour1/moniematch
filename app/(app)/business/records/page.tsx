@@ -580,8 +580,7 @@ function BottomSheet({
 
       {/* Panel */}
       <div style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: '100%', maxWidth: 390, zIndex: 50,
+        position: 'fixed', bottom: 0, left: 'max(0px, calc(50vw - 195px))', right: 'max(0px, calc(50vw - 195px))', zIndex: 50,
         background: 'var(--cream)',
         borderRadius: '20px 20px 0 0',
         padding: '0 0 env(safe-area-inset-bottom, 24px)',
@@ -961,14 +960,20 @@ function OffersTab() {
                       </div>
                     ))}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 24 }}>
-                      <button onClick={() => router.push(`/business/chat/${viewing.match_id}/offer`)}
+                      <button onClick={() => router.push(`/business/chat/${viewing!.match_id}/offer-view?offerId=${viewing!.id}&mode=view`)}
                         className="btn btn-forest btn-block">
-                        View / counter offer
+                        View full offer
                       </button>
-                      <button onClick={() => router.push(`/business/chat/${viewing.match_id}`)}
+                      <button onClick={() => router.push(`/business/chat/${viewing!.match_id}/offer-view?offerId=${viewing!.id}&mode=counter`)}
                         style={{ padding: '13px', borderRadius: 12, border: '1px solid var(--line-strong)',
                           background: 'var(--bone)', fontSize: 14, color: 'var(--ink)', cursor: 'pointer',
                           fontFamily: 'var(--font-body)', fontWeight: 500 }}>
+                        Counter offer
+                      </button>
+                      <button onClick={() => router.push(`/business/chat/${viewing!.match_id}`)}
+                        style={{ padding: '13px', borderRadius: 12, border: 'none',
+                          background: 'transparent', fontSize: 13, color: 'var(--ink-3)', cursor: 'pointer',
+                          fontFamily: 'var(--font-body)' }}>
                         Open conversation
                       </button>
                     </div>
@@ -1046,7 +1051,7 @@ export default function BizRecordsPage() {
         <button
           onClick={() => router.push('/business/records/new-report')}
           style={{
-            position: 'fixed', bottom: 88, right: 22, zIndex: 30,
+            position: 'fixed', bottom: 88, right: 'calc(max(0px, 50vw - 195px) + 22px)', zIndex: 30,
             width: 52, height: 52, borderRadius: 999,
             background: 'var(--forest)', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1064,7 +1069,7 @@ export default function BizRecordsPage() {
         <button
           onClick={() => setSheetOpen(true)}
           style={{
-            position: 'fixed', bottom: 88, right: 22, zIndex: 30,
+            position: 'fixed', bottom: 88, right: 'calc(max(0px, 50vw - 195px) + 22px)', zIndex: 30,
             width: 52, height: 52, borderRadius: 999,
             background: 'var(--ink)', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
