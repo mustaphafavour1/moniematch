@@ -2,6 +2,7 @@ import Nav            from '@/components/layout/Nav'
 import Footer         from '@/components/layout/Footer'
 import Hero           from '@/components/sections/Hero'
 import Features       from '@/components/sections/Features'
+import AppFeatures    from '@/components/sections/AppFeatures'
 import Problems       from '@/components/sections/Problems'
 import HowItWorks     from '@/components/sections/HowItWorks'
 import ForInvestors   from '@/components/sections/ForInvestors'
@@ -21,6 +22,7 @@ export default function LandingPage() {
       <main>
         <Hero />
         <Features />
+        <AppFeatures />
         <Problems />
         <HowItWorks />
         <ForInvestors />

@@ -15,8 +15,8 @@ const SECTIONS: { title: string; items: LinkItem[] }[] = [
   {
     title: 'Help & contact',
     items: [
-      { icon: 'message', label: 'Contact us',       sub: 'Reach our support team',         href: 'mailto:hello@moniematch.com' },
-      { icon: 'flag',    label: 'Report an issue',  sub: 'Flag a problem or safety concern', href: '/report-issue' },
+      { icon: 'message', label: 'Contact us',       sub: 'Reach our support team',         href: '/contact',       isExternal: true },
+      { icon: 'flag',    label: 'Report an issue',  sub: 'Flag a problem or safety concern', href: '/report-issue',  isExternal: true },
     ],
   },
   {
@@ -30,7 +30,7 @@ const SECTIONS: { title: string; items: LinkItem[] }[] = [
   {
     title: 'About',
     items: [
-      { icon: 'info',  label: 'About MonieMatch', sub: 'Our mission and story',    href: '/', isExternal: false },
+      { icon: 'info',  label: 'About MonieMatch', sub: 'Our mission and story',    href: '/about', isExternal: true },
       { icon: 'trend-up', label: 'Version 1.0.0', sub: 'You\'re on the latest version', },
     ],
   },
