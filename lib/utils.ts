@@ -20,15 +20,16 @@ export function fmtNairaRange(min: number, max: number): string {
 }
 
 export function relTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
+  const diff  = Date.now() - new Date(iso).getTime()
   const mins  = Math.floor(diff / 60_000)
   const hours = Math.floor(diff / 3_600_000)
-  const days  = Math.floor(diff / 86_400_000)
-  if (mins  < 1)   return 'just now'
-  if (mins  < 60)  return `${mins}m ago`
-  if (hours < 24)  return `${hours}h ago`
-  if (days  < 7)   return `${days}d ago`
-  return new Date(iso).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })
+  if (mins  < 1)  return 'just now'
+  if (mins  < 60) return `${mins}m ago`
+  if (hours < 3)  return `${hours}h ago`
+  const d    = new Date(iso)
+  const time = d.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase().replace(' ', '')
+  const date = d.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
+  return `${time}, ${date}`
 }
 
 export function greet(): string {
