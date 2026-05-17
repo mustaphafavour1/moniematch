@@ -29,6 +29,8 @@ export default function InvProfileEditPage() {
   const [hasDrawn,   setHasDrawn]   = useState(false)
   const [existingSig, setExistingSig] = useState('')
   const [savingSig,  setSavingSig]  = useState(false)
+  const [legalName,    setLegalName]    = useState('')
+  const [legalAddress, setLegalAddress] = useState('')
 
   useEffect(() => {
     getMyProfile().then(p => {
@@ -41,6 +43,8 @@ export default function InvProfileEditPage() {
       setAvatarUrl(p.avatar_url || '')
       setInitials(p.initials || '?')
       setColor(p.color || 'var(--forest)')
+      setLegalName(p.legal_name || '')
+      setLegalAddress(p.legal_address || '')
       // load existing signature via signed URL
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (!user) return
@@ -73,11 +77,13 @@ export default function InvProfileEditPage() {
     setError('')
     try {
       await saveProfile({
-        name:       name.trim(),
-        phone:      phone.trim() || null,
-        state:      state.trim() || null,
-        city:       city.trim() || null,
-        occupation: occupation.trim() || null,
+        name:          name.trim(),
+        phone:         phone.trim() || null,
+        state:         state.trim() || null,
+        city:          city.trim() || null,
+        occupation:    occupation.trim() || null,
+        legal_name:    legalName.trim() || null,
+        legal_address: legalAddress.trim() || null,
       })
       router.back()
     } catch (err) {
@@ -294,6 +300,32 @@ export default function InvProfileEditPage() {
                 )}
               </div>
             ) : null}
+          </div>
+
+          {/* Contracts & agreements */}
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 8 }}>Contracts &amp; agreements</p>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)' }}>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.05, marginBottom: 6 }}>Full legal name</div>
+                <input
+                  value={legalName}
+                  onChange={e => setLegalName(e.target.value)}
+                  placeholder="As it should appear in documents"
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ padding: '12px 16px' }}>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.05, marginBottom: 6 }}>Permanent address</div>
+                <textarea
+                  value={legalAddress}
+                  onChange={e => setLegalAddress(e.target.value)}
+                  placeholder="Full address as it should appear in documents"
+                  rows={3}
+                  style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }}
+                />
+              </div>
+            </div>
           </div>
 
           {error && (

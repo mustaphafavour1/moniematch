@@ -226,6 +226,66 @@ export default function InvPortfolioPage() {
             )
         }
       </div>
+
+      {/* Templates */}
+      {(templatesLoading || templateItems.length > 0) && (
+        <div className="pad" style={{marginTop:24}}>
+          <div className="eyebrow" style={{marginBottom:10}}>Saved templates</div>
+          {templatesLoading
+            ? [0].map(i => <div key={i} style={{height:72, borderRadius:16, background:'var(--linen)', marginBottom:10}} />)
+            : (
+              <div className="col gap-8">
+                {templateItems.map((o, i) => {
+                  const name     = o.template_name || 'Unnamed'
+                  const initials = initialsFor(name)
+                  const color    = colorFor(name)
+                  return (
+                    <div
+                      key={o.id}
+                      onClick={() => {}}
+                      className="card fadein"
+                      style={{padding:'12px 14px', cursor:'pointer', animationDelay:`${i*60}ms`}}
+                    >
+                      <div style={{display:'flex', alignItems:'center', gap:12}}>
+                        {/* Avatar */}
+                        <div style={{width:40, height:40, borderRadius:11, background:`${color}20`, color,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          fontFamily:'var(--font-display)', fontSize:16, flexShrink:0}}>
+                          {initials}
+                        </div>
+
+                        {/* Info */}
+                        <div style={{flex:1, minWidth:0}}>
+                          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:8}}>
+                            <div style={{fontSize:14, color:'var(--ink)', fontWeight:500,
+                              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                              {name}
+                            </div>
+                            <span style={{flexShrink:0, fontSize:11, fontWeight:600,
+                              color:'var(--ink-3)', background:'var(--linen)',
+                              borderRadius:999, padding:'3px 9px'}}>
+                              Template
+                            </span>
+                          </div>
+                          <div style={{display:'flex', alignItems:'center', gap:8, marginTop:3}}>
+                            <span style={{fontSize:13, color:'var(--ink)', fontWeight:500}}>
+                              {fmtNaira(o.amount, {compact:true})}
+                            </span>
+                            <span style={{fontSize:11, color:'var(--ink-3)'}}>·</span>
+                            <span style={{fontSize:12, color:'var(--ink-3)'}}>
+                              {returnSummary(o)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          }
+        </div>
+      )}
     </div>
   )
 }
