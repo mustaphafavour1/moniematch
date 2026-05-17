@@ -565,6 +565,54 @@ export async function updateOfferStatus(offerId: string, status: string): Promis
   await supabase.from('offers').update({ status }).eq('id', offerId)
 }
 
+export interface InvestorOffer {
+  id: string
+  match_id: string
+  amount: number
+  return_type: string
+  status: string
+  created_at: string
+  roi_percent?: number
+  revenue_percent?: number
+  equity_percent?: number
+  total_return_amount?: number
+  biz_name?: string
+  biz_initials?: string
+  biz_color?: string
+}
+
+export async function getMyOffers(): Promise<InvestorOffer[]> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return []
+  const { data } = await supabase
+    .from('offers')
+    .select(`
+      id, match_id, amount, return_type, status, created_at,
+      roi_percent:return_rate, revenue_percent, equity_percent, total_return_amount,
+      matches(businesses(name, initials, color))
+    `)
+    .eq('proposer_id', authUser.id)
+    .eq('is_template', false)
+    .order('created_at', { ascending: false })
+  if (!data) return []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).map((o: any) => ({
+    id:                  o.id,
+    match_id:            o.match_id,
+    amount:              o.amount,
+    return_type:         o.return_type,
+    status:              o.status,
+    created_at:          o.created_at,
+    roi_percent:         o.roi_percent,
+    revenue_percent:     o.revenue_percent,
+    equity_percent:      o.equity_percent,
+    total_return_amount: o.total_return_amount,
+    biz_name:            o.matches?.businesses?.name,
+    biz_initials:        o.matches?.businesses?.initials,
+    biz_color:           o.matches?.businesses?.color,
+  }))
+}
+
 // ── Issue Reports ─────────────────────────────────────────────────────────────
 
 export async function submitIssueReport(matchId: string, category: string, description: string): Promise<void> {
