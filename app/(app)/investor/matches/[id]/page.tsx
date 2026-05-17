@@ -67,9 +67,13 @@ export default function BusinessDetailPage() {
   return (
     <div className="app-screen">
       <div className="scroll" style={{paddingBottom:100}}>
-        {/* Hero photo */}
+        {/* Hero — show banner if uploaded, otherwise category placeholder */}
         <div style={{position:'relative'}}>
-          <Photo label={biz.photoLab} height={260} radius={0} color={`${biz.color}25`} />
+          {biz.banner_url
+            ? <img src={biz.banner_url} alt={biz.business}
+                style={{ width: '100%', height: 260, objectFit: 'cover', display: 'block' }} />
+            : <Photo label={biz.photoLab} height={260} radius={0} color={`${biz.color}25`} />
+          }
           <div style={{position:'absolute', top:12, left:16, right:16, display:'flex', justifyContent:'space-between'}}>
             <RoundBtn onClick={() => router.back()} bg="rgba(255,252,245,0.95)" size={40}><Icon name="back" size={18} /></RoundBtn>
           </div>

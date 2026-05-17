@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppHeader } from '@/components/app/AppHeader'
 import { Icon, RoundBtn } from '@/components/app/Icon'
-import { getMyBusinessDocuments, uploadBusinessFile, addBusinessLink, deleteBusinessDocument } from '@/lib/db'
+import { getMyBusinessDocuments, uploadBusinessFile, addBusinessLink, deleteBusinessDocument, uploadBusinessBanner } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -392,6 +392,79 @@ function DocRow({ doc, onDeleted }: { doc: BusinessDocument; onDeleted: () => vo
   )
 }
 
+// ── Banner Upload ─────────────────────────────────────────────────────────────
+
+function BannerSection() {
+  const [bannerUrl, setBannerUrl] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [error,     setError]     = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data } = await supabase.from('businesses').select('banner_url').eq('owner_id', user.id).maybeSingle()
+      if (data?.banner_url) setBannerUrl(data.banner_url)
+    })
+  }, [])
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { setError('File too large. Max 5MB.'); return }
+    setUploading(true)
+    setError('')
+    try {
+      const url = await uploadBusinessBanner(file)
+      setBannerUrl(url)
+    } catch {
+      setError('Upload failed. Please try again.')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  return (
+    <div style={{ padding: '16px 22px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div className="eyebrow">Business banner</div>
+        {bannerUrl && !uploading && (
+          <button onClick={() => fileRef.current?.click()} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--forest)', fontFamily: 'var(--font-body)' }}>
+            Change
+          </button>
+        )}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 10 }}>
+        Ideal size: 1200 × 630 px (2:1 ratio) · Max 5 MB
+      </div>
+      {bannerUrl ? (
+        <img src={bannerUrl} alt="Banner" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 14, display: 'block' }} />
+      ) : (
+        <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{
+          width: '100%', height: 130, borderRadius: 14, border: '1.5px dashed var(--line-strong)',
+          background: 'var(--bone)', display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', gap: 8, cursor: 'pointer',
+        }}>
+          {uploading
+            ? <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Uploading…</span>
+            : <>
+                <Icon name="photo" size={24} color="var(--ink-3)" />
+                <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 600 }}>Upload banner image</span>
+              </>
+          }
+        </button>
+      )}
+      {uploading && bannerUrl ? (
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 6 }}>Uploading…</div>
+      ) : null}
+      {error ? <div style={{ fontSize: 12, color: 'var(--clay)', marginTop: 8 }}>{error}</div> : null}
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
+      <div style={{ height: 16 }} />
+    </div>
+  )
+}
+
 // ── Business Info Tab ─────────────────────────────────────────────────────────
 
 type InfoSubTab = 'all' | 'documents' | 'media' | 'links'
@@ -435,6 +508,7 @@ function BusinessInfoTab({
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <BannerSection />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 22px 14px' }}>
         <PillTabs tabs={subTabs} active={sub} onSelect={setSub} />
         <button onClick={onAdd} style={{

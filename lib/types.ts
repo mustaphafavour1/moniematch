@@ -77,6 +77,7 @@ export interface Business {
   ownerPhone?: string
   ownerAvatar?: string
   name?: string
+  banner_url?: string | null
   pitch?: string
   risk?: string
   seasonality?: string
