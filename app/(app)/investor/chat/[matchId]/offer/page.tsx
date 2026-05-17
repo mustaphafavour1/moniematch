@@ -198,7 +198,7 @@ export default function InvOfferPage() {
   const amountValid = investmentAmount > 0
   const returnValid = returnType === 'equity'
     ? (parseFloat(equityPct) > 0 && parseFloat(equityPct) <= 100)
-    : unformat(totalReturnRaw) > 0
+    : unformat(totalReturnRaw) >= investmentAmount
 
   // ── Build OfferTerms
   function buildTerms(): OfferTerms {
@@ -368,6 +368,12 @@ export default function InvOfferPage() {
       />
       <div className="scroll" style={{ flex: 1, padding: '20px 16px 32px' }}>
 
+        {/* Offer amount reminder */}
+        <div style={{ background: 'var(--linen)', border: '1px solid var(--line)', borderRadius: 12, padding: '10px 14px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Offer amount</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)' }}>{fmtNaira(investmentAmount)}</span>
+        </div>
+
         {/* Return type cards */}
         <Field>
           <Label>Return type</Label>
@@ -431,6 +437,11 @@ export default function InvOfferPage() {
                 </div>
               </div>
             </Field>
+            {(returnType === 'fixed' || returnType === 'revenue_share') && unformat(totalReturnRaw) > 0 && unformat(totalReturnRaw) < investmentAmount && (
+              <p style={{ fontSize: 12, color: '#C0392B', marginTop: -12, marginBottom: 16 }}>
+                Total return must be at least {fmtNaira(investmentAmount)} (the offer amount)
+              </p>
+            )}
           </>
         )}
 

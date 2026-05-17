@@ -184,6 +184,8 @@ export interface ChatMessage {
   match_id: string
   sender_id: string
   content: string
+  content_type?: string
+  ref_id?: string
   created_at: string
 }
 

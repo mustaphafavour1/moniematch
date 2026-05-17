@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMyProfile, getInterestedInvestors, getRecentInvestors } from '@/lib/db'
 import { fmtNaira, relTime } from '@/lib/utils'
@@ -19,6 +19,9 @@ export default function BizInvestorsPage() {
   const [query,      setQuery]      = useState('')
   const [draft,      setDraft]      = useState('')
   const [loading,    setLoading]    = useState(true)
+  const [showSticky, setShowSticky] = useState(false)
+  const titleRef    = useRef<HTMLDivElement>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     Promise.all([getMyProfile(), getInterestedInvestors(), getRecentInvestors(20)])
@@ -28,6 +31,14 @@ export default function BizInvestorsPage() {
         setRecent(rec)
         setLoading(false)
       })
+  }, [])
+
+  useEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => setShowSticky(!e.isIntersecting), { threshold: 0 })
+    obs.observe(el)
+    return () => obs.disconnect()
   }, [])
 
   const profileComplete = isProfileComplete(user)
@@ -55,13 +66,31 @@ export default function BizInvestorsPage() {
 
   return (
     <div className="app-screen scroll" style={{ paddingBottom: 16 }}>
+      {/* Sticky compact header — appears when title scrolls off screen */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 20,
+        background: 'var(--cream)',
+        borderBottom: showSticky ? '1px solid var(--line)' : 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: showSticky ? '11px 22px' : '0 22px',
+        height: showSticky ? 'auto' : 0,
+        overflow: 'hidden',
+        transition: 'padding 150ms, border-color 150ms',
+      }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)' }}>Investors</div>
+        <button onClick={() => { searchInput.current?.focus(); searchInput.current?.scrollIntoView({ behavior: 'smooth' }) }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4 }}>
+          <Icon name="search" size={18} color="var(--forest)" />
+        </button>
+      </div>
+
       <div className="pad" style={{ paddingTop: 14 }}>
         <div className="eyebrow">
           {loading ? '…' : profileComplete && hasMatches
             ? `${interested.length} interested`
             : 'Browse investors'}
         </div>
-        <div className="h1" style={{ fontSize: 36, marginTop: 6 }}>Investors</div>
+        <div ref={titleRef} className="h1" style={{ fontSize: 36, marginTop: 6 }}>Investors</div>
         {!loading && (
           <p style={{ color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.5, margin: '8px 0 0' }}>
             {profileComplete && hasMatches
@@ -97,11 +126,14 @@ export default function BizInvestorsPage() {
       <div className="pad" style={{ marginTop: 14 }}>
         <div className="row gap-10" style={{ background: 'var(--bone)', border: '1px solid var(--line-strong)',
           borderRadius: 14, padding: '10px 14px' }}>
-          <button onClick={() => setQuery(draft)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-            <Icon name="search" size={18} color="var(--ink-3)" />
-          </button>
+          {(draft || query) && (
+            <button onClick={() => { setDraft(''); setQuery('') }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+              <Icon name="close" size={16} color="var(--ink-3)" />
+            </button>
+          )}
           <input
+            ref={searchInput}
             placeholder="Search by name, industry, range, city…"
             value={draft}
             onChange={e => setDraft(e.target.value)}
@@ -109,12 +141,10 @@ export default function BizInvestorsPage() {
             style={{ flex: 1, border: 0, background: 'transparent', outline: 'none',
               fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)' }}
           />
-          {(draft || query) && (
-            <button onClick={() => { setDraft(''); setQuery('') }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink-3)' }}>
-              <Icon name="close" size={16} />
-            </button>
-          )}
+          <button onClick={() => setQuery(draft)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+            <Icon name="search" size={18} color="var(--forest)" />
+          </button>
         </div>
       </div>
 

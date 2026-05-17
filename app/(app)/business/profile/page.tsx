@@ -18,6 +18,7 @@ const RETURN_LABEL: Record<string, string> = {
 export default function BizProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<UserProfile | null>(null)
+  const [signOutConfirm, setSignOutConfirm] = useState(false)
 
   useEffect(() => { getMyProfile().then(setUser) }, [])
 
@@ -81,9 +82,39 @@ export default function BizProfilePage() {
           <ActionRow icon="calendar" label="Deal history"      onClick={() => {}} />
           <ActionRow icon="doc"      label="Submitted reports" onClick={() => {}} />
           <ActionRow icon="settings" label="Settings"          onClick={() => router.push('/business/settings')} />
-          <ActionRow icon="logout"   label="Sign out"          onClick={handleSignOut} danger />
+          <ActionRow icon="logout"   label="Sign out"          onClick={() => setSignOutConfirm(true)} danger />
         </div>
       </div>
+
+      {signOutConfirm && (
+        <>
+          <div
+            onClick={() => setSignOutConfirm(false)}
+            style={{position:'fixed', inset:0, background:'rgba(31,26,20,0.5)', zIndex:100}}
+          />
+          <div style={{position:'fixed', bottom:0, left:0, right:0, zIndex:101,
+            background:'var(--cream)', borderRadius:'20px 20px 0 0', padding:'28px 22px 40px'}}>
+            <div style={{fontFamily:'var(--font-display)', fontSize:20}}>Sign out?</div>
+            <div style={{fontSize:14, color:'var(--ink-3)', marginTop:6}}>
+              You'll need to sign back in to access your account.
+            </div>
+            <div style={{display:'flex', flexDirection:'column', gap:10, marginTop:24}}>
+              <button
+                onClick={handleSignOut}
+                style={{background:'#C0392B', color:'white', border:'none', borderRadius:12,
+                  padding:14, width:'100%', fontSize:15, fontWeight:600, cursor:'pointer'}}>
+                Sign out
+              </button>
+              <button
+                onClick={() => setSignOutConfirm(false)}
+                style={{background:'var(--bone)', border:'1px solid var(--line)', borderRadius:12,
+                  padding:14, width:'100%', fontSize:15, fontWeight:600, cursor:'pointer'}}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

@@ -650,7 +650,6 @@ export async function addBusinessLink(url: string, title: string, docType: strin
     item_type:   'link',
     file_name:   title,
     file_url:    url,
-    link_title:  title,
     uploaded_at: new Date().toISOString(),
   })
   if (error) throw error

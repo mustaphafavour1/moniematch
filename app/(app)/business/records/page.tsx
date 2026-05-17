@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { AppHeader } from '@/components/app/AppHeader'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 import { getMyBusinessDocuments, uploadBusinessFile, addBusinessLink, deleteBusinessDocument } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,27 +29,41 @@ function fmtDate(iso: string): string {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+// Line-underline tabs for top level
+function LineTabs<T extends string>({
+  tabs, active, onSelect,
+}: { tabs: { key: T; label: string }[]; active: T; onSelect: (k: T) => void }) {
+  return (
+    <div style={{ display: 'flex', borderBottom: '1.5px solid var(--line)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      {tabs.map(t => (
+        <button key={t.key} onClick={() => onSelect(t.key)} style={{
+          flex: 1, padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer',
+          fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: active === t.key ? 700 : 500,
+          color: active === t.key ? 'var(--ink)' : 'var(--ink-3)',
+          borderBottom: active === t.key ? '2.5px solid var(--forest)' : '2.5px solid transparent',
+          marginBottom: -1.5, transition: 'all 150ms', whiteSpace: 'nowrap',
+        }}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Pill tabs for sub-level (inside Business Info)
 function PillTabs<T extends string>({
   tabs, active, onSelect, style,
 }: { tabs: { key: T; label: string }[]; active: T; onSelect: (k: T) => void; style?: React.CSSProperties }) {
   return (
-    <div style={{
-      display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', flex: 1, ...style,
-    }}>
+    <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', flex: 1, ...style }}>
       {tabs.map(t => (
         <button key={t.key} onClick={() => onSelect(t.key)} style={{
-          flexShrink: 0,
-          padding: '7px 16px',
-          borderRadius: 999,
-          border: '1.5px solid',
+          flexShrink: 0, padding: '7px 16px', borderRadius: 999, border: '1.5px solid',
           borderColor: active === t.key ? 'var(--ink)' : 'var(--line-strong)',
           background: active === t.key ? 'var(--ink)' : 'transparent',
           color: active === t.key ? 'var(--cream)' : 'var(--ink-2)',
-          fontFamily: 'var(--font-body)',
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: 'pointer',
-          transition: 'all 150ms',
+          fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600,
+          cursor: 'pointer', transition: 'all 150ms',
         }}>
           {t.label}
         </button>
@@ -100,80 +115,201 @@ function EmptyState({ icon, title, body, action }: {
 
 // ── Reports Tab ───────────────────────────────────────────────────────────────
 
+interface BizReport {
+  id: string; business_id: string; match_id?: string; template?: string
+  title?: string; content?: string; status?: string; created_at: string
+}
+
 function ReportsTab() {
   const router = useRouter()
-  return (
-    <EmptyState
-      icon="chart"
-      title="No reports yet"
+  const [reports, setReports]     = useState<BizReport[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [viewing, setViewing]     = useState<BizReport | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { setLoading(false); return }
+      const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', user.id).single()
+      if (!biz) { setLoading(false); return }
+      const { data } = await supabase.from('business_reports').select('*')
+        .eq('business_id', biz.id).order('created_at', { ascending: false })
+      setReports((data as BizReport[]) || [])
+      setLoading(false)
+    })
+  }, [])
+
+  if (loading) return <div><SkeletonRow /><SkeletonRow /></div>
+
+  if (reports.length === 0) return (
+    <EmptyState icon="doc" title="No reports yet"
       body="Reports you create will appear here. Investors love receiving regular updates."
       action={
-        <button
-          onClick={() => router.push('/business/records/new-report')}
-          className="btn btn-primary"
-          style={{ fontSize: 14, padding: '12px 24px' }}
-        >
+        <button onClick={() => router.push('/business/records/new-report')} className="btn btn-primary" style={{ fontSize: 14, padding: '12px 24px' }}>
           Create report
         </button>
       }
     />
   )
+
+  return (
+    <>
+      <div style={{ padding: '12px 22px 4px', display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={() => router.push('/business/records/new-report')}
+          style={{ fontSize: 13, fontWeight: 600, color: 'var(--forest)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          + New report
+        </button>
+      </div>
+      {reports.map(r => (
+        <button key={r.id} onClick={() => setViewing(r)} style={{
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          padding: '14px 22px', width: '100%', background: 'transparent', border: 'none',
+          borderBottom: '1px solid var(--line)', cursor: 'pointer', textAlign: 'left',
+        }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: 'var(--linen)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="doc" size={18} color="var(--forest)" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>
+              {r.title || 'Untitled report'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span>{fmtDate(r.created_at)}</span>
+              {r.status && (
+                <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 10.5, fontWeight: 600,
+                  background: r.status === 'sent' ? 'var(--forest-tint)' : 'var(--linen)',
+                  color: r.status === 'sent' ? 'var(--forest)' : 'var(--ink-3)' }}>
+                  {r.status === 'sent' ? 'Sent' : 'Draft'}
+                </span>
+              )}
+            </div>
+          </div>
+          <Icon name="fwd" size={14} color="var(--ink-4)" />
+        </button>
+      ))}
+
+      {/* View report overlay */}
+      {viewing && (
+        <>
+          <div onClick={() => setViewing(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(31,26,20,0.45)', zIndex: 100 }} />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101,
+            background: 'var(--cream)', borderRadius: '20px 20px 0 0',
+            padding: '0 0 env(safe-area-inset-bottom,32px)',
+            maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 -4px 32px rgba(31,26,20,0.16)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 99, background: 'var(--line-strong)' }} />
+            </div>
+            <div style={{ padding: '0 22px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--ink)' }}>
+                {viewing.title || 'Report'}
+              </span>
+              <button onClick={() => window.print()} style={{ background: 'none', border: '1px solid var(--line-strong)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                Print / PDF
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 22px 24px' }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-4)', marginBottom: 12 }}>{fmtDate(viewing.created_at)}</div>
+              <pre style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink)', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
+                {viewing.content || 'No content'}
+              </pre>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
 }
 
 // ── Document Row ──────────────────────────────────────────────────────────────
 
-function DocRow({ doc }: { doc: BusinessDocument }) {
-  const isLink = doc.item_type === 'link'
+function DocRow({ doc, onDeleted }: { doc: BusinessDocument; onDeleted: () => void }) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting]           = useState(false)
+  const isLink  = doc.item_type === 'link'
   const isPhoto = doc.doc_type === 'photo'
   const iconName = isLink ? 'link' : isPhoto ? 'photo' : 'doc'
-  const label = isLink ? (doc.link_title || doc.file_name) : doc.file_name
+  const label    = doc.file_name
+
+  async function openDoc() {
+    if (isLink || isPhoto) { window.open(doc.file_url, '_blank', 'noopener,noreferrer'); return }
+    if (!doc.storage_path) { window.open(doc.file_url, '_blank', 'noopener,noreferrer'); return }
+    const bucket = doc.doc_type === 'bank_statement' ? 'deal-files' : 'documents'
+    const { data } = await supabase.storage.from(bucket).createSignedUrl(doc.storage_path, 3600)
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await deleteBusinessDocument(doc.id)
+      if (doc.storage_path) {
+        const bucket = doc.doc_type === 'photo' ? 'business-photos' : doc.doc_type === 'bank_statement' ? 'deal-files' : 'documents'
+        await supabase.storage.from(bucket).remove([doc.storage_path])
+      }
+      onDeleted()
+    } finally { setDeleting(false); setConfirmDelete(false) }
+  }
 
   return (
-    <button
-      onClick={() => window.open(doc.file_url, '_blank', 'noopener,noreferrer')}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '13px 22px', width: '100%',
-        background: 'transparent', border: 'none',
-        borderBottom: '1px solid var(--line)',
-        cursor: 'pointer', textAlign: 'left',
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      <div style={{
-        width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-        background: isLink ? 'var(--sun-tint)' : isPhoto ? 'var(--clay-tint)' : 'var(--forest-tint)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <Icon
-          name={iconName} size={18}
-          color={isLink ? '#8B5E1A' : isPhoto ? 'var(--clay)' : 'var(--forest)'}
-        />
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 14, fontWeight: 600, color: 'var(--ink)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          marginBottom: 3,
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--line)' }}>
+        <button onClick={openDoc} style={{
+          flex: 1, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '13px 0 13px 22px', background: 'transparent', border: 'none',
+          cursor: 'pointer', textAlign: 'left', WebkitTapHighlightColor: 'transparent',
         }}>
-          {label}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>{fmtDate(doc.uploaded_at)}</span>
-          {doc.file_size != null && (
-            <><span style={{ opacity: 0.5 }}>·</span><span>{fmtSize(doc.file_size)}</span></>
-          )}
-          {doc.is_verified && (
-            <span className="chip forest" style={{ fontSize: 10, padding: '2px 7px' }}>
-              <Icon name="check" size={9} color="var(--forest)" /> Verified
-            </span>
-          )}
-        </div>
+          <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+            background: isLink ? 'var(--sun-tint)' : isPhoto ? 'var(--clay-tint)' : 'var(--forest-tint)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={iconName} size={18} color={isLink ? '#8B5E1A' : isPhoto ? 'var(--clay)' : 'var(--forest)'} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3 }}>
+              {label}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>{fmtDate(doc.uploaded_at)}</span>
+              {doc.file_size != null && <><span style={{ opacity: 0.5 }}>·</span><span>{fmtSize(doc.file_size)}</span></>}
+              {doc.is_verified && <span style={{ padding: '2px 6px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: 'var(--forest-tint)', color: 'var(--forest)' }}>Verified</span>}
+            </div>
+          </div>
+        </button>
+        <button onClick={() => setConfirmDelete(true)} style={{
+          padding: '0 16px 0 8px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0,
+        }}>
+          <Icon name="close" size={15} color="var(--ink-4)" />
+        </button>
       </div>
 
-      <Icon name="fwd" size={16} color="var(--ink-4)" />
-    </button>
+      {confirmDelete && (
+        <>
+          <div onClick={() => setConfirmDelete(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(31,26,20,0.45)', zIndex: 100 }} />
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101,
+            background: 'var(--cream)', borderRadius: '20px 20px 0 0',
+            padding: '24px 22px env(safe-area-inset-bottom,32px)' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, color: 'var(--ink)', marginBottom: 8 }}>Delete file?</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.5 }}>
+              "{label}" will be permanently removed. This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button onClick={handleDelete} disabled={deleting}
+                style={{ padding: '14px', borderRadius: 12, border: 'none', background: '#C0392B', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+              <button onClick={() => setConfirmDelete(false)}
+                style={{ padding: '14px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--bone)', fontSize: 15, color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   )
 }
 
@@ -241,7 +377,7 @@ function BusinessInfoTab({
         <EmptyState {...emptyMessages[sub]} action={addBtn} />
       ) : (
         <div>
-          {filtered.map(doc => <DocRow key={doc.id} doc={doc} />)}
+          {filtered.map(doc => <DocRow key={doc.id} doc={doc} onDeleted={onRefresh} />)}
         </div>
       )}
     </div>
@@ -289,12 +425,22 @@ function BottomSheet({
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null
-    setSelectedFile(file)
     setError(null)
     if (file) {
+      const isPhoto = sheet === 'upload-media'
+      const maxBytes = isPhoto ? 10 * 1024 * 1024 : 2 * 1024 * 1024
+      if (file.size > maxBytes) {
+        const maxMB = isPhoto ? '10MB' : '2MB'
+        setError(`File too large (max ${maxMB}). Try compressing it at tinypng.com / ilovepdf.com, or upload to Google Drive and add the link instead.`)
+        setSelectedFile(null)
+        setPreviewUrl(null)
+        return
+      }
+      setSelectedFile(file)
       const isImage = file.type.startsWith('image/')
       setPreviewUrl(isImage ? URL.createObjectURL(file) : null)
     } else {
+      setSelectedFile(null)
       setPreviewUrl(null)
     }
   }
@@ -615,7 +761,132 @@ function BottomSheet({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-type TopTab = 'reports' | 'business-info'
+type TopTab = 'reports' | 'business-info' | 'offers'
+
+interface OfferRow {
+  id: string; match_id: string; amount: number; return_type?: string
+  total_return_amount?: number; roi_percent?: number; equity_percent?: number
+  revenue_percent?: number; status?: string; created_at: string
+  matches?: { investors?: { users?: { name?: string } } }
+}
+
+function OffersTab() {
+  const router = useRouter()
+  const [offers, setOffers]   = useState<OfferRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [viewing, setViewing] = useState<OfferRow | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { setLoading(false); return }
+      const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', user.id).single()
+      if (!biz) { setLoading(false); return }
+      const { data: ms } = await supabase.from('matches').select('id').eq('business_id', biz.id)
+      const matchIds = (ms || []).map(m => m.id)
+      if (matchIds.length === 0) { setLoading(false); return }
+      const { data } = await supabase.from('offers')
+        .select('*, matches(investors(users(name)))')
+        .in('match_id', matchIds)
+        .order('created_at', { ascending: false })
+      setOffers((data as OfferRow[]) || [])
+      setLoading(false)
+    })
+  }, [])
+
+  if (loading) return <div><SkeletonRow /><SkeletonRow /></div>
+  if (offers.length === 0) return (
+    <EmptyState icon="money" title="No offers yet"
+      body="Offers from investors will appear here once they start making them." />
+  )
+
+  const fmtN = (n: number) => '₦' + n.toLocaleString()
+
+  return (
+    <>
+      {offers.map(o => {
+        const inv = (o.matches as unknown as { investors?: { users?: { name?: string } } } | null | undefined)?.investors
+        const invName = inv?.users?.name || 'An investor'
+        const returnSummary = o.return_type === 'equity'
+          ? `${o.equity_percent}% equity`
+          : o.return_type === 'revenue_share'
+          ? `${o.revenue_percent}% revenue share`
+          : o.total_return_amount
+          ? `${fmtN(o.total_return_amount)} total return`
+          : o.return_type || ''
+        return (
+          <button key={o.id} onClick={() => setViewing(o)} style={{
+            display: 'flex', alignItems: 'flex-start', gap: 12,
+            padding: '14px 22px', width: '100%', background: 'transparent', border: 'none',
+            borderBottom: '1px solid var(--line)', cursor: 'pointer', textAlign: 'left',
+          }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: 'var(--linen)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="money" size={18} color="var(--forest)" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>
+                {fmtN(o.amount)} from {invName}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', gap: 8 }}>
+                <span>{returnSummary}</span>
+                <span style={{ opacity: 0.5 }}>·</span>
+                <span>{fmtDate(o.created_at)}</span>
+              </div>
+            </div>
+            <Icon name="fwd" size={14} color="var(--ink-4)" />
+          </button>
+        )
+      })}
+
+      {viewing && (
+        <>
+          <div onClick={() => setViewing(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(31,26,20,0.45)', zIndex: 100 }} />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101,
+            background: 'var(--cream)', borderRadius: '20px 20px 0 0',
+            padding: '0 0 env(safe-area-inset-bottom,32px)',
+            maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 99, background: 'var(--line-strong)' }} />
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 22px 24px' }}>
+              {(() => {
+                const inv = (viewing.matches as unknown as { investors?: { users?: { name?: string } } } | null)?.investors
+                const invName = inv?.users?.name || 'An investor'
+                return (
+                  <>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)', marginBottom: 4 }}>Offer details</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 20 }}>{fmtDate(viewing.created_at)}</div>
+                    {[
+                      ['From', invName],
+                      ['Offer amount', fmtN(viewing.amount)],
+                      ['Return type', viewing.return_type?.replace('_', ' ') || '—'],
+                      viewing.total_return_amount ? ['Total return', fmtN(viewing.total_return_amount)] : null,
+                      viewing.roi_percent ? ['ROI', `${viewing.roi_percent}%`] : null,
+                      viewing.equity_percent ? ['Equity stake', `${viewing.equity_percent}%`] : null,
+                      viewing.revenue_percent ? ['Revenue share', `${viewing.revenue_percent}%`] : null,
+                    ].filter((r): r is string[] => r !== null).map(([k, v]) => (
+                      <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
+                        <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>{k}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{v}</span>
+                      </div>
+                    ))}
+                    <button onClick={() => router.push(`/business/chat/${viewing.match_id}`)}
+                      className="btn btn-forest btn-block" style={{ marginTop: 24 }}>
+                      Open conversation
+                    </button>
+                  </>
+                )
+              })()}
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
+}
 
 export default function BizRecordsPage() {
   const [topTab, setTopTab] = useState<TopTab>('reports')
@@ -626,6 +897,7 @@ export default function BizRecordsPage() {
   const topTabs: { key: TopTab; label: string }[] = [
     { key: 'reports',       label: 'Reports' },
     { key: 'business-info', label: 'Business Info' },
+    { key: 'offers',        label: 'Offers' },
   ]
 
   async function loadDocs() {
@@ -649,8 +921,8 @@ export default function BizRecordsPage() {
         <AppHeader title="Records" sticky />
 
         {/* Top-level tabs */}
-        <div style={{ paddingTop: 14, padding: '14px 22px 0' }}>
-          <PillTabs tabs={topTabs} active={topTab} onSelect={setTopTab} />
+        <div style={{ padding: '14px 22px 0' }}>
+          <LineTabs tabs={topTabs} active={topTab} onSelect={setTopTab} />
         </div>
 
         {/* Tab content */}
@@ -659,9 +931,15 @@ export default function BizRecordsPage() {
             <div className="scroll" style={{ flex: 1 }}>
               <ReportsTab />
             </div>
+          ) : topTab === 'offers' ? (
+            <div className="scroll" style={{ flex: 1 }}>
+              <OffersTab />
+            </div>
           ) : (
             <div className="scroll" style={{ flex: 1, paddingBottom: 100 }}>
-              <BusinessInfoTab docs={docs} loading={loading} onRefresh={loadDocs} onAdd={() => setSheetOpen(true)} />
+              <div style={{ paddingTop: 16 }}>
+                <BusinessInfoTab docs={docs} loading={loading} onRefresh={loadDocs} onAdd={() => setSheetOpen(true)} />
+              </div>
             </div>
           )}
         </div>

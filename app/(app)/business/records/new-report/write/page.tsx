@@ -50,8 +50,10 @@ export default function WriteReportPage() {
   const [nextSteps,  setNextSteps]  = useState('')
   const [extraNote,  setExtraNote]  = useState('')
 
-  const [sending, setSending] = useState(false)
-  const [error,   setError]   = useState('')
+  const [sending,       setSending]       = useState(false)
+  const [savingDraft,   setSavingDraft]   = useState(false)
+  const [error,         setError]         = useState('')
+  const [investorSearch, setInvestorSearch] = useState('')
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -66,13 +68,20 @@ export default function WriteReportPage() {
           .from('matches')
           .select('id, investors(users(name))')
           .eq('business_id', biz.id)
-          .then(({ data: ms }) => {
-            const list = (ms || []).map((m: Record<string, unknown>) => {
+          .then(async ({ data: ms }) => {
+            const all = (ms || []).map((m: Record<string, unknown>) => {
               const inv = (m.investors as unknown) as Record<string, unknown> | null
               const usr = (inv?.users as unknown) as Record<string, unknown> | null
               return { id: m.id as string, name: (usr?.name as string) || 'Investor' }
             })
-            setMatches(list)
+            const matchIds = all.map(m => m.id)
+            if (matchIds.length > 0) {
+              const { data: msgs } = await supabase.from('messages').select('match_id').in('match_id', matchIds)
+              const activeIds = new Set((msgs || []).map((msg: { match_id: string }) => msg.match_id))
+              setMatches(all.filter(m => activeIds.has(m.id)))
+            } else {
+              setMatches([])
+            }
           })
       })
     })
@@ -139,6 +148,30 @@ ${extraNote ? `\nAdditional notes:\n${extraNote}` : ''}`.trim()
       setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
       setSending(false)
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    if (savingDraft) return
+    setSavingDraft(true)
+    setError('')
+    try {
+      if (!uid || !bizId) throw new Error('Not signed in')
+      const { error: rErr } = await supabase.from('business_reports').insert({
+        id: crypto.randomUUID(),
+        business_id: bizId,
+        match_id: selectedMatch || null,
+        template,
+        title: reportTitle,
+        content: previewText,
+        status: 'draft',
+      })
+      if (rErr) throw rErr
+      router.push('/business/records')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
+    } finally {
+      setSavingDraft(false)
     }
   }
 
@@ -282,9 +315,17 @@ ${extraNote ? `\nAdditional notes:\n${extraNote}` : ''}`.trim()
           <button onClick={() => setStep('send')} className="btn btn-forest btn-block">
             Choose who to send to →
           </button>
+          <button onClick={handleSaveDraft} disabled={savingDraft}
+            style={{ marginTop: 10, width: '100%', padding: '13px', borderRadius: 12,
+              background: 'var(--bone)', border: '1.5px solid var(--line-strong)',
+              cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--ink-2)',
+              fontFamily: 'var(--font-body)' }}>
+            {savingDraft ? 'Saving…' : 'Save to drafts'}
+          </button>
+          {error && <p style={{ fontSize: 13, color: 'var(--clay)', marginTop: 8 }}>{error}</p>}
           <button onClick={() => setStep('form')}
             style={{ marginTop: 10, background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 14, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', width: '100%' }}>
+              fontSize: 14, color: 'var(--ink-3)', fontFamily: 'var(--font-body)', width: '100%' }}>
             Edit report
           </button>
         </div>
@@ -292,44 +333,75 @@ ${extraNote ? `\nAdditional notes:\n${extraNote}` : ''}`.trim()
 
       {/* ── SEND (select investor) ── */}
       {step === 'send' && (
-        <div className="scroll" style={{ flex: 1, padding: '16px 16px 40px' }}>
-          <p style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 20 }}>
-            Choose which investor to send this report to.
-          </p>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {/* Search bar */}
+          <div style={{ padding: '12px 16px 0', flexShrink: 0 }}>
+            <p style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 12 }}>
+              Choose which investor to send this report to.
+            </p>
+            {matches.length > 1 && (
+              <div style={{ background: 'var(--bone)', border: '1px solid var(--line-strong)',
+                borderRadius: 20, padding: '9px 14px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                {investorSearch && (
+                  <button onClick={() => setInvestorSearch('')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                    <Icon name="close" size={14} color="var(--ink-3)" />
+                  </button>
+                )}
+                <input
+                  value={investorSearch}
+                  onChange={e => setInvestorSearch(e.target.value)}
+                  placeholder="Search investors…"
+                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none',
+                    fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)' }}
+                />
+                <Icon name="search" size={14} color="var(--forest)" />
+              </div>
+            )}
+          </div>
 
-          {matches.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)', fontSize: 14 }}>
-              No investor conversations yet. Start a chat from the Investors tab first.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-              {matches.map(m => (
-                <button key={m.id} onClick={() => setSelectedMatch(m.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    background: selectedMatch === m.id ? 'var(--linen)' : 'var(--bone)',
-                    border: `1.5px solid ${selectedMatch === m.id ? 'var(--forest)' : 'var(--line)'}`,
-                    borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', width: '100%',
-                  }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--linen)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    border: '1px solid var(--line-strong)', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
-                    {m.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)', flex: 1 }}>{m.name}</span>
-                  {selectedMatch === m.id && <Icon name="check" size={16} color="var(--forest)" />}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Scrollable investor list */}
+          <div className="scroll" style={{ flex: 1, padding: '0 16px 16px' }}>
+            {matches.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)', fontSize: 14 }}>
+                No investor conversations yet. Start a chat from the Investors tab first.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 8 }}>
+                {matches
+                  .filter(m => !investorSearch.trim() || m.name.toLowerCase().includes(investorSearch.toLowerCase()))
+                  .map(m => (
+                    <button key={m.id} onClick={() => setSelectedMatch(m.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        background: selectedMatch === m.id ? 'var(--linen)' : 'var(--bone)',
+                        border: `1.5px solid ${selectedMatch === m.id ? 'var(--forest)' : 'var(--line)'}`,
+                        borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', width: '100%',
+                      }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--linen)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        border: '1px solid var(--line-strong)', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
+                        {m.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)', flex: 1 }}>{m.name}</span>
+                      {selectedMatch === m.id && <Icon name="check" size={16} color="var(--forest)" />}
+                    </button>
+                  ))
+                }
+              </div>
+            )}
+          </div>
 
-          {error && <p style={{ fontSize: 13, color: 'var(--clay)', marginBottom: 12 }}>{error}</p>}
-
-          <button onClick={handleSend}
-            disabled={!selectedMatch || sending}
-            className="btn btn-forest btn-block">
-            {sending ? 'Sending…' : 'Send report'}
-          </button>
+          {/* Sticky send button — above bottom nav (80px) */}
+          <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)', background: 'var(--cream)',
+            paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', flexShrink: 0 }}>
+            {error && <p style={{ fontSize: 13, color: 'var(--clay)', marginBottom: 8 }}>{error}</p>}
+            <button onClick={handleSend}
+              disabled={!selectedMatch || sending}
+              className="btn btn-forest btn-block">
+              {sending ? 'Sending…' : 'Send report'}
+            </button>
+          </div>
         </div>
       )}
 

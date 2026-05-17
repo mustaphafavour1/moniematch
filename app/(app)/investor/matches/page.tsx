@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMyProfile, getMyMatches, getRecentBusinesses } from '@/lib/db'
 import { fmtNaira } from '@/lib/utils'
@@ -14,13 +14,16 @@ function isProfileComplete(u: UserProfile | null) {
 
 export default function InvMatchesPage() {
   const router  = useRouter()
-  const [user,    setUser]    = useState<UserProfile | null>(null)
-  const [matches, setMatches] = useState<Business[]>([])
-  const [recent,  setRecent]  = useState<Business[]>([])
-  const [filter,  setFilter]  = useState('all')
-  const [query,   setQuery]   = useState('')
-  const [draft,   setDraft]   = useState('')
-  const [loading, setLoading] = useState(true)
+  const [user,       setUser]       = useState<UserProfile | null>(null)
+  const [matches,    setMatches]    = useState<Business[]>([])
+  const [recent,     setRecent]     = useState<Business[]>([])
+  const [filter,     setFilter]     = useState('all')
+  const [query,      setQuery]      = useState('')
+  const [draft,      setDraft]      = useState('')
+  const [loading,    setLoading]    = useState(true)
+  const [showSticky, setShowSticky] = useState(false)
+  const titleRef    = useRef<HTMLDivElement>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     Promise.all([getMyProfile(), getMyMatches(), getRecentBusinesses(20)])
@@ -30,6 +33,14 @@ export default function InvMatchesPage() {
         setRecent(r)
         setLoading(false)
       })
+  }, [])
+
+  useEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => setShowSticky(!e.isIntersecting), { threshold: 0 })
+    obs.observe(el)
+    return () => obs.disconnect()
   }, [])
 
   const profileComplete = isProfileComplete(user)
@@ -46,11 +57,29 @@ export default function InvMatchesPage() {
 
   return (
     <div className="app-screen scroll" style={{ paddingBottom: 16 }}>
+      {/* Sticky compact header — appears when title scrolls off screen */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 20,
+        background: 'var(--cream)',
+        borderBottom: showSticky ? '1px solid var(--line)' : 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: showSticky ? '11px 22px' : '0 22px',
+        height: showSticky ? 'auto' : 0,
+        overflow: 'hidden',
+        transition: 'padding 150ms, border-color 150ms',
+      }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--ink)' }}>Matches</div>
+        <button onClick={() => { searchInput.current?.focus(); searchInput.current?.scrollIntoView({ behavior: 'smooth' }) }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4 }}>
+          <Icon name="search" size={18} color="var(--forest)" />
+        </button>
+      </div>
+
       <div className="pad" style={{ paddingTop: 14 }}>
         <div className="eyebrow">
           {profileComplete ? `${matches.length} matched · browse all below` : 'Browse businesses'}
         </div>
-        <div className="h1" style={{ fontSize: 36, marginTop: 8 }}>Matches</div>
+        <div ref={titleRef} className="h1" style={{ fontSize: 36, marginTop: 8 }}>Matches</div>
         {!loading && (
           <p style={{ color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.5, margin: '8px 0 0' }}>
             {profileComplete
@@ -86,22 +115,22 @@ export default function InvMatchesPage() {
       <div className="pad" style={{ marginTop: 14 }}>
         <div className="row gap-10" style={{ background: 'var(--bone)', border: '1px solid var(--line-strong)',
           borderRadius: 14, padding: '10px 14px' }}>
-          <button onClick={() => setQuery(draft)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-            <Icon name="search" size={18} color="var(--ink-3)" />
-          </button>
-          <input placeholder="Search by business name"
+          {(draft || query) && (
+            <button onClick={() => { setDraft(''); setQuery('') }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+              <Icon name="close" size={16} color="var(--ink-3)" />
+            </button>
+          )}
+          <input ref={searchInput} placeholder="Search by business name"
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') setQuery(draft) }}
             style={{ flex: 1, border: 0, background: 'transparent', outline: 'none',
               fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)' }} />
-          {(draft || query) && (
-            <button onClick={() => { setDraft(''); setQuery('') }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink-3)' }}>
-              <Icon name="close" size={16} />
-            </button>
-          )}
+          <button onClick={() => setQuery(draft)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+            <Icon name="search" size={18} color="var(--forest)" />
+          </button>
         </div>
       </div>
 
