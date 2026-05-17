@@ -104,8 +104,11 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     username: userRow.username,
     avatar_url: userRow.avatar_url,
     must_change_password: userRow.must_change_password,
-    initials: initialsFor(userRow.name || ''),
-    color:    colorFor(userRow.name || ''),
+    initials:      initialsFor(userRow.name || ''),
+    color:         colorFor(userRow.name || ''),
+    legal_name:    userRow.legal_name,
+    legal_address: userRow.legal_address,
+    signature_url: userRow.signature_url,
   }
 
   if (userRow.role === 'investor') {
@@ -145,8 +148,10 @@ export async function getMyProfile(): Promise<UserProfile | null> {
       // business-specific numeric fields from adaptBusiness
       askMin:      (bizAdapted as Record<string, unknown>).askMin as number | undefined,
       askMax:      (bizAdapted as Record<string, unknown>).askMax as number | undefined,
-      returnStructures: biz?.return_structures || [],
-      reportingCadence: biz?.reporting_cadence || [],
+      returnStructures:  biz?.return_structures || [],
+      reportingCadence:  biz?.reporting_cadence || [],
+      legal_biz_name:    biz?.legal_biz_name,
+      legal_biz_address: biz?.legal_biz_address,
     }
   }
 
