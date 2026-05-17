@@ -867,7 +867,7 @@ function OffersTab() {
                       viewing.roi_percent ? ['ROI', `${viewing.roi_percent}%`] : null,
                       viewing.equity_percent ? ['Equity stake', `${viewing.equity_percent}%`] : null,
                       viewing.revenue_percent ? ['Revenue share', `${viewing.revenue_percent}%`] : null,
-                    ].filter(Boolean).map(([k, v]) => (
+                    ].filter((r): r is string[] => r !== null).map(([k, v]) => (
                       <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
                         <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>{k}</span>
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{v}</span>
