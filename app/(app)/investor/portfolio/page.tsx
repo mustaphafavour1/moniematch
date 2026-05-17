@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getMyPortfolio, getMyOffers } from '@/lib/db'
+import { getMyPortfolio, getMyOffers, getMyTemplates } from '@/lib/db'
 import type { InvestorOffer } from '@/lib/db'
 import { fmtNaira } from '@/lib/utils'
 import type { Deal } from '@/lib/types'
@@ -33,18 +33,22 @@ function returnSummary(o: InvestorOffer) {
 
 export default function InvPortfolioPage() {
   const router = useRouter()
-  const [deals,  setDeals]  = useState<Deal[] | null>(null)
-  const [offers, setOffers] = useState<InvestorOffer[] | null>(null)
+  const [deals,     setDeals]     = useState<Deal[] | null>(null)
+  const [offers,    setOffers]    = useState<InvestorOffer[] | null>(null)
+  const [templates, setTemplates] = useState<InvestorOffer[] | null>(null)
 
   useEffect(() => {
     getMyPortfolio().then(setDeals).catch(() => setDeals([]))
     getMyOffers().then(setOffers).catch(() => setOffers([]))
+    getMyTemplates().then(setTemplates).catch(() => setTemplates([]))
   }, [])
 
-  const loading      = deals === null
-  const offersLoading = offers === null
-  const items        = deals || []
-  const offerItems   = offers || []
+  const loading         = deals === null
+  const offersLoading   = offers === null
+  const templatesLoading = templates === null
+  const items           = deals || []
+  const offerItems      = offers || []
+  const templateItems   = templates || []
   const total = items.reduce((s, p) => s + (p.invested || p.amount || 0), 0)
   const paid  = items.reduce((s, p) => s + (p.paidBack || 0), 0)
 
@@ -77,7 +81,7 @@ export default function InvPortfolioPage() {
             {[
               {label:'Active',    value: String(items.filter(d=>d.status==='active').length)},
               {label:'Offers',    value: offersLoading ? '…' : String(offerItems.length)},
-              {label:'Watch',     value:'0'},
+              {label:'Templates', value: templates?.length ?? '…'},
             ].map(s => (
               <div key={s.label}>
                 <div style={{fontSize:10, color:'rgba(255,252,245,0.55)', textTransform:'uppercase', letterSpacing:0.05}}>{s.label}</div>
@@ -222,6 +226,66 @@ export default function InvPortfolioPage() {
             )
         }
       </div>
+
+      {/* Templates */}
+      {(templatesLoading || templateItems.length > 0) && (
+        <div className="pad" style={{marginTop:24}}>
+          <div className="eyebrow" style={{marginBottom:10}}>Saved templates</div>
+          {templatesLoading
+            ? [0].map(i => <div key={i} style={{height:72, borderRadius:16, background:'var(--linen)', marginBottom:10}} />)
+            : (
+              <div className="col gap-8">
+                {templateItems.map((o, i) => {
+                  const name     = o.template_name || 'Unnamed'
+                  const initials = initialsFor(name)
+                  const color    = colorFor(name)
+                  return (
+                    <div
+                      key={o.id}
+                      onClick={() => {}}
+                      className="card fadein"
+                      style={{padding:'12px 14px', cursor:'pointer', animationDelay:`${i*60}ms`}}
+                    >
+                      <div style={{display:'flex', alignItems:'center', gap:12}}>
+                        {/* Avatar */}
+                        <div style={{width:40, height:40, borderRadius:11, background:`${color}20`, color,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          fontFamily:'var(--font-display)', fontSize:16, flexShrink:0}}>
+                          {initials}
+                        </div>
+
+                        {/* Info */}
+                        <div style={{flex:1, minWidth:0}}>
+                          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:8}}>
+                            <div style={{fontSize:14, color:'var(--ink)', fontWeight:500,
+                              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                              {name}
+                            </div>
+                            <span style={{flexShrink:0, fontSize:11, fontWeight:600,
+                              color:'var(--ink-3)', background:'var(--linen)',
+                              borderRadius:999, padding:'3px 9px'}}>
+                              Template
+                            </span>
+                          </div>
+                          <div style={{display:'flex', alignItems:'center', gap:8, marginTop:3}}>
+                            <span style={{fontSize:13, color:'var(--ink)', fontWeight:500}}>
+                              {fmtNaira(o.amount, {compact:true})}
+                            </span>
+                            <span style={{fontSize:11, color:'var(--ink-3)'}}>·</span>
+                            <span style={{fontSize:12, color:'var(--ink-3)'}}>
+                              {returnSummary(o)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          }
+        </div>
+      )}
     </div>
   )
 }

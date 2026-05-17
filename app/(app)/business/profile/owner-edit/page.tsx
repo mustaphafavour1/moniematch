@@ -29,6 +29,10 @@ export default function BizOwnerEditPage() {
   const [hasDrawn,  setHasDrawn]  = useState(false)
   const [existingSig, setExistingSig] = useState('')
   const [savingSig, setSavingSig] = useState(false)
+  const [legalName,    setLegalName]    = useState('')
+  const [legalAddress, setLegalAddress] = useState('')
+  const [legalBizName,    setLegalBizName]    = useState('')
+  const [legalBizAddress, setLegalBizAddress] = useState('')
 
   useEffect(() => {
     getMyProfile().then(p => {
@@ -41,6 +45,10 @@ export default function BizOwnerEditPage() {
       setAvatarUrl(p.avatar_url || '')
       setInitials(p.initials || '?')
       setColor(p.color || 'var(--forest)')
+      setLegalName(p.legal_name || '')
+      setLegalAddress(p.legal_address || '')
+      setLegalBizName(p.legal_biz_name || '')
+      setLegalBizAddress(p.legal_biz_address || '')
       // load existing signature via signed URL
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (!user) return
@@ -73,11 +81,15 @@ export default function BizOwnerEditPage() {
     setError('')
     try {
       await saveProfile({
-        name:       name.trim(),
-        phone:      phone.trim() || null,
-        state:      state.trim() || null,
-        city:       city.trim() || null,
-        occupation: occupation.trim() || null,
+        name:             name.trim(),
+        phone:            phone.trim() || null,
+        state:            state.trim() || null,
+        city:             city.trim() || null,
+        occupation:       occupation.trim() || null,
+        legal_name:       legalName.trim() || null,
+        legal_address:    legalAddress.trim() || null,
+        legal_biz_name:   legalBizName.trim() || null,
+        legal_biz_address: legalBizAddress.trim() || null,
       })
       router.back()
     } catch (err) {

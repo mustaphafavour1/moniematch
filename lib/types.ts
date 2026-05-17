@@ -139,6 +139,12 @@ export interface UserProfile {
   // computed
   initials: string
   color: string
+  // contract / legal fields
+  legal_name?: string
+  legal_address?: string
+  legal_biz_name?: string
+  legal_biz_address?: string
+  signature_url?: string
 }
 
 export interface Deal {

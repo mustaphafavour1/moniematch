@@ -104,8 +104,11 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     username: userRow.username,
     avatar_url: userRow.avatar_url,
     must_change_password: userRow.must_change_password,
-    initials: initialsFor(userRow.name || ''),
-    color:    colorFor(userRow.name || ''),
+    initials:      initialsFor(userRow.name || ''),
+    color:         colorFor(userRow.name || ''),
+    legal_name:    userRow.legal_name,
+    legal_address: userRow.legal_address,
+    signature_url: userRow.signature_url,
   }
 
   if (userRow.role === 'investor') {
@@ -145,8 +148,10 @@ export async function getMyProfile(): Promise<UserProfile | null> {
       // business-specific numeric fields from adaptBusiness
       askMin:      (bizAdapted as Record<string, unknown>).askMin as number | undefined,
       askMax:      (bizAdapted as Record<string, unknown>).askMax as number | undefined,
-      returnStructures: biz?.return_structures || [],
-      reportingCadence: biz?.reporting_cadence || [],
+      returnStructures:  biz?.return_structures || [],
+      reportingCadence:  biz?.reporting_cadence || [],
+      legal_biz_name:    biz?.legal_biz_name,
+      legal_biz_address: biz?.legal_biz_address,
     }
   }
 
@@ -565,52 +570,170 @@ export async function updateOfferStatus(offerId: string, status: string): Promis
   await supabase.from('offers').update({ status }).eq('id', offerId)
 }
 
+export async function acceptOffer(offerId: string, matchId: string): Promise<void> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) throw new Error('Not authenticated')
+  const { error } = await supabase.from('offers').update({ status: 'accepted' }).eq('id', offerId)
+  if (error) throw error
+  await supabase.from('messages').insert({
+    id:           crypto.randomUUID(),
+    match_id:     matchId,
+    sender_id:    authUser.id,
+    content:      '✅ Offer accepted',
+    content_type: 'offer_accepted',
+    ref_id:       offerId,
+  })
+}
+
+export async function sendCounterOffer(
+  originalOfferId: string,
+  matchId: string,
+  terms: OfferTerms,
+): Promise<string> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) throw new Error('Not authenticated')
+  // Mark the original as countered
+  await supabase.from('offers').update({ status: 'countered' }).eq('id', originalOfferId)
+  // Create the counter offer
+  const id = crypto.randomUUID()
+  const { error } = await supabase.from('offers').insert({
+    id,
+    match_id:            matchId,
+    proposer_id:         authUser.id,
+    parent_offer_id:     originalOfferId,
+    amount:              terms.amount,
+    return_type:         terms.return_type,
+    return_rate:         terms.roi_percent,
+    notes:               terms.notes,
+    status:              'pending',
+    is_milestoned:       terms.is_milestoned,
+    milestones:          terms.milestones || null,
+    monthly_payment:     terms.monthly_payment,
+    end_date:            terms.end_date,
+    revenue_percent:     terms.revenue_percent,
+    equity_percent:      terms.equity_percent,
+    has_voting_rights:   terms.has_voting_rights,
+    reporting_frequency: terms.reporting_frequency,
+    total_return_amount: terms.total_return_amount,
+    is_template:         false,
+  })
+  if (error) throw error
+  const amtStr = terms.amount ? `₦${Number(terms.amount).toLocaleString('en-NG')}` : ''
+  await supabase.from('messages').insert({
+    id:           crypto.randomUUID(),
+    match_id:     matchId,
+    sender_id:    authUser.id,
+    content:      `⚡️ Counter offer${amtStr ? `: ${amtStr}` : ''}`,
+    content_type: 'offer',
+    ref_id:       id,
+  })
+  return id
+}
+
 export interface InvestorOffer {
   id: string
   match_id: string
+  proposer_id: string
   amount: number
   return_type: string
   status: string
   created_at: string
+  is_template?: boolean
+  template_name?: string
   roi_percent?: number
   revenue_percent?: number
   equity_percent?: number
   total_return_amount?: number
+  monthly_payment?: number
+  end_date?: string
+  reporting_frequency?: string
+  is_milestoned?: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  milestones?: any[]
+  has_voting_rights?: boolean
+  notes?: string
   biz_name?: string
   biz_initials?: string
   biz_color?: string
+  is_mine?: boolean
 }
 
-export async function getMyOffers(): Promise<InvestorOffer[]> {
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) return []
-  const { data } = await supabase
-    .from('offers')
-    .select(`
-      id, match_id, amount, return_type, status, created_at,
-      roi_percent:return_rate, revenue_percent, equity_percent, total_return_amount,
-      matches(businesses(name, initials, color))
-    `)
-    .eq('proposer_id', authUser.id)
-    .eq('is_template', false)
-    .order('created_at', { ascending: false })
-  if (!data) return []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data as any[]).map((o: any) => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapOffer(o: any, myId: string): InvestorOffer {
+  return {
     id:                  o.id,
     match_id:            o.match_id,
+    proposer_id:         o.proposer_id,
     amount:              o.amount,
     return_type:         o.return_type,
     status:              o.status,
     created_at:          o.created_at,
-    roi_percent:         o.roi_percent,
+    is_template:         o.is_template,
+    template_name:       o.template_name,
+    roi_percent:         o.return_rate ?? o.roi_percent,
     revenue_percent:     o.revenue_percent,
     equity_percent:      o.equity_percent,
     total_return_amount: o.total_return_amount,
+    monthly_payment:     o.monthly_payment,
+    end_date:            o.end_date,
+    reporting_frequency: o.reporting_frequency,
+    is_milestoned:       o.is_milestoned,
+    milestones:          o.milestones,
+    has_voting_rights:   o.has_voting_rights,
+    notes:               o.notes,
     biz_name:            o.matches?.businesses?.name,
     biz_initials:        o.matches?.businesses?.initials,
     biz_color:           o.matches?.businesses?.color,
-  }))
+    is_mine:             o.proposer_id === myId,
+  }
+}
+
+const OFFER_SELECT = `
+  id, match_id, proposer_id, amount, return_type, status, created_at,
+  is_template, template_name, return_rate, revenue_percent, equity_percent,
+  total_return_amount, monthly_payment, end_date, reporting_frequency,
+  is_milestoned, milestones, has_voting_rights, notes,
+  matches(businesses(name, initials, color))
+`
+
+export async function getMyOffers(): Promise<InvestorOffer[]> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return []
+
+  // Get investor record to find all match IDs
+  const { data: inv } = await supabase
+    .from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
+  if (!inv) return []
+
+  const { data: matchRows } = await supabase
+    .from('matches').select('id').eq('investor_id', inv.id)
+  if (!matchRows?.length) return []
+  const matchIds = matchRows.map((m: { id: string }) => m.id)
+
+  // Fetch all offers (sent + received) for those matches, excluding templates
+  const { data } = await supabase
+    .from('offers')
+    .select(OFFER_SELECT)
+    .in('match_id', matchIds)
+    .neq('status', 'template')
+    .order('created_at', { ascending: false })
+  if (!data) return []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).map(o => mapOffer(o, authUser.id))
+}
+
+export async function getMyTemplates(): Promise<InvestorOffer[]> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return []
+  const { data } = await supabase
+    .from('offers')
+    .select(OFFER_SELECT)
+    .eq('proposer_id', authUser.id)
+    .eq('status', 'template')
+    .order('created_at', { ascending: false })
+  if (!data) return []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).map(o => mapOffer(o, authUser.id))
 }
 
 // ── Issue Reports ─────────────────────────────────────────────────────────────

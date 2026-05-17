@@ -1,11 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { saveOffer, getMatchCounterpartyName } from '@/lib/db'
-import type { OfferTerms } from '@/lib/db'
+import { saveOffer, getMatchCounterpartyName, getMyTemplates } from '@/lib/db'
+import type { OfferTerms, InvestorOffer } from '@/lib/db'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 import { AppHeader } from '@/components/app/AppHeader'
-import { supabase } from '@/lib/supabase'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -115,6 +114,8 @@ export default function InvOfferPage() {
   const [counterparty,   setCounterparty]   = useState('')
   const [saving,         setSaving]         = useState(false)
   const [saveError,      setSaveError]      = useState('')
+  const [templates,      setTemplates]      = useState<InvestorOffer[]>([])
+  const [showTemplates,  setShowTemplates]  = useState(false)
 
   // ── Amount step state
   const [amountRaw,      setAmountRaw]      = useState('')
@@ -144,6 +145,7 @@ export default function InvOfferPage() {
 
   useEffect(() => {
     getMatchCounterpartyName(matchId, 'investor').then(setCounterparty)
+    getMyTemplates().then(setTemplates)
   }, [matchId])
 
   // ── Derived values
@@ -237,25 +239,31 @@ export default function InvOfferPage() {
     return base
   }
 
+  function loadTemplate(t: InvestorOffer) {
+    if (t.amount) setAmountRaw(t.amount.toLocaleString('en-NG'))
+    if (t.is_milestoned !== undefined) setMilestoned(t.is_milestoned)
+    if (t.milestones?.length) {
+      setNumMilestones(String(t.milestones.length))
+      setMilestones(t.milestones.map(m => ({ amount: m.amount.toLocaleString('en-NG') })))
+      setEqualAmounts(false)
+    }
+    if (t.return_type) setReturnType(t.return_type as ReturnType)
+    if (t.reporting_frequency) setFrequency(t.reporting_frequency as ReportingFreq)
+    if (t.total_return_amount) setTotalReturnRaw(t.total_return_amount.toLocaleString('en-NG'))
+    if (t.roi_percent) setRoiPct(String(t.roi_percent))
+    if (t.revenue_percent) setRevPct(String(t.revenue_percent))
+    if (t.equity_percent) setEquityPct(String(t.equity_percent))
+    if (t.has_voting_rights !== undefined) setVotingRights(t.has_voting_rights)
+    if (t.notes) setNotes(t.notes)
+    setShowTemplates(false)
+  }
+
   const handleSendOffer = async () => {
     if (saving) return
     setSaving(true)
     setSaveError('')
     try {
-      const offerId = await saveOffer(matchId, buildTerms())
-
-      // Insert chat message so the offer shows in the conversation
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (authUser) {
-        await supabase.from('messages').insert({
-          id: crypto.randomUUID(),
-          match_id: matchId,
-          sender_id: authUser.id,
-          content: `💰 Offer: ${fmtNaira(investmentAmount)}`,
-          content_type: 'offer',
-          ref_id: offerId,
-        })
-      }
+      await saveOffer(matchId, buildTerms())
       setStep('sent')
     } catch {
       setSaveError('Could not send offer. Please try again.')
@@ -285,6 +293,17 @@ export default function InvOfferPage() {
         leading={<RoundBtn onClick={() => router.back()}><Icon name="back" size={18} /></RoundBtn>}
         sticky
       />
+      {templates.length > 0 && (
+        <div style={{ padding: '0 16px 4px', marginBottom: 4 }}>
+          <button onClick={() => setShowTemplates(true)} style={{
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            fontSize: 13, color: 'var(--forest)', fontFamily: 'var(--font-body)',
+            display: 'flex', alignItems: 'center', gap: 4
+          }}>
+            Use a saved template <span style={{ fontSize: 16 }}>→</span>
+          </button>
+        </div>
+      )}
       <div className="scroll" style={{ flex: 1, padding: '24px 16px 32px' }}>
         <Field>
           <Label>Investment amount</Label>
@@ -369,6 +388,30 @@ export default function InvOfferPage() {
           Continue
         </PrimaryBtn>
       </div>
+      {showTemplates && (
+        <>
+          <div onClick={() => setShowTemplates(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(31,26,20,0.45)', zIndex: 199 }} />
+          <div style={{ position: 'fixed', bottom: 0, left: 'max(0px, calc(50vw - 195px))', right: 'max(0px, calc(50vw - 195px))', zIndex: 200, background: 'var(--cream)', borderRadius: '20px 20px 0 0', padding: '0 0 env(safe-area-inset-bottom, 32px)', maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 99, background: 'var(--line-strong)' }} />
+            </div>
+            <div style={{ padding: '4px 20px 12px', fontFamily: 'var(--font-display)', fontSize: 17 }}>Saved templates</div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 16px' }}>
+              {templates.map(t => (
+                <div key={t.id} onClick={() => loadTemplate(t)} style={{ padding: '14px 16px', borderRadius: 14, background: 'var(--bone)', border: '1px solid var(--line)', marginBottom: 10, cursor: 'pointer' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>{t.template_name || 'Unnamed template'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+                    {t.amount ? `₦${t.amount.toLocaleString('en-NG')}` : '—'} · {t.return_type?.replace('_', ' ')}
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => setShowTemplates(false)} style={{ width: '100%', padding: '12px', borderRadius: 12, border: '1px solid var(--line)', background: 'none', fontSize: 14, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-body)', marginTop: 4 }}>
+                Start from scratch
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 
