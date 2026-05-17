@@ -308,51 +308,6 @@ export default function BizOwnerEditPage() {
             ) : null}
           </div>
 
-          {/* Contracts & agreements */}
-          <div>
-            <p className="eyebrow" style={{ marginBottom: 8 }}>Contracts &amp; agreements</p>
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.05, marginBottom: 6 }}>Full legal name</div>
-                <input
-                  value={legalName}
-                  onChange={e => setLegalName(e.target.value)}
-                  placeholder="As it should appear in documents"
-                  style={inputStyle}
-                />
-              </div>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.05, marginBottom: 6 }}>Permanent address</div>
-                <textarea
-                  value={legalAddress}
-                  onChange={e => setLegalAddress(e.target.value)}
-                  placeholder="Full address as it should appear in documents"
-                  rows={3}
-                  style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }}
-                />
-              </div>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.05, marginBottom: 6 }}>Business name (for documents)</div>
-                <input
-                  value={legalBizName}
-                  onChange={e => setLegalBizName(e.target.value)}
-                  placeholder="Full legal business name"
-                  style={inputStyle}
-                />
-              </div>
-              <div style={{ padding: '12px 16px' }}>
-                <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.05, marginBottom: 6 }}>Business address (for documents)</div>
-                <textarea
-                  value={legalBizAddress}
-                  onChange={e => setLegalBizAddress(e.target.value)}
-                  placeholder="Registered business address"
-                  rows={3}
-                  style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }}
-                />
-              </div>
-            </div>
-          </div>
-
           {error && (
             <div style={{ background: 'var(--clay-tint)', border: '1px solid var(--clay)',
               borderRadius: 12, padding: '10px 14px', fontSize: 13, color: 'var(--clay)' }}>

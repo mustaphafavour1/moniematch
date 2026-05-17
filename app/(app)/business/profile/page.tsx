@@ -79,10 +79,11 @@ export default function BizProfilePage() {
 
       <div className="pad" style={{marginTop:14}}>
         <div className="card" style={{padding:0, overflow:'hidden'}}>
-          <ActionRow icon="calendar" label="Deal history"      onClick={() => {}} />
-          <ActionRow icon="doc"      label="Submitted reports" onClick={() => {}} />
-          <ActionRow icon="settings" label="Settings"          onClick={() => router.push('/business/settings')} />
-          <ActionRow icon="logout"   label="Sign out"          onClick={() => setSignOutConfirm(true)} danger />
+          <ActionRow icon="calendar"  label="Deal history"         onClick={() => {}} />
+          <ActionRow icon="doc"       label="Contract information" onClick={() => router.push('/business/contracts')} />
+          <ActionRow icon="clipboard" label="Submitted reports"   onClick={() => {}} />
+          <ActionRow icon="settings"  label="Settings"            onClick={() => router.push('/business/settings')} />
+          <ActionRow icon="logout"    label="Sign out"            onClick={() => setSignOutConfirm(true)} danger />
         </div>
       </div>
 

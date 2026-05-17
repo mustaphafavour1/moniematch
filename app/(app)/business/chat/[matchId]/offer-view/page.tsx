@@ -414,14 +414,14 @@ export default function BizOfferViewPage() {
         )}
 
         {/* Counter offer form (mode=counter) */}
-        {mode === 'counter' && !counterSent && (
+        {mode === 'counter' && !counterSent ? (
           <CounterOfferForm
             offer={offer}
             offerId={offerId}
             matchId={matchId}
             onDone={() => setCounterSent(true)}
           />
-        )}
+        ) : null}
 
         {/* Preview card */}
         <div style={{
