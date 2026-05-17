@@ -5,12 +5,6 @@ import { supabase } from '@/lib/supabase'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 import { AppHeader } from '@/components/app/AppHeader'
 
-const inputStyle: React.CSSProperties = {
-  width: '100%', fontSize: 14, color: 'var(--ink)',
-  background: 'transparent', border: 'none', outline: 'none',
-  fontFamily: 'var(--font-body)',
-}
-
 export default function InvContractsPage() {
   const router = useRouter()
 
@@ -24,22 +18,23 @@ export default function InvContractsPage() {
   const [saved,        setSaved]        = useState(false)
   const [error,        setError]        = useState('')
 
-  const canvasRef   = useRef<HTMLCanvasElement>(null)
+  const canvasRef    = useRef<HTMLCanvasElement>(null)
   const isDrawingRef = useRef(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
-      const { data } = await supabase.from('users').select('legal_name, legal_address, signature_url').eq('id', user.id).maybeSingle()
+      const { data } = await supabase.from('users').select('legal_name, legal_address').eq('id', user.id).maybeSingle()
       if (data) {
         setLegalName(data.legal_name || '')
         setLegalAddress(data.legal_address || '')
-        if (data.signature_url) setExistingSig(data.signature_url)
       }
+      // Always regenerate fresh signed URL (stored URL may expire)
+      const { data: sigUrl } = await supabase.storage.from('signatures').createSignedUrl(`${user.id}/signature.png`, 3600)
+      if (sigUrl?.signedUrl) setExistingSig(sigUrl.signedUrl)
     })
   }, [])
 
-  // Canvas drawing
   function getPos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
     const rect = canvas.getBoundingClientRect()
     const src = 'touches' in e ? e.touches[0] : e
@@ -111,6 +106,16 @@ export default function InvContractsPage() {
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', fontSize: 14, color: 'var(--ink)',
+    background: 'transparent', border: 'none', outline: 'none',
+    fontFamily: 'var(--font-body)',
+  }
+  const fieldWrap: React.CSSProperties = {
+    background: 'var(--bone)', border: '1px solid var(--line-strong)',
+    borderRadius: 14, padding: '12px 16px',
+  }
+
   return (
     <div className="app-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <AppHeader
@@ -121,25 +126,33 @@ export default function InvContractsPage() {
 
       <div className="scroll" style={{ flex: 1, padding: '20px 20px 40px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-        {/* Legal identity */}
-        <div>
-          <div className="eyebrow" style={{ marginBottom: 10 }}>Legal identity</div>
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
-              <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.05, marginBottom: 6 }}>Full legal name</div>
+        {/* Top notice */}
+        <div style={{ background: 'var(--linen)', border: '1px solid var(--line-strong)',
+          borderRadius: 12, padding: '12px 14px', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+          All details filled on this page should be as they should appear on all legal documentations, contracts and agreements.
+        </div>
+
+        {/* Personal legal identity */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="eyebrow">Legal identity</div>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 8, textTransform: 'none', fontSize: 13, color: 'var(--ink-2)' }}>Full legal name</p>
+            <div style={fieldWrap}>
               <input
                 value={legalName}
                 onChange={e => setLegalName(e.target.value)}
-                placeholder="As it should appear in documents"
+                placeholder="e.g. Oluwaseun Adeyemi"
                 style={inputStyle}
               />
             </div>
-            <div style={{ padding: '14px 16px' }}>
-              <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.05, marginBottom: 6 }}>Permanent address</div>
+          </div>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 8, textTransform: 'none', fontSize: 13, color: 'var(--ink-2)' }}>Permanent address</p>
+            <div style={fieldWrap}>
               <textarea
                 value={legalAddress}
                 onChange={e => setLegalAddress(e.target.value)}
-                placeholder="Full address as it should appear in documents"
+                placeholder="Your full permanent address"
                 rows={3}
                 style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }}
               />
@@ -177,7 +190,7 @@ export default function InvContractsPage() {
               </button>
             ) : null}
 
-            {showPad && (
+            {showPad ? (
               <div>
                 <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 8 }}>Draw your signature below</div>
                 <canvas
@@ -205,22 +218,22 @@ export default function InvContractsPage() {
                   </button>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {error && (
+        {error ? (
           <div style={{ background: 'var(--clay-tint)', border: '1px solid var(--clay)',
             borderRadius: 12, padding: '10px 14px', fontSize: 13, color: 'var(--clay)' }}>
             {error}
           </div>
-        )}
-        {saved && (
+        ) : null}
+        {saved ? (
           <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0',
             borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#065f46' }}>
             Saved successfully.
           </div>
-        )}
+        ) : null}
       </div>
 
       <div style={{ padding: '12px 20px 28px', borderTop: '1px solid var(--line)', background: 'var(--cream)' }}>

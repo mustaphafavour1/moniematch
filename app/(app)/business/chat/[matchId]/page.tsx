@@ -176,7 +176,7 @@ export default function BizChatConvPage() {
                       {!isMine && <Avatar name={name} initials={initials} color={color} size={28} />}
                       <div style={{ maxWidth: '72%' }}>
                         {isSpecial ? (
-                          <BizSpecialBubble msg={m} isMine={isMine} />
+                          <BizSpecialBubble msg={m} isMine={isMine} matchId={matchId} />
                         ) : (
                           <div style={{
                             padding: '10px 14px',
@@ -228,18 +228,20 @@ export default function BizChatConvPage() {
   )
 }
 
-function BizSpecialBubble({ msg, isMine }: { msg: ChatMessage; isMine: boolean }) {
+function BizSpecialBubble({ msg, isMine, matchId }: { msg: ChatMessage; isMine: boolean; matchId: string }) {
+  const router   = useRouter()
   const [sheet, setSheet] = useState<Record<string, unknown> | null>(null)
   const isReport = msg.content_type === 'report'
 
   async function open() {
     if (!msg.ref_id) return
-    const table = isReport ? 'business_reports' : 'offers'
-    const { data } = await supabase.from(table).select('*').eq('id', msg.ref_id).maybeSingle()
+    if (!isReport) {
+      router.push(`/business/chat/${matchId}/offer-view?offerId=${msg.ref_id}&mode=view`)
+      return
+    }
+    const { data } = await supabase.from('business_reports').select('*').eq('id', msg.ref_id).maybeSingle()
     if (data) setSheet(data as Record<string, unknown>)
   }
-
-  const fmtN = (n: number) => '₦' + n.toLocaleString()
 
   return (
     <>
@@ -260,7 +262,7 @@ function BizSpecialBubble({ msg, isMine }: { msg: ChatMessage; isMine: boolean }
         <Icon name="fwd" size={13} color={isMine ? 'rgba(255,255,255,0.6)' : 'var(--ink-4)'} style={{ marginLeft: 'auto' }} />
       </button>
 
-      {sheet && (
+      {sheet ? (
         <>
           <div onClick={() => setSheet(null)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(31,26,20,0.45)', zIndex: 100 }} />
@@ -274,43 +276,22 @@ function BizSpecialBubble({ msg, isMine }: { msg: ChatMessage; isMine: boolean }
               <div style={{ width: 36, height: 4, borderRadius: 99, background: 'var(--line-strong)' }} />
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 22px 24px' }}>
-              {isReport ? (
-                <>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-                    {(sheet.title as string) || 'Report'}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-4)', marginBottom: 16 }}>
-                    {new Date(sheet.created_at as string).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </div>
-                  <pre style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink)', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
-                    {(sheet.content as string) || 'No content'}
-                  </pre>
-                  <button onClick={() => window.print()} style={{ marginTop: 20, background: 'none', border: '1px solid var(--line-strong)', borderRadius: 8, padding: '8px 16px', fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                    Print / Save PDF
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>Offer details</div>
-                  {[
-                    ['Amount', fmtN(sheet.amount as number)],
-                    ['Return type', (sheet.return_type as string)?.replace('_', ' ')],
-                    sheet.total_return_amount ? ['Total return', fmtN(sheet.total_return_amount as number)] : null,
-                    sheet.roi_percent ? ['ROI', `${sheet.roi_percent}%`] : null,
-                    sheet.equity_percent ? ['Equity', `${sheet.equity_percent}%`] : null,
-                    sheet.revenue_percent ? ['Revenue share', `${sheet.revenue_percent}%`] : null,
-                  ].filter(Boolean).map(row => (
-                    <div key={row![0]} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
-                      <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>{row![0]}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{row![1]}</span>
-                    </div>
-                  ))}
-                </>
-              )}
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
+                {(sheet.title as string) || 'Report'}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ink-4)', marginBottom: 16 }}>
+                {new Date(sheet.created_at as string).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </div>
+              <pre style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink)', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
+                {(sheet.content as string) || 'No content'}
+              </pre>
+              <button onClick={() => window.print()} style={{ marginTop: 20, background: 'none', border: '1px solid var(--line-strong)', borderRadius: 8, padding: '8px 16px', fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                Print / Save PDF
+              </button>
             </div>
           </div>
         </>
-      )}
+      ) : null}
     </>
   )
 }

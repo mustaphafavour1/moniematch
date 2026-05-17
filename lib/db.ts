@@ -47,6 +47,7 @@ export function adaptBusiness(biz: any, matchScore = 0): Business {
     monthlyRevenue:   { min: 200_000, max: 800_000 },
     tags:             ['ID Verified', 'Active Business', 'Bank Linked'],
     pitch:            biz.description || '',
+    banner_url:       biz.banner_url || null,
   }
 }
 
@@ -818,6 +819,20 @@ export async function uploadBusinessFile(file: File, docType: string): Promise<B
   return { id, business_id: biz.id, uploader_id: authUser.id, doc_type: docType, item_type: 'file',
     file_name: file.name, file_url: publicUrl, storage_path: path, file_size: file.size,
     is_verified: false, uploaded_at: new Date().toISOString() }
+}
+
+export async function uploadBusinessBanner(file: File): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', user.id).maybeSingle()
+  if (!biz) throw new Error('No business found')
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `${biz.id}/banner.${ext}`
+  const { error: upErr } = await supabase.storage.from('business-photos').upload(path, file, { upsert: true, contentType: file.type })
+  if (upErr) throw upErr
+  const { data: { publicUrl } } = supabase.storage.from('business-photos').getPublicUrl(path)
+  await supabase.from('businesses').update({ banner_url: publicUrl }).eq('id', biz.id)
+  return publicUrl
 }
 
 export async function addBusinessLink(url: string, title: string, docType: string): Promise<BusinessDocument> {
