@@ -5,6 +5,7 @@ import { saveOffer, getMatchCounterpartyName } from '@/lib/db'
 import type { OfferTerms } from '@/lib/db'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 import { AppHeader } from '@/components/app/AppHeader'
+import { supabase } from '@/lib/supabase'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ function TextInput({ value, onChange, placeholder, prefix, type = 'text', style 
     <div style={{
       display: 'flex', alignItems: 'center',
       background: 'var(--bone)', border: '1px solid var(--line-strong)',
-      borderRadius: 12, padding: '11px 14px', gap: 6, ...style,
+      borderRadius: 12, padding: '11px 14px', gap: 6, minWidth: 0, width: '100%', ...style,
     }}>
       {prefix && <span style={{ fontSize: 15, color: 'var(--ink-3)', flexShrink: 0 }}>{prefix}</span>}
       <input value={value} type={type} onChange={e => onChange(e.target.value)}
@@ -241,7 +242,20 @@ export default function InvOfferPage() {
     setSaving(true)
     setSaveError('')
     try {
-      await saveOffer(matchId, buildTerms())
+      const offerId = await saveOffer(matchId, buildTerms())
+
+      // Insert chat message so the offer shows in the conversation
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (authUser) {
+        await supabase.from('messages').insert({
+          id: crypto.randomUUID(),
+          match_id: matchId,
+          sender_id: authUser.id,
+          content: `💰 Offer: ${fmtNaira(investmentAmount)}`,
+          content_type: 'offer',
+          ref_id: offerId,
+        })
+      }
       setStep('sent')
     } catch {
       setSaveError('Could not send offer. Please try again.')

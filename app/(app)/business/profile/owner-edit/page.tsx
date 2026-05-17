@@ -3,13 +3,16 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMyProfile, uploadAvatar } from '@/lib/db'
 import { saveProfile } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 import { AppHeader } from '@/components/app/AppHeader'
 import { Avatar } from '@/components/app/Avatar'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 
 export default function BizOwnerEditPage() {
   const router  = useRouter()
-  const fileRef = useRef<HTMLInputElement>(null)
+  const fileRef    = useRef<HTMLInputElement>(null)
+  const canvasRef  = useRef<HTMLCanvasElement>(null)
+  const isDrawingRef = useRef(false)
 
   const [name,      setName]      = useState('')
   const [phone,     setPhone]     = useState('')
@@ -22,6 +25,10 @@ export default function BizOwnerEditPage() {
   const [saving,    setSaving]    = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error,     setError]     = useState('')
+  const [showPad,   setShowPad]   = useState(false)
+  const [hasDrawn,  setHasDrawn]  = useState(false)
+  const [existingSig, setExistingSig] = useState('')
+  const [savingSig, setSavingSig] = useState(false)
 
   useEffect(() => {
     getMyProfile().then(p => {
@@ -34,6 +41,12 @@ export default function BizOwnerEditPage() {
       setAvatarUrl(p.avatar_url || '')
       setInitials(p.initials || '?')
       setColor(p.color || 'var(--forest)')
+      // load existing signature via signed URL
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return
+        supabase.storage.from('signatures').createSignedUrl(`${user.id}/signature.png`, 3600)
+          .then(({ data }) => { if (data?.signedUrl) setExistingSig(data.signedUrl) })
+      })
     })
   }, [])
 
@@ -72,6 +85,69 @@ export default function BizOwnerEditPage() {
       console.warn('[MM] save owner profile:', err)
     }
     setSaving(false)
+  }
+
+  function startDraw(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    isDrawingRef.current = true
+    const rect = canvas.getBoundingClientRect()
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.beginPath()
+    ctx.moveTo(clientX - rect.left, clientY - rect.top)
+  }
+
+  function draw(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    if (!isDrawingRef.current) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.lineTo(clientX - rect.left, clientY - rect.top)
+    ctx.strokeStyle = '#1a4fd6'
+    ctx.lineWidth = 2
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+    setHasDrawn(true)
+  }
+
+  function stopDraw() { isDrawingRef.current = false }
+
+  function clearCanvas() {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    setHasDrawn(false)
+  }
+
+  async function saveSignature() {
+    const canvas = canvasRef.current
+    if (!canvas || !hasDrawn) return
+    setSavingSig(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not signed in')
+      const blob = await new Promise<Blob>((res, rej) => canvas.toBlob(b => b ? res(b) : rej(), 'image/png'))
+      const path = `${user.id}/signature.png`
+      const { error: upErr } = await supabase.storage.from('signatures').upload(path, blob, { upsert: true, contentType: 'image/png' })
+      if (upErr) throw upErr
+      const { data: signed } = await supabase.storage.from('signatures').createSignedUrl(path, 3600)
+      const url = signed?.signedUrl || ''
+      await supabase.from('users').update({ signature_url: url }).eq('id', user.id)
+      setExistingSig(url)
+      setShowPad(false)
+      setHasDrawn(false)
+    } catch (e) { console.warn('sig save:', e) }
+    setSavingSig(false)
   }
 
   const inputStyle: React.CSSProperties = {
@@ -158,6 +234,66 @@ export default function BizOwnerEditPage() {
               <input value={city} onChange={e => setCity(e.target.value)}
                 placeholder="e.g. Lekki" style={inputStyle} />
             </div>
+          </div>
+
+          {/* Signature */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <p className="eyebrow" style={{ margin: 0 }}>Signature</p>
+              {existingSig && !showPad && (
+                <button onClick={() => { setShowPad(true); setHasDrawn(false) }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-body)' }}>
+                  Redo
+                </button>
+              )}
+            </div>
+
+            {existingSig && !showPad ? (
+              <div style={{ background: 'var(--bone)', border: '1px solid var(--line-strong)', borderRadius: 14, padding: '12px 16px' }}>
+                <img src={existingSig} alt="signature"
+                  style={{ maxWidth: '100%', maxHeight: 80, objectFit: 'contain',
+                    filter: 'invert(30%) sepia(100%) saturate(500%) hue-rotate(180deg) brightness(0.8)' }} />
+              </div>
+            ) : showPad || !existingSig ? (
+              <div>
+                {!showPad && (
+                  <button onClick={() => setShowPad(true)}
+                    style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed var(--line-strong)',
+                      background: 'var(--bone)', cursor: 'pointer', fontSize: 14, color: 'var(--ink-3)',
+                      fontFamily: 'var(--font-body)' }}>
+                    + Add signature
+                  </button>
+                )}
+                {showPad && (
+                  <div style={{ background: 'var(--bone)', border: '1px solid var(--line-strong)', borderRadius: 14, overflow: 'hidden' }}>
+                    <div style={{ padding: '8px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>Draw your signature below</span>
+                      <button onClick={clearCanvas}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-body)' }}>
+                        Clear
+                      </button>
+                    </div>
+                    <canvas ref={canvasRef} width={320} height={100}
+                      style={{ display: 'block', width: '100%', height: 100, cursor: 'crosshair', touchAction: 'none' }}
+                      onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
+                      onTouchStart={e => { e.preventDefault(); startDraw(e) }}
+                      onTouchMove={e => { e.preventDefault(); draw(e) }}
+                      onTouchEnd={stopDraw}
+                    />
+                    <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button onClick={saveSignature} disabled={!hasDrawn || savingSig}
+                        style={{ padding: '8px 20px', borderRadius: 10, border: 'none',
+                          background: hasDrawn ? 'var(--forest)' : 'var(--linen)',
+                          color: hasDrawn ? '#fff' : 'var(--ink-4)',
+                          fontSize: 13, fontWeight: 600, cursor: hasDrawn ? 'pointer' : 'not-allowed',
+                          fontFamily: 'var(--font-body)' }}>
+                        {savingSig ? 'Saving…' : 'Save signature'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
 
           {error && (
