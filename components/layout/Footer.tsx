@@ -24,7 +24,7 @@ const companyLinks = [
 const legalLinks = [
   { label: 'Privacy Policy',  href: '/privacy' },
   { label: 'Terms of Use',    href: '/terms' },
-  { label: 'Risk Disclosure', href: '#' },
+  { label: 'Risk Disclosure', href: '/risk-disclosure' },
 ]
 
 function FooterCol({ title, links }: { title: string; links: { label: string; href: string }[] }) {

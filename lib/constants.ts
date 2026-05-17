@@ -2,8 +2,9 @@ import type { NavLink, FeatureCard, ProblemPair, HowItWorksStep, FAQItem, AlgoRo
 
 export const NAV_LINKS: NavLink[] = [
   { label: 'How it works', href: '#how-it-works' },
-  { label: 'Contact Us',   href: '#contact' },
-  { label: 'About',        href: '#about-us' },
+  { label: 'Features',     href: '/features' },
+  { label: 'About',        href: '/about' },
+  { label: 'Contact Us',   href: '/contact' },
   { label: 'FAQ',          href: '#faq' },
   { label: 'Sign In',      href: '/signin' },
 ]

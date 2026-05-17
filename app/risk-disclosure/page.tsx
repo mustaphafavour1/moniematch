@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import Nav from '@/components/layout/Nav'
+import Footer from '@/components/layout/Footer'
 
 export const metadata: Metadata = {
   title: 'Legal & Risk Disclosure — MonieMatch',
@@ -60,25 +62,20 @@ const SECTIONS = [
 
 export default function RiskDisclosurePage() {
   return (
-    <div style={{ background: 'var(--snow)', minHeight: '100vh' }}>
-      {/* Nav */}
-      <nav style={{ padding: '20px var(--pad)', borderBottom: '1px solid rgba(28,24,19,.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'var(--ink)' }}>
-          ← <span style={{ fontWeight: 700 }}>MonieMatch</span>
-        </Link>
-      </nav>
+    <div style={{ background: 'var(--cream)', minHeight: '100vh' }}>
+      <Nav />
 
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '72px var(--pad) 96px' }}>
-        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#C0392B' }}>Important</span>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '80px var(--pad) 96px', paddingTop: '80px' }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--forest)' }}>Important</span>
         <h1 style={{ fontSize: 'clamp(32px,4vw,52px)', fontWeight: 800, letterSpacing: '-1.5px', margin: '12px 0 8px' }}>
           Legal &amp; Risk Disclosure
         </h1>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 20 }}>Last updated: January 2026</p>
 
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, padding: '16px 20px', marginBottom: 48 }}>
-          <p style={{ margin: 0, fontSize: 14, color: '#7f1d1d', lineHeight: 1.65, fontWeight: 500 }}>
-            Investing in small businesses carries significant risk, including the potential loss of your entire investment.
-            Please read this disclosure carefully before investing through MonieMatch.
+        <div style={{ background: '#f0faf5', border: '1px solid rgba(34,139,87,0.25)', borderRadius: 14, padding: '16px 20px', marginBottom: 48 }}>
+          <p style={{ margin: 0, fontSize: 14, color: '#0f4c2a', lineHeight: 1.65, fontWeight: 500 }}>
+            Investing in small businesses involves risk, and returns are never guaranteed or fully predictable.
+            Please take a moment to carefully review this disclosure before investing in any business through MonieMatch.
           </p>
         </div>
 
@@ -99,6 +96,7 @@ export default function RiskDisclosurePage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

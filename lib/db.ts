@@ -718,7 +718,7 @@ export async function getMyOffers(): Promise<InvestorOffer[]> {
       .from('offers')
       .select(OFFER_SELECT)
       .in('match_id', matchIds)
-      .neq('status', 'template')
+      .eq('is_template', false)
       .order('created_at', { ascending: false })
     if (data?.length) return (data as any[]).map(o => mapOffer(o, authUser.id))  // eslint-disable-line @typescript-eslint/no-explicit-any
   }
@@ -728,7 +728,7 @@ export async function getMyOffers(): Promise<InvestorOffer[]> {
     .from('offers')
     .select(OFFER_SELECT)
     .eq('proposer_id', authUser.id)
-    .neq('status', 'template')
+    .eq('is_template', false)
     .order('created_at', { ascending: false })
   if (!fallback) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -742,7 +742,7 @@ export async function getMyTemplates(): Promise<InvestorOffer[]> {
     .from('offers')
     .select(OFFER_SELECT)
     .eq('proposer_id', authUser.id)
-    .eq('status', 'template')
+    .eq('is_template', true)
     .order('created_at', { ascending: false })
   if (!data) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -856,13 +856,15 @@ export async function addBusinessLink(url: string, title: string, docType: strin
   const id = crypto.randomUUID()
   const { error } = await supabase.from('business_documents').insert({
     id,
-    business_id: biz.id,
-    uploader_id: authUser.id,
-    doc_type:    docType,
-    item_type:   'link',
-    file_name:   title,
-    file_url:    url,
-    uploaded_at: new Date().toISOString(),
+    business_id:  biz.id,
+    uploader_id:  authUser.id,
+    doc_type:     docType,
+    item_type:    'link',
+    file_name:    title,
+    file_url:     url,
+    storage_path: '',
+    link_title:   title,
+    uploaded_at:  new Date().toISOString(),
   })
   if (error) throw error
   return { id, business_id: biz.id, uploader_id: authUser.id, doc_type: docType, item_type: 'link',

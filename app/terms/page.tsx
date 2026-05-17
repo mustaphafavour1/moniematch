@@ -1,5 +1,6 @@
-import Link from 'next/link'
 import type { Metadata } from 'next'
+import Nav from '@/components/layout/Nav'
+import Footer from '@/components/layout/Footer'
 
 export const metadata: Metadata = {
   title: 'Terms of Use — MonieMatch',
@@ -7,14 +8,10 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div style={{ background: 'var(--snow)', minHeight: '100vh' }}>
-      <nav style={{ padding: '20px var(--pad)', borderBottom: '1px solid rgba(28,24,19,.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'var(--ink)' }}>
-          ← <span style={{ fontWeight: 700 }}>MonieMatch</span>
-        </Link>
-      </nav>
+    <div style={{ background: 'var(--cream)', minHeight: '100vh' }}>
+      <Nav />
 
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '72px var(--pad) 96px' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '80px var(--pad) 96px', paddingTop: '80px' }}>
         <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--gold)' }}>Legal</span>
         <h1 style={{ fontSize: 'clamp(32px,4vw,52px)', fontWeight: 800, letterSpacing: '-1.5px', margin: '12px 0 8px' }}>Terms of Use</h1>
         <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 56 }}>Last updated: January 2026</p>
@@ -26,6 +23,7 @@ export default function TermsPage() {
           </section>
         ))}
       </div>
+      <Footer />
     </div>
   )
 }
