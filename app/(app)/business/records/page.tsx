@@ -226,7 +226,7 @@ function ReportsTab() {
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--ink)' }}>
                 {viewing.title || 'Report'}
               </span>
-              <button onClick={() => printReport(viewing.title, viewing.created_at, viewing.content)} style={{ background: 'none', border: '1px solid var(--line-strong)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              <button onClick={() => printReport(viewing.title || 'Report', viewing.created_at, viewing.content || '')} style={{ background: 'none', border: '1px solid var(--line-strong)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                 Print / PDF
               </button>
             </div>
