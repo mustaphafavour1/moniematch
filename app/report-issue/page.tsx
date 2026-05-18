@@ -2,7 +2,14 @@
 import { useState } from 'react'
 import Nav from '@/components/layout/Nav'
 import Footer from '@/components/layout/Footer'
-import { GOOGLE_FORMS } from '@/lib/constants'
+
+const REPORT_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe7mIv-4OL28jgYM6Cfi1oZKoAc4NEeVdsysupSuI6y8gSvzQ/formResponse'
+const REPORT_FIELDS = {
+  name:        'entry.1116456308',
+  email:       'entry.1153694053',
+  category:    'entry.732858385',
+  description: 'entry.1017287598',
+}
 
 const CATEGORIES = [
   'App bug',
@@ -49,13 +56,13 @@ export default function ReportIssuePage() {
     setSending(true)
 
     const fd = new FormData()
-    fd.append(GOOGLE_FORMS.contact.fields.name,    data.get('name')     as string)
-    fd.append(GOOGLE_FORMS.contact.fields.email,   data.get('email')    as string)
-    fd.append(GOOGLE_FORMS.contact.fields.role,    data.get('category') as string)
-    fd.append(GOOGLE_FORMS.contact.fields.message, data.get('description') as string)
+    fd.append(REPORT_FIELDS.name,        data.get('name')        as string)
+    fd.append(REPORT_FIELDS.email,       data.get('email')       as string)
+    fd.append(REPORT_FIELDS.category,    data.get('category')    as string)
+    fd.append(REPORT_FIELDS.description, data.get('description') as string)
 
     try {
-      await fetch(GOOGLE_FORMS.contact.url, { method: 'POST', body: fd, mode: 'no-cors' })
+      await fetch(REPORT_FORM_URL, { method: 'POST', body: fd, mode: 'no-cors' })
     } catch (_) {}
 
     setSending(false)

@@ -95,24 +95,13 @@ export default function AboutPage() {
 
           {/* Story: image left, text right */}
           <div className="about-smv" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56 }}>
-            {/* Story image placeholder */}
-            <div style={{
-              background: 'linear-gradient(135deg, var(--ink) 0%, #2a2418 100%)',
-              borderRadius: 20,
-              aspectRatio: '4/3',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8,
-            }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: '50%',
-                background: 'var(--amber)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 16, fontWeight: 800, color: 'var(--ink)',
-              }}>
-                MM
-              </div>
-              <p style={{ fontSize: 13, color: 'rgba(247,241,232,0.35)', margin: 0, textAlign: 'center', padding: '0 16px' }}>
-                Add image to /public/images/about-story.jpg
-              </p>
-            </div>
+            {/* Story image */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/about-story.jpg"
+              alt="Our story"
+              style={{ borderRadius: 20, width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }}
+            />
 
             {/* Story text */}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -159,24 +148,13 @@ export default function AboutPage() {
               </div>
             </div>
 
-            {/* Vision image placeholder */}
-            <div style={{
-              background: 'linear-gradient(135deg, var(--ink) 0%, #2a2418 100%)',
-              borderRadius: 20,
-              aspectRatio: '4/3',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8,
-            }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: '50%',
-                background: 'var(--amber)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 16, fontWeight: 800, color: 'var(--ink)',
-              }}>
-                MM
-              </div>
-              <p style={{ fontSize: 13, color: 'rgba(247,241,232,0.35)', margin: 0, textAlign: 'center', padding: '0 16px' }}>
-                Add image to /public/images/about-vision.jpg
-              </p>
-            </div>
+            {/* Vision image */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/about-vision.jpg"
+              alt="Our vision"
+              style={{ borderRadius: 20, width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }}
+            />
           </div>
 
         </div>
