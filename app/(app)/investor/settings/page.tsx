@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSettings, saveSettings } from '@/lib/auth'
+import { getSettings, saveSettings, setInvestorAllowContact } from '@/lib/auth'
 import { AppHeader } from '@/components/app/AppHeader'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 
@@ -30,10 +30,26 @@ export default function InvSettingsPage() {
   const [saved,    setSaved]    = useState(false)
 
   useEffect(() => {
-    getSettings().then(raw => {
-      if (raw && Object.keys(raw).length > 0) {
-        setSettings({ ...DEFAULTS, ...raw as Partial<Settings> })
-      }
+    Promise.all([
+      getSettings(),
+      import('@/lib/supabase').then(({ supabase }) =>
+        supabase.auth.getUser().then(async ({ data: { user } }) => {
+          if (!user) return null
+          const { data: row } = await supabase.from('users').select('id')
+            .or(`id.eq.${user.id},auth_uid.eq.${user.id}`).maybeSingle()
+          const profileId = row?.id || user.id
+          const { data: inv } = await supabase.from('investors').select('allow_biz_msg')
+            .eq('user_id', profileId).maybeSingle()
+          return inv
+        })
+      ),
+    ]).then(([raw, inv]) => {
+      const base = raw && Object.keys(raw).length > 0 ? raw as Partial<Settings> : {}
+      setSettings({
+        ...DEFAULTS,
+        ...base,
+        privacy_can_contact: inv?.allow_biz_msg ?? DEFAULTS.privacy_can_contact,
+      })
     })
   }, [])
 
@@ -43,6 +59,9 @@ export default function InvSettingsPage() {
     setSaving(true)
     try {
       await saveSettings(next as unknown as Record<string, unknown>)
+      if (key === 'privacy_can_contact') {
+        await setInvestorAllowContact(next.privacy_can_contact)
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 1800)
     } catch { /* ignore — optimistic UI already updated */ }

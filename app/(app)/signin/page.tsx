@@ -19,7 +19,8 @@ export default function SigninPage() {
       await signIn(emailOrUser, password)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Sign in failed.')
-      const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+      const { data: profile } = await supabase.from('users').select('role')
+        .or(`id.eq.${user.id},auth_uid.eq.${user.id}`).maybeSingle()
       if (profile?.role === 'business_owner') { router.replace('/business'); return }
       router.replace('/investor')
     } catch (err: unknown) {

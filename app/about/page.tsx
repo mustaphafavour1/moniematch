@@ -9,13 +9,13 @@ export const metadata: Metadata = {
 }
 
 const CORE_VALUES = [
-  { label: 'Innovation',            desc: 'We build what has never been built for this market.' },
-  { label: 'Speed',                 desc: 'Fast matches, fast deals, fast growth.' },
-  { label: 'User-Focus',            desc: 'Every feature is driven by real user feedback.' },
-  { label: 'Financial Safety',      desc: 'Protecting investor capital is non-negotiable.' },
-  { label: 'Community Development', desc: 'We grow when the businesses around us grow.' },
-  { label: 'Internetworking',       desc: 'Connecting people, capital, and opportunity.' },
-  { label: 'Excellence',            desc: 'Good enough is never good enough for us.' },
+  { label: 'Innovation',            desc: 'We\'re building modern investment infrastructure for a market long overlooked — using technology to make small business investing more accessible, structured, and trusted.' },
+  { label: 'Speed',                 desc: 'Opportunities move fast, and so do we — from product development to business discovery and investor connections.' },
+  { label: 'User-Focus',            desc: 'Every feature, improvement, and decision is shaped by real user needs, feedback, and behavior.' },
+  { label: 'Financial Safety',      desc: 'Trust comes first. We prioritize transparency, verification, and secure transaction processes at every stage.' },
+  { label: 'Community Development', desc: 'When small businesses grow, communities grow with them. We\'re building for shared economic progress.' },
+  { label: 'Internetworking',       desc: 'Great opportunities happen through connection — linking people, capital, ambition, and growth together.' },
+  { label: 'Excellence',            desc: 'We hold ourselves to a high standard because building trust requires quality, consistency, and attention to detail.' },
 ]
 
 const TEAM_MEMBERS = [
@@ -91,46 +91,94 @@ export default function AboutPage() {
 
       {/* Story / Mission / Vision */}
       <section style={{ padding: '96px 0', background: '#fff' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 var(--pad)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56 }}>
-          <div>
-            <span style={{
-              display: 'inline-block', fontSize: 10.5, fontWeight: 700, letterSpacing: 2,
-              textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 16,
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 var(--pad)', display: 'flex', flexDirection: 'column', gap: 80 }}>
+
+          {/* Story: image left, text right */}
+          <div className="about-smv" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56 }}>
+            {/* Story image placeholder */}
+            <div style={{
+              background: 'linear-gradient(135deg, var(--ink) 0%, #2a2418 100%)',
+              borderRadius: 20,
+              aspectRatio: '4/3',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8,
             }}>
-              Our Story
-            </span>
-            <p style={{ fontSize: 15.5, color: 'var(--dim)', lineHeight: 1.82 }}>
-              MonieMatch was built by fellow mini-investors to serve small businesses and connect them to capital for growth. Our founder is also MonieMatch&apos;s first investor — he used the product to make an actual investment in a small business.
-            </p>
-            <p style={{ fontSize: 15.5, color: 'var(--dim)', lineHeight: 1.82, marginTop: 16 }}>
-              The platform was built based on real feedback and input from current investors who have invested and are currently investing millions of naira into small businesses. Some have experienced the typical losses that come with informal small business investing. MonieMatch exists to prevent that from happening again.
-            </p>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                background: 'var(--amber)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, fontWeight: 800, color: 'var(--ink)',
+              }}>
+                MM
+              </div>
+              <p style={{ fontSize: 13, color: 'rgba(247,241,232,0.35)', margin: 0, textAlign: 'center', padding: '0 16px' }}>
+                Add image to /public/images/about-story.jpg
+              </p>
+            </div>
+
+            {/* Story text */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span style={{
+                display: 'inline-block', fontSize: 10.5, fontWeight: 700, letterSpacing: 2,
+                textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 16,
+              }}>
+                Our Story
+              </span>
+              <p style={{ fontSize: 15.5, color: 'var(--dim)', lineHeight: 1.82 }}>
+                MonieMatch was built by fellow mini-investors to serve small businesses and connect them to capital for growth. Our founder is also MonieMatch&apos;s first investor — he used the product to make an actual investment in a small business.
+              </p>
+              <p style={{ fontSize: 15.5, color: 'var(--dim)', lineHeight: 1.82, marginTop: 16 }}>
+                The platform was built based on real feedback and input from current investors who have invested and are currently investing millions of naira into small businesses. Some have experienced the typical losses that come with informal small business investing. MonieMatch exists to prevent that from happening again.
+              </p>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-            <div>
-              <span style={{
-                display: 'inline-block', fontSize: 10.5, fontWeight: 700, letterSpacing: 2,
-                textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 14,
-              }}>
-                Our Mission
-              </span>
-              <p style={{ fontSize: 15.5, color: 'var(--dim)', lineHeight: 1.78 }}>
-                To help investors get great value for their money, and help businesses grow through access to capital and tools that make it easy for businesses to keep their end of the deal.
-              </p>
+          {/* Mission & Vision: text left, image right */}
+          <div className="about-smv" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56 }}>
+            {/* Mission & Vision text */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 40, justifyContent: 'center' }}>
+              <div>
+                <span style={{
+                  display: 'inline-block', fontSize: 10.5, fontWeight: 700, letterSpacing: 2,
+                  textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 14,
+                }}>
+                  Our Mission
+                </span>
+                <p style={{ fontSize: 15.5, color: 'var(--dim)', lineHeight: 1.78 }}>
+                  To help investors get great value for their money, and help businesses grow through access to capital and tools that make it easy for businesses to keep their end of the deal.
+                </p>
+              </div>
+              <div>
+                <span style={{
+                  display: 'inline-block', fontSize: 10.5, fontWeight: 700, letterSpacing: 2,
+                  textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 14,
+                }}>
+                  Our Vision
+                </span>
+                <p style={{ fontSize: 15.5, color: 'var(--dim)', lineHeight: 1.78 }}>
+                  To be the #1 reliable platform that powers the growth of small businesses and solopreneurs across Nigeria.
+                </p>
+              </div>
             </div>
-            <div>
-              <span style={{
-                display: 'inline-block', fontSize: 10.5, fontWeight: 700, letterSpacing: 2,
-                textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 14,
+
+            {/* Vision image placeholder */}
+            <div style={{
+              background: 'linear-gradient(135deg, var(--ink) 0%, #2a2418 100%)',
+              borderRadius: 20,
+              aspectRatio: '4/3',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8,
+            }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                background: 'var(--amber)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, fontWeight: 800, color: 'var(--ink)',
               }}>
-                Our Vision
-              </span>
-              <p style={{ fontSize: 15.5, color: 'var(--dim)', lineHeight: 1.78 }}>
-                To be the #1 reliable platform that powers the growth of small businesses and solopreneurs across Nigeria.
+                MM
+              </div>
+              <p style={{ fontSize: 13, color: 'rgba(247,241,232,0.35)', margin: 0, textAlign: 'center', padding: '0 16px' }}>
+                Add image to /public/images/about-vision.jpg
               </p>
             </div>
           </div>
+
         </div>
       </section>
 
@@ -149,12 +197,13 @@ export default function AboutPage() {
               Our Core Values
             </h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          <div className="about-vals" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16 }}>
             {CORE_VALUES.map((v, i) => (
               <div key={i} style={{
                 background: '#fff', border: '1px solid rgba(28,24,19,.07)',
                 borderRadius: 18, padding: '28px 24px',
                 transition: 'all .3s',
+                width: 'calc(33.33% - 11px)', minWidth: 260,
               }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 10,

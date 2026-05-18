@@ -79,8 +79,11 @@ export async function getMyProfile(): Promise<UserProfile | null> {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser) return null
 
+  // Support both normal accounts (users.id = auth.id) and seeded accounts (users.auth_uid = auth.id)
   const { data: userRow } = await supabase
-    .from('users').select('*').eq('id', authUser.id).maybeSingle()
+    .from('users').select('*')
+    .or(`id.eq.${authUser.id},auth_uid.eq.${authUser.id}`)
+    .maybeSingle()
 
   if (!userRow) {
     // User exists in auth but has no public.users row (trigger may not have run).
@@ -91,6 +94,9 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     )
     return null
   }
+
+  // Use userRow.id for linked table queries (may differ from authUser.id for seeded accounts)
+  const profileId = userRow.id
 
   // Build the base profile object — userRow is any so spread is safe
   const base: UserProfile = {
@@ -114,7 +120,7 @@ export async function getMyProfile(): Promise<UserProfile | null> {
 
   if (userRow.role === 'investor') {
     const { data: inv } = await supabase
-      .from('investors').select('*').eq('user_id', authUser.id).maybeSingle()
+      .from('investors').select('*').eq('user_id', profileId).maybeSingle()
     const range = parseNairaRange(inv?.investment_range || '')
     return {
       ...base,
@@ -130,7 +136,7 @@ export async function getMyProfile(): Promise<UserProfile | null> {
 
   if (userRow.role === 'business_owner') {
     const { data: biz } = await supabase
-      .from('businesses').select('*').eq('owner_id', authUser.id).maybeSingle()
+      .from('businesses').select('*').eq('owner_id', profileId).maybeSingle()
     const bizAdapted = biz ? adaptBusiness(biz, 0) : {}
     return {
       ...base,

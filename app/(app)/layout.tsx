@@ -23,7 +23,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       // Fetch role and enforce correct app side
       const { data: profile } = await supabase
-        .from('users').select('role').eq('id', session.user.id).maybeSingle()
+        .from('users').select('role')
+        .or(`id.eq.${session.user.id},auth_uid.eq.${session.user.id}`)
+        .maybeSingle()
 
       const role = profile?.role
 
