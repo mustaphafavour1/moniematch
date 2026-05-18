@@ -84,13 +84,36 @@ export async function changePassword(newPassword: string) {
 export async function getSettings(): Promise<Record<string, unknown>> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return {}
-  const { data } = await supabase.from('users').select('settings').eq('id', user.id).maybeSingle()
+  const { data } = await supabase.from('users').select('settings')
+    .or(`id.eq.${user.id},auth_uid.eq.${user.id}`).maybeSingle()
   return (data?.settings as Record<string, unknown>) || {}
 }
 
 export async function saveSettings(settings: Record<string, unknown>): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
-  const { error } = await supabase.from('users').update({ settings }).eq('id', user.id)
+  // Find user row (supports seeded accounts with auth_uid)
+  const { data: userRow } = await supabase.from('users').select('id')
+    .or(`id.eq.${user.id},auth_uid.eq.${user.id}`).maybeSingle()
+  const rowId = userRow?.id || user.id
+  const { error } = await supabase.from('users').update({ settings }).eq('id', rowId)
   if (error) throw error
+}
+
+export async function setInvestorAllowContact(allow: boolean): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  const { data: userRow } = await supabase.from('users').select('id')
+    .or(`id.eq.${user.id},auth_uid.eq.${user.id}`).maybeSingle()
+  const profileId = userRow?.id || user.id
+  await supabase.from('investors').update({ allow_biz_msg: allow }).eq('user_id', profileId)
+}
+
+export async function setBusinessVisibility(visible: boolean): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  const { data: userRow } = await supabase.from('users').select('id')
+    .or(`id.eq.${user.id},auth_uid.eq.${user.id}`).maybeSingle()
+  const profileId = userRow?.id || user.id
+  await supabase.from('businesses').update({ is_visible: visible }).eq('owner_id', profileId)
 }
