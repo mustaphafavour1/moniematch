@@ -237,10 +237,15 @@ export async function getMyPortfolio(): Promise<Deal[]> {
     .from('investors').select('id').eq('user_id', ids.profileId).maybeSingle()
   if (!inv) return []
 
+  const { data: matchRows } = await supabase
+    .from('matches').select('id').eq('investor_id', inv.id)
+  const mids = (matchRows || []).map((m: { id: string }) => m.id)
+  if (!mids.length) return []
+
   const { data: deals } = await supabase
     .from('deals')
     .select(`*, matches (business_id, businesses (id, name, category, city, state))`)
-    .eq('investor_id', inv.id)
+    .in('match_id', mids)
     .in('status', ['active', 'signed', 'proposed'])
     .limit(20)
 

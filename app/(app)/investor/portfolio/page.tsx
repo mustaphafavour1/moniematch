@@ -465,7 +465,13 @@ export default function InvPortfolioPage() {
                   <input
                     type="number"
                     value={editAmount}
-                    onChange={e => setEditAmount(e.target.value)}
+                    onChange={e => {
+                      const amt = e.target.value
+                      setEditAmount(amt)
+                      if (editReturnType === 'fixed' && editRoiPct && Number(amt) > 0) {
+                        setEditTotal(String(Math.round(Number(amt) * (1 + Number(editRoiPct) / 100))))
+                      }
+                    }}
                     placeholder="e.g. 500000"
                     style={sheetFieldStyle}
                   />
@@ -492,7 +498,13 @@ export default function InvPortfolioPage() {
                     <input
                       type="number"
                       value={editRoiPct}
-                      onChange={e => setEditRoiPct(e.target.value)}
+                      onChange={e => {
+                        const pct = e.target.value
+                        setEditRoiPct(pct)
+                        if (editAmount && Number(editAmount) > 0) {
+                          setEditTotal(String(Math.round(Number(editAmount) * (1 + Number(pct) / 100))))
+                        }
+                      }}
                       placeholder="e.g. 20"
                       style={sheetFieldStyle}
                     />
@@ -531,7 +543,14 @@ export default function InvPortfolioPage() {
                   <input
                     type="number"
                     value={editTotal}
-                    onChange={e => setEditTotal(e.target.value)}
+                    onChange={e => {
+                      const tot = e.target.value
+                      setEditTotal(tot)
+                      if (editReturnType === 'fixed' && editAmount && Number(editAmount) > 0 && Number(tot) > 0) {
+                        const pct = ((Number(tot) / Number(editAmount)) - 1) * 100
+                        setEditRoiPct(String(Math.round(pct * 10) / 10))
+                      }
+                    }}
                     placeholder="e.g. 600000"
                     style={sheetFieldStyle}
                   />

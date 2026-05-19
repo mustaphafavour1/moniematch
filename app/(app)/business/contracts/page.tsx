@@ -13,6 +13,11 @@ export default function BizContractsPage() {
   const [legalAddress,   setLegalAddress]   = useState('')
   const [legalBizName,   setLegalBizName]   = useState('')
   const [legalBizAddress,setLegalBizAddress]= useState('')
+  const [bankName,       setBankName]       = useState('')
+  const [bankCode,       setBankCode]       = useState('')
+  const [accountNumber,  setAccountNumber]  = useState('')
+  const [accountName,    setAccountName]    = useState('')
+  const [banks,          setBanks]          = useState<{name:string;code:string}[]>([])
   const [existingSig,    setExistingSig]    = useState('')
   const [showPad,        setShowPad]        = useState(false)
   const [hasDrawn,       setHasDrawn]       = useState(false)
@@ -29,7 +34,7 @@ export default function BizContractsPage() {
       if (!user) return
       const [{ data: userData }, { data: bizData }] = await Promise.all([
         supabase.from('users').select('title, legal_name, legal_address').eq('id', user.id).maybeSingle(),
-        supabase.from('businesses').select('legal_biz_name, legal_biz_address').eq('owner_id', user.id).maybeSingle(),
+        supabase.from('businesses').select('legal_biz_name, legal_biz_address, bank_name, bank_code, account_number, account_name').eq('owner_id', user.id).maybeSingle(),
       ])
       if (userData) {
         setTitle(userData.title || '')
@@ -39,7 +44,13 @@ export default function BizContractsPage() {
       if (bizData) {
         setLegalBizName(bizData.legal_biz_name || '')
         setLegalBizAddress(bizData.legal_biz_address || '')
+        setBankName(bizData.bank_name || '')
+        setBankCode(bizData.bank_code || '')
+        setAccountNumber(bizData.account_number || '')
+        setAccountName(bizData.account_name || '')
       }
+      // Fetch Nigerian bank list from Paystack
+      fetch('/api/banks').then(r => r.json()).then(d => { if (Array.isArray(d)) setBanks(d) }).catch(() => {})
       // Always regenerate fresh signed URL (stored URL may expire)
       const { data: sigUrl } = await supabase.storage.from('signatures').createSignedUrl(`${user.id}/signature.png`, 3600)
       if (sigUrl?.signedUrl) setExistingSig(sigUrl.signedUrl)
@@ -112,6 +123,10 @@ export default function BizContractsPage() {
         supabase.from('businesses').update({
           legal_biz_name:    legalBizName.trim() || null,
           legal_biz_address: legalBizAddress.trim() || null,
+          bank_name:         bankName || null,
+          bank_code:         bankCode || null,
+          account_number:    accountNumber.trim() || null,
+          account_name:      accountName.trim() || null,
         }).eq('owner_id', user.id),
       ])
       if (ue) throw ue
@@ -214,6 +229,51 @@ export default function BizContractsPage() {
                 placeholder="Registered business address"
                 rows={3}
                 style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bank account */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="eyebrow">Payout bank account</div>
+          <div style={{ background: 'var(--linen)', border: '1px solid var(--line-strong)',
+            borderRadius: 12, padding: '12px 14px', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+            Investment payments will be sent directly to this account. Make sure the details are correct.
+          </div>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 8, textTransform: 'none', fontSize: 13, color: 'var(--ink-2)' }}>Bank</p>
+            <div style={fieldWrap}>
+              <select value={bankCode} onChange={e => {
+                const opt = banks.find(b => b.code === e.target.value)
+                setBankCode(e.target.value)
+                setBankName(opt?.name || '')
+              }} style={{ ...inputStyle, appearance: 'none', WebkitAppearance: 'none' }}>
+                <option value="">Select bank</option>
+                {banks.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 8, textTransform: 'none', fontSize: 13, color: 'var(--ink-2)' }}>Account number</p>
+            <div style={fieldWrap}>
+              <input
+                value={accountNumber}
+                onChange={e => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="10-digit account number"
+                inputMode="numeric"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 8, textTransform: 'none', fontSize: 13, color: 'var(--ink-2)' }}>Account name</p>
+            <div style={fieldWrap}>
+              <input
+                value={accountName}
+                onChange={e => setAccountName(e.target.value)}
+                placeholder="Name as it appears on your bank account"
+                style={inputStyle}
               />
             </div>
           </div>
