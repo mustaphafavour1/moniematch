@@ -24,7 +24,7 @@ export default function BizInvestorsPage() {
   const searchInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    Promise.all([getMyProfile(), getInterestedInvestors(), getRecentInvestors(20)])
+    Promise.all([getMyProfile(), getInterestedInvestors(), getRecentInvestors(50)])
       .then(([p, inv, rec]) => {
         setUser(p)
         setInterested(inv)

@@ -91,7 +91,13 @@ export default function SigninPage() {
           </button>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: 28, fontSize: 13, color: 'var(--ink-3)' }}>
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <a href="/forgot-password" style={{ color: 'var(--ink-3)', fontSize: 13, textDecoration: 'underline' }}>
+            Forgot password?
+          </a>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: 'var(--ink-3)' }}>
           New to MonieMatch?{' '}
           <a href="/investor/onboarding" style={{ color: 'var(--clay)', fontWeight: 600, textDecoration: 'none' }}>
             Join as Investor
