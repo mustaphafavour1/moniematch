@@ -103,6 +103,7 @@ export interface Investor {
   color: string
   isVerified: boolean
   avatar_url?: string
+  allowContact?: boolean
   matchId?: string
   status?: string
   whenISO?: string

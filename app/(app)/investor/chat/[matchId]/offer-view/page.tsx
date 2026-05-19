@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { acceptOffer } from '@/lib/db'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 import { AppHeader } from '@/components/app/AppHeader'
 
@@ -69,9 +70,11 @@ export default function InvOfferViewPage() {
   const matchId      = params.matchId as string
   const offerId      = searchParams.get('offerId') || ''
 
-  const [offer,   setOffer]   = useState<OfferData | null>(null)
-  const [myId,    setMyId]    = useState('')
-  const [loading, setLoading] = useState(true)
+  const [offer,     setOffer]     = useState<OfferData | null>(null)
+  const [myId,      setMyId]      = useState('')
+  const [loading,   setLoading]   = useState(true)
+  const [accepted,  setAccepted]  = useState(false)
+  const [accepting, setAccepting] = useState(false)
 
   useEffect(() => {
     if (!offerId) return
@@ -100,12 +103,22 @@ export default function InvOfferViewPage() {
     </div>
   )
 
-  const status       = STATUS_LABEL[offer.status] ?? STATUS_LABEL.pending
+  const statusKey    = offer.status
+  const status       = STATUS_LABEL[statusKey] ?? STATUS_LABEL.pending
   const bizName      = offer.matches?.businesses?.name ?? 'Business'
   const investorName = offer.matches?.investors?.users?.name ?? 'Investor'
   const milestones   = offer.milestones ?? []
-  const isAccepted   = offer.status === 'accepted' || offer.status === 'offer_accepted'
-  const isCountered  = offer.status === 'countered'
+  const isAccepted   = accepted || statusKey === 'accepted' || statusKey === 'offer_accepted'
+  const isCountered  = statusKey === 'countered'
+  const isProposer   = offer.proposer_id === myId
+  // Can accept/counter when: business sent a pending offer (investor didn't propose it)
+  const canRespond   = !isProposer && statusKey === 'pending'
+
+  async function handleAccept() {
+    setAccepting(true)
+    try { await acceptOffer(offerId, matchId); setAccepted(true) }
+    finally { setAccepting(false) }
+  }
 
   const chipRows: [string, string][][] = []
   const row1: [string, string][] = []
@@ -206,18 +219,32 @@ export default function InvOfferViewPage() {
           <>
             <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12,
               padding: '12px 14px', marginBottom: 12, fontSize: 13, color: '#065f46', lineHeight: 1.55 }}>
-              Offer accepted! Proceed to make payment.
+              Offer accepted! Proceed to make payment to the escrow.
             </div>
             <button className="btn btn-forest btn-block"
               onClick={() => router.push(`/investor/chat/${matchId}/payment?offerId=${offerId}`)}>
               Proceed to escrow payment →
             </button>
           </>
+        ) : canRespond ? (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button style={{ flex: 1, padding: '13px 0', borderRadius: 12, border: '1px solid var(--ink)',
+              background: 'transparent', color: 'var(--ink)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'var(--font-body)' }}
+              onClick={() => router.push(`/investor/chat/${matchId}/offer?mode=counter&offerId=${offerId}`)}>
+              Counter offer
+            </button>
+            <button className="btn btn-forest"
+              style={{ flex: 1, padding: '13px 0', borderRadius: 12, fontSize: 14, fontWeight: 600 }}
+              onClick={handleAccept} disabled={accepting}>
+              {accepting ? 'Accepting…' : 'Accept offer'}
+            </button>
+          </div>
         ) : isCountered ? (
           <>
             <div style={{ background: '#fef9ec', border: '1px solid #fcd34d', borderRadius: 12,
               padding: '12px 14px', marginBottom: 12, fontSize: 13, color: '#92400e', lineHeight: 1.55 }}>
-              The business sent a counter offer. Check the conversation.
+              Your offer was countered. Check the conversation for the latest counter offer.
             </div>
             <div style={{ textAlign: 'center' }}>
               <span onClick={() => router.push(`/investor/chat/${matchId}`)}

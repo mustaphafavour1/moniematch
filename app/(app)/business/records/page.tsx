@@ -629,7 +629,7 @@ function BottomSheet({
     if (!linkUrl.trim()) { setError('Please enter a URL.'); return }
     setSaving(true); setError(null)
     try {
-      await addBusinessLink(linkUrl.trim(), linkTitle.trim(), 'link')
+      await addBusinessLink(linkUrl.trim(), linkTitle.trim(), 'other')
       onRefresh(); onClose()
     } catch {
       setError('Could not save link. Please try again.')

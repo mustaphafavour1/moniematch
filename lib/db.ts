@@ -73,9 +73,26 @@ export function adaptInvestor(inv: any, userRow: any = {}, matchScore = 0): Inve
   }
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Module-level cache — survives SPA navigation, cleared on profile save
+let _profileCache: UserProfile | null = null
+export function clearProfileCache() { _profileCache = null }
+
+// Resolve the seeded-user profileId: users.id may differ from auth UUID
+async function getProfileId(): Promise<{ authId: string; profileId: string } | null> {
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
+  const { data: userRow } = await supabase.from('users').select('id')
+    .or(`id.eq.${authUser.id},auth_uid.eq.${authUser.id}`).maybeSingle()
+  return { authId: authUser.id, profileId: userRow?.id || authUser.id }
+}
+
 // ── Queries ───────────────────────────────────────────────────────────────────
 
 export async function getMyProfile(): Promise<UserProfile | null> {
+  if (_profileCache) return _profileCache
+
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser) return null
 
@@ -118,11 +135,13 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     signature_url: userRow.signature_url,
   }
 
+  let result: UserProfile | null = base
+
   if (userRow.role === 'investor') {
     const { data: inv } = await supabase
       .from('investors').select('*').eq('user_id', profileId).maybeSingle()
     const range = parseNairaRange(inv?.investment_range || '')
-    return {
+    result = {
       ...base,
       investorId:       inv?.id,
       investmentRange:  inv?.investment_range || '',
@@ -132,13 +151,11 @@ export async function getMyProfile(): Promise<UserProfile | null> {
       rangeMin:         range.min,
       rangeMax:         range.max,
     }
-  }
-
-  if (userRow.role === 'business_owner') {
+  } else if (userRow.role === 'business_owner') {
     const { data: biz } = await supabase
       .from('businesses').select('*').eq('owner_id', profileId).maybeSingle()
     const bizAdapted = biz ? adaptBusiness(biz, 0) : {}
-    return {
+    result = {
       ...base,
       ...bizAdapted,
       // Explicitly restore personal fields that adaptBusiness may overwrite
@@ -162,22 +179,23 @@ export async function getMyProfile(): Promise<UserProfile | null> {
     }
   }
 
-  return base
+  _profileCache = result
+  return result
 }
 
 export async function getMyMatches(): Promise<Business[]> {
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) return []
+  const ids = await getProfileId()
+  if (!ids) return []
 
   const { data: inv } = await supabase
-    .from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
+    .from('investors').select('id').eq('user_id', ids.profileId).maybeSingle()
   if (!inv) return []
 
   const { data: matches } = await supabase
     .from('matches')
     .select(`id, compatibility_score, status,
       businesses (id, name, category, city, state, description, investment_needed,
-        use_of_funds, return_structures, reporting_cadence, revenue_range, is_verified, duration)`)
+        use_of_funds, return_structures, reporting_cadence, revenue_range, is_verified, duration, is_visible)`)
     .eq('investor_id', inv.id)
     .in('status', ['pending', 'viewed', 'interested'])
     .order('compatibility_score', { ascending: false })
@@ -185,7 +203,9 @@ export async function getMyMatches(): Promise<Business[]> {
 
   if (!matches) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (matches as any[]).filter(m => m.businesses).map(m => adaptBusiness(m.businesses, m.compatibility_score))
+  return (matches as any[])
+    .filter(m => m.businesses && m.businesses.is_visible !== false)
+    .map(m => adaptBusiness(m.businesses, m.compatibility_score))
 }
 
 export async function getBusinessById(bizId: string): Promise<Business | null> {
@@ -206,15 +226,15 @@ export async function getInvestorById(invId: string): Promise<Investor | null> {
     .maybeSingle()
   if (!inv) return null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return adaptInvestor(inv, (inv as any).users || {}, 0)
+  return { ...adaptInvestor(inv, (inv as any).users || {}, 0), allowContact: inv.allow_biz_msg !== false }
 }
 
 export async function getMyPortfolio(): Promise<Deal[]> {
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) return []
+  const ids = await getProfileId()
+  if (!ids) return []
 
   const { data: inv } = await supabase
-    .from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
+    .from('investors').select('id').eq('user_id', ids.profileId).maybeSingle()
   if (!inv) return []
 
   const { data: deals } = await supabase
@@ -243,17 +263,17 @@ export async function getMyPortfolio(): Promise<Deal[]> {
 }
 
 export async function getInterestedInvestors(): Promise<Investor[]> {
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) return []
+  const ids = await getProfileId()
+  if (!ids) return []
 
   const { data: biz } = await supabase
-    .from('businesses').select('id').eq('owner_id', authUser.id).maybeSingle()
+    .from('businesses').select('id').eq('owner_id', ids.profileId).maybeSingle()
   if (!biz) return []
 
   const { data: matches } = await supabase
     .from('matches')
     .select(`id, compatibility_score, status, created_at,
-      investors (id, user_id, investment_range, interests, return_structures, reporting_cadence, is_verified,
+      investors (id, user_id, investment_range, interests, return_structures, reporting_cadence, is_verified, allow_biz_msg,
         users (id, name, phone, city, state, occupation))`)
     .eq('business_id', biz.id)
     .in('status', ['pending', 'viewed', 'interested', 'negotiating'])
@@ -267,6 +287,7 @@ export async function getInterestedInvestors(): Promise<Investor[]> {
     const u   = inv.users || {}
     return {
       ...adaptInvestor(inv, u, m.compatibility_score),
+      allowContact: inv.allow_biz_msg !== false,
       matchId: m.id,
       status:  m.status,
       whenISO: m.created_at,
@@ -388,6 +409,7 @@ export async function getRecentBusinesses(limit = 3): Promise<Business[]> {
   const { data } = await supabase
     .from('businesses')
     .select('*')
+    .eq('is_visible', true)
     .order('created_at', { ascending: false })
     .limit(limit)
   if (!data) return []
@@ -403,21 +425,25 @@ export async function getRecentInvestors(limit = 3): Promise<Investor[]> {
     .limit(limit)
   if (!data) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data as any[]).map(inv => adaptInvestor(inv, inv.users || {}, 0))
+  return (data as any[]).map(inv => ({
+    ...adaptInvestor(inv, inv.users || {}, 0),
+    allowContact: inv.allow_biz_msg !== false,
+  }))
 }
 
 export async function getMyChats(): Promise<ChatThread[]> {
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) return []
+  const ids = await getProfileId()
+  if (!ids) return []
 
-  const { data: userRow } = await supabase.from('users').select('role').eq('id', authUser.id).maybeSingle()
+  const { data: userRow } = await supabase.from('users').select('role')
+    .or(`id.eq.${ids.authId},auth_uid.eq.${ids.authId}`).maybeSingle()
   const role = userRow?.role
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let matches: any[] = []
 
   if (role === 'investor') {
-    const { data: inv } = await supabase.from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
+    const { data: inv } = await supabase.from('investors').select('id').eq('user_id', ids.profileId).maybeSingle()
     if (!inv) return []
     const { data } = await supabase
       .from('matches')
@@ -425,7 +451,7 @@ export async function getMyChats(): Promise<ChatThread[]> {
       .eq('investor_id', inv.id)
     matches = data || []
   } else {
-    const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', authUser.id).maybeSingle()
+    const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', ids.profileId).maybeSingle()
     if (!biz) return []
     const { data } = await supabase
       .from('matches')
@@ -667,6 +693,7 @@ export interface InvestorOffer {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapOffer(o: any, myId: string): InvestorOffer {
+  const bizName = o.matches?.businesses?.name
   return {
     id:                  o.id,
     match_id:            o.match_id,
@@ -688,9 +715,9 @@ function mapOffer(o: any, myId: string): InvestorOffer {
     milestones:          o.milestones,
     has_voting_rights:   o.has_voting_rights,
     notes:               o.notes,
-    biz_name:            o.matches?.businesses?.name,
-    biz_initials:        o.matches?.businesses?.initials,
-    biz_color:           o.matches?.businesses?.color,
+    biz_name:            bizName,
+    biz_initials:        bizName ? initialsFor(bizName) : undefined,
+    biz_color:           bizName ? colorFor(bizName)    : undefined,
     is_mine:             o.proposer_id === myId,
   }
 }
@@ -700,16 +727,16 @@ const OFFER_SELECT = `
   is_template, template_name, return_rate, revenue_percent, equity_percent,
   total_return_amount, monthly_payment, end_date, reporting_frequency,
   is_milestoned, milestones, has_voting_rights, notes,
-  matches(businesses(name, initials, color))
+  matches(businesses(name))
 `
 
 export async function getMyOffers(): Promise<InvestorOffer[]> {
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) return []
+  const ids = await getProfileId()
+  if (!ids) return []
 
   // Get investor record to find all match IDs
   const { data: inv } = await supabase
-    .from('investors').select('id').eq('user_id', authUser.id).maybeSingle()
+    .from('investors').select('id').eq('user_id', ids.profileId).maybeSingle()
 
   let matchIds: string[] = []
   if (inv) {
@@ -726,33 +753,33 @@ export async function getMyOffers(): Promise<InvestorOffer[]> {
       .in('match_id', matchIds)
       .eq('is_template', false)
       .order('created_at', { ascending: false })
-    if (data?.length) return (data as any[]).map(o => mapOffer(o, authUser.id))  // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (data?.length) return (data as any[]).map(o => mapOffer(o, ids.authId))  // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 
   // Fallback: get offers proposed by this user (covers cases where investor record lookup fails)
   const { data: fallback } = await supabase
     .from('offers')
     .select(OFFER_SELECT)
-    .eq('proposer_id', authUser.id)
+    .eq('proposer_id', ids.authId)
     .eq('is_template', false)
     .order('created_at', { ascending: false })
   if (!fallback) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (fallback as any[]).map(o => mapOffer(o, authUser.id))
+  return (fallback as any[]).map(o => mapOffer(o, ids.authId))
 }
 
 export async function getMyTemplates(): Promise<InvestorOffer[]> {
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) return []
+  const ids = await getProfileId()
+  if (!ids) return []
   const { data } = await supabase
     .from('offers')
     .select(OFFER_SELECT)
-    .eq('proposer_id', authUser.id)
+    .eq('proposer_id', ids.authId)
     .eq('is_template', true)
     .order('created_at', { ascending: false })
   if (!data) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data as any[]).map(o => mapOffer(o, authUser.id))
+  return (data as any[]).map(o => mapOffer(o, ids.authId))
 }
 
 // ── Issue Reports ─────────────────────────────────────────────────────────────
