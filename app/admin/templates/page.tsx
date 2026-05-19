@@ -5,6 +5,26 @@ import { supabase } from '@/lib/supabase'
 
 interface Template { id: string; name: string; category: string; body_html: string; is_active: boolean; created_at: string }
 
+function prettifyDocxHtml(raw: string): string {
+  let h = raw
+  // Headings
+  h = h.replace(/<h1>/gi, '<h1 style="font-size:20px;font-weight:800;margin:0 0 6px;text-align:center;font-family:Georgia,serif;">')
+  h = h.replace(/<h2>/gi, '<h2 style="font-size:15px;font-weight:700;margin:22px 0 8px;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #111;padding-bottom:4px;">')
+  h = h.replace(/<h3>/gi, '<h3 style="font-size:14px;font-weight:700;margin:18px 0 6px;">')
+  // Paragraphs — space between
+  h = h.replace(/<p>/gi, '<p style="margin:0 0 10px;line-height:1.85;font-size:14px;color:#111;">')
+  // Empty paragraphs → visible spacer
+  h = h.replace(/<p[^>]*>\s*<\/p>/gi, '<div style="height:10px"></div>')
+  // Tables
+  h = h.replace(/<table>/gi, '<table style="width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;">')
+  h = h.replace(/<td>/gi, '<td style="padding:8px 12px;border:1px solid #d1d5db;vertical-align:top;">')
+  h = h.replace(/<th>/gi, '<th style="padding:8px 12px;border:1px solid #d1d5db;background:#f3f4f6;font-weight:600;text-align:left;">')
+  // HR
+  h = h.replace(/<hr\s*\/?>/gi, '<hr style="border:none;border-top:1.5px solid #111;margin:18px 0;">')
+  // Wrap in formal document container
+  return `<div style="font-family:Georgia,serif;max-width:700px;margin:0 auto;padding:36px 28px;line-height:1.85;color:#111;background:#fff;">${h}</div>`
+}
+
 const CATEGORIES = ['investment', 'loan', 'equity', 'revenue_share', 'other']
 
 export default function AdminTemplatesPage() {
@@ -62,7 +82,7 @@ export default function AdminTemplatesPage() {
       const mammoth = (await import('mammoth')).default
       const ab = await file.arrayBuffer()
       const result = await mammoth.convertToHtml({ arrayBuffer: ab })
-      setBodyHtml(result.value)
+      setBodyHtml(prettifyDocxHtml(result.value))
     } catch {
       setSaveErr('Could not convert file. Make sure it is a valid .docx file.')
     } finally {
@@ -77,15 +97,19 @@ export default function AdminTemplatesPage() {
     setSaving(true); setSaveErr('')
     const placeholders = Array.from(bodyHtml.matchAll(/\{\{(\w+)\}\}/g)).map(m => m[1])
     const unique = placeholders.filter((v, i, a) => a.indexOf(v) === i)
-    const payload = { name: name.trim(), category, body_html: bodyHtml, placeholders: JSON.stringify(unique), is_active: true }
-    let error: { message?: string } | null = null
-    if (editing) {
-      ;({ error } = await supabase.from('contract_templates').update(payload).eq('id', editing.id))
-    } else {
-      ;({ error } = await supabase.from('contract_templates').insert(payload))
+    const payload = {
+      ...(editing ? { id: editing.id } : {}),
+      name: name.trim(), category, body_html: bodyHtml,
+      placeholders: JSON.stringify(unique), is_active: true,
     }
+    const res = await fetch('/api/admin/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': 'MonieMatchAdmin/2001' },
+      body: JSON.stringify(payload),
+    })
+    const json = await res.json()
     setSaving(false)
-    if (error) { setSaveErr(error.message || 'Could not save.'); return }
+    if (!res.ok) { setSaveErr(json.error || 'Could not save.'); return }
     closeForm()
     loadTemplates()
   }
@@ -93,13 +117,21 @@ export default function AdminTemplatesPage() {
   async function handleDelete(id: string) {
     if (confirmDel !== id) { setConfirmDel(id); return }
     setDeleting(id); setConfirmDel(null)
-    await supabase.from('contract_templates').delete().eq('id', id)
+    await fetch('/api/admin/templates', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': 'MonieMatchAdmin/2001' },
+      body: JSON.stringify({ id }),
+    })
     setDeleting(null)
     setTemplates(prev => prev.filter(t => t.id !== id))
   }
 
   async function toggleActive(t: Template) {
-    await supabase.from('contract_templates').update({ is_active: !t.is_active }).eq('id', t.id)
+    await fetch('/api/admin/templates', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': 'MonieMatchAdmin/2001' },
+      body: JSON.stringify({ id: t.id, is_active: !t.is_active }),
+    })
     setTemplates(prev => prev.map(x => x.id === t.id ? { ...x, is_active: !x.is_active } : x))
   }
 

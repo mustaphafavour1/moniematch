@@ -165,7 +165,7 @@ export default function InvPortfolioPage() {
   }
 
   return (
-    <div className="app-screen scroll" style={{paddingBottom:32}}>
+    <div className="app-screen scroll" style={{paddingBottom:32, position:'relative'}}>
       <div className="pad" style={{paddingTop:14}}>
         <div className="eyebrow">Live deals</div>
         <div className="h1" style={{fontSize:36, marginTop:6}}>Portfolio</div>
@@ -402,23 +402,23 @@ export default function InvPortfolioPage() {
       {/* Template edit sheet */}
       {editingTemplate && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — scoped to app-screen */}
           <div
             onClick={closeEditSheet}
             style={{
-              position: 'fixed', inset: 0, zIndex: 40,
-              background: 'rgba(0,0,0,0.45)',
+              position: 'absolute', inset: 0, zIndex: 40,
+              background: 'rgba(0,0,0,0.35)',
             }}
           />
 
-          {/* Sheet */}
+          {/* Sheet — sits within the phone container */}
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 50,
             background: 'var(--cream)',
             borderRadius: '20px 20px 0 0',
-            maxHeight: '85vh',
+            maxHeight: '72vh',
             display: 'flex', flexDirection: 'column',
-            boxShadow: '0 -4px 32px rgba(0,0,0,0.15)',
+            boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
           }}>
             {/* Drag handle */}
             <div style={{display:'flex', justifyContent:'center', paddingTop:12, paddingBottom:4, flexShrink:0}}>
