@@ -7,6 +7,7 @@ import { fmtNaira } from '@/lib/utils'
 import type { Deal } from '@/lib/types'
 import { Progress } from '@/components/app/Progress'
 import { colorFor, initialsFor } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   pending:  { label: 'Pending',  color: 'var(--ink-2)',  bg: 'var(--linen)' },
@@ -37,6 +38,22 @@ export default function InvPortfolioPage() {
   const [offers,    setOffers]    = useState<InvestorOffer[] | null>(null)
   const [templates, setTemplates] = useState<InvestorOffer[] | null>(null)
 
+  // Template edit sheet state
+  const [editingTemplate, setEditingTemplate] = useState<InvestorOffer | null>(null)
+  const [editName,        setEditName]        = useState('')
+  const [editAmount,      setEditAmount]      = useState('')
+  const [editReturnType,  setEditReturnType]  = useState('fixed')
+  const [editRoiPct,      setEditRoiPct]      = useState('')
+  const [editRevPct,      setEditRevPct]      = useState('')
+  const [editEqPct,       setEditEqPct]       = useState('')
+  const [editTotal,       setEditTotal]       = useState('')
+  const [editReporting,   setEditReporting]   = useState('monthly')
+  const [editNotes,       setEditNotes]       = useState('')
+  const [editSaving,      setEditSaving]      = useState(false)
+  const [editDeleting,    setEditDeleting]    = useState(false)
+  const [confirmDelete,   setConfirmDelete]   = useState(false)
+  const [editError,       setEditError]       = useState('')
+
   useEffect(() => {
     getMyPortfolio().then(setDeals).catch(() => setDeals([]))
     getMyOffers().then(setOffers).catch(() => setOffers([]))
@@ -51,6 +68,101 @@ export default function InvPortfolioPage() {
   const templateItems   = templates || []
   const total = items.reduce((s, p) => s + (p.invested || p.amount || 0), 0)
   const paid  = items.reduce((s, p) => s + (p.paidBack || 0), 0)
+
+  function openEditSheet(o: InvestorOffer) {
+    setEditingTemplate(o)
+    setEditName(o.template_name || '')
+    setEditAmount(o.amount ? String(o.amount) : '')
+    setEditReturnType(o.return_type || 'fixed')
+    setEditRoiPct(o.roi_percent != null ? String(o.roi_percent) : '')
+    setEditRevPct(o.revenue_percent != null ? String(o.revenue_percent) : '')
+    setEditEqPct(o.equity_percent != null ? String(o.equity_percent) : '')
+    setEditTotal(o.total_return_amount != null ? String(o.total_return_amount) : '')
+    setEditReporting(o.reporting_frequency || 'monthly')
+    setEditNotes(o.notes || '')
+    setEditSaving(false)
+    setEditDeleting(false)
+    setConfirmDelete(false)
+    setEditError('')
+  }
+
+  function closeEditSheet() {
+    setEditingTemplate(null)
+    setConfirmDelete(false)
+    setEditError('')
+  }
+
+  async function handleEditSave() {
+    if (!editingTemplate) return
+    setEditSaving(true)
+    setEditError('')
+    const payload: Record<string, unknown> = {
+      template_name:       editName || null,
+      amount:              editAmount ? Number(editAmount) : null,
+      return_type:         editReturnType,
+      return_rate:         editRoiPct ? Number(editRoiPct) : null,
+      revenue_percent:     editRevPct ? Number(editRevPct) : null,
+      equity_percent:      editEqPct ? Number(editEqPct) : null,
+      total_return_amount: editTotal ? Number(editTotal) : null,
+      reporting_frequency: editReporting,
+      notes:               editNotes || null,
+    }
+    const { error } = await supabase.from('offers').update(payload).eq('id', editingTemplate.id)
+    setEditSaving(false)
+    if (error) {
+      setEditError(error.message || 'Could not save changes.')
+      return
+    }
+    // Update local state
+    setTemplates(prev => prev
+      ? prev.map(t => t.id === editingTemplate.id
+          ? {
+              ...t,
+              template_name:       editName || undefined,
+              amount:              editAmount ? Number(editAmount) : t.amount,
+              return_type:         editReturnType,
+              roi_percent:         editRoiPct ? Number(editRoiPct) : undefined,
+              revenue_percent:     editRevPct ? Number(editRevPct) : undefined,
+              equity_percent:      editEqPct ? Number(editEqPct) : undefined,
+              total_return_amount: editTotal ? Number(editTotal) : undefined,
+              reporting_frequency: editReporting,
+              notes:               editNotes || undefined,
+            }
+          : t)
+      : prev
+    )
+    closeEditSheet()
+  }
+
+  async function handleEditDelete() {
+    if (!editingTemplate) return
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      return
+    }
+    setEditDeleting(true)
+    setEditError('')
+    const { error } = await supabase.from('offers').delete().eq('id', editingTemplate.id)
+    setEditDeleting(false)
+    if (error) {
+      setEditError(error.message || 'Could not delete template.')
+      return
+    }
+    setTemplates(prev => prev ? prev.filter(t => t.id !== editingTemplate.id) : prev)
+    closeEditSheet()
+  }
+
+  const sheetFieldStyle: React.CSSProperties = {
+    width: '100%', padding: '12px 14px', borderRadius: 12,
+    border: '1.5px solid var(--line-strong)', background: 'var(--bone)',
+    fontSize: 15, color: 'var(--ink)', outline: 'none',
+    fontFamily: 'var(--font-body)', boxSizing: 'border-box',
+  }
+  const sheetLabelStyle: React.CSSProperties = {
+    fontSize: 11, fontWeight: 700, color: 'var(--ink-2)',
+    textTransform: 'uppercase', letterSpacing: 0.8,
+    display: 'block', marginBottom: 6,
+  }
 
   return (
     <div className="app-screen scroll" style={{paddingBottom:32}}>
@@ -242,7 +354,7 @@ export default function InvPortfolioPage() {
                   return (
                     <div
                       key={o.id}
-                      onClick={() => {}}
+                      onClick={() => openEditSheet(o)}
                       className="card fadein"
                       style={{padding:'12px 14px', cursor:'pointer', animationDelay:`${i*60}ms`}}
                     >
@@ -285,6 +397,226 @@ export default function InvPortfolioPage() {
             )
           }
         </div>
+      )}
+
+      {/* Template edit sheet */}
+      {editingTemplate && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={closeEditSheet}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 40,
+              background: 'rgba(0,0,0,0.45)',
+            }}
+          />
+
+          {/* Sheet */}
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+            background: 'var(--cream)',
+            borderRadius: '20px 20px 0 0',
+            maxHeight: '85vh',
+            display: 'flex', flexDirection: 'column',
+            boxShadow: '0 -4px 32px rgba(0,0,0,0.15)',
+          }}>
+            {/* Drag handle */}
+            <div style={{display:'flex', justifyContent:'center', paddingTop:12, paddingBottom:4, flexShrink:0}}>
+              <div style={{width:40, height:4, borderRadius:999, background:'var(--line-strong)'}} />
+            </div>
+
+            {/* Header */}
+            <div style={{
+              display:'flex', alignItems:'center', justifyContent:'space-between',
+              padding:'10px 20px 14px', flexShrink:0,
+              borderBottom:'1px solid var(--line)',
+            }}>
+              <div style={{fontFamily:'var(--font-display)', fontSize:20, color:'var(--ink)'}}>
+                Edit template
+              </div>
+              <button
+                onClick={closeEditSheet}
+                style={{background:'none', border:'none', cursor:'pointer', padding:4,
+                  fontSize:20, color:'var(--ink-3)', lineHeight:1}}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Scrollable content */}
+            <div style={{overflowY:'auto', flex:1, padding:'20px 20px 32px'}}>
+              <div style={{display:'flex', flexDirection:'column', gap:18}}>
+
+                {/* Template name */}
+                <div>
+                  <label style={sheetLabelStyle}>Template name</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    placeholder="e.g. Standard 20% ROI"
+                    style={sheetFieldStyle}
+                  />
+                </div>
+
+                {/* Amount */}
+                <div>
+                  <label style={sheetLabelStyle}>Amount (₦)</label>
+                  <input
+                    type="number"
+                    value={editAmount}
+                    onChange={e => setEditAmount(e.target.value)}
+                    placeholder="e.g. 500000"
+                    style={sheetFieldStyle}
+                  />
+                </div>
+
+                {/* Return type */}
+                <div>
+                  <label style={sheetLabelStyle}>Return type</label>
+                  <select
+                    value={editReturnType}
+                    onChange={e => setEditReturnType(e.target.value)}
+                    style={{...sheetFieldStyle, appearance:'none'}}
+                  >
+                    <option value="fixed">Fixed returns</option>
+                    <option value="revenue_share">Revenue share</option>
+                    <option value="equity">Equity</option>
+                  </select>
+                </div>
+
+                {/* Conditional return rate fields */}
+                {editReturnType === 'fixed' && (
+                  <div>
+                    <label style={sheetLabelStyle}>ROI percent (%)</label>
+                    <input
+                      type="number"
+                      value={editRoiPct}
+                      onChange={e => setEditRoiPct(e.target.value)}
+                      placeholder="e.g. 20"
+                      style={sheetFieldStyle}
+                    />
+                  </div>
+                )}
+
+                {editReturnType === 'revenue_share' && (
+                  <div>
+                    <label style={sheetLabelStyle}>Revenue percent (%)</label>
+                    <input
+                      type="number"
+                      value={editRevPct}
+                      onChange={e => setEditRevPct(e.target.value)}
+                      placeholder="e.g. 15"
+                      style={sheetFieldStyle}
+                    />
+                  </div>
+                )}
+
+                {editReturnType === 'equity' && (
+                  <div>
+                    <label style={sheetLabelStyle}>Equity percent (%)</label>
+                    <input
+                      type="number"
+                      value={editEqPct}
+                      onChange={e => setEditEqPct(e.target.value)}
+                      placeholder="e.g. 5"
+                      style={sheetFieldStyle}
+                    />
+                  </div>
+                )}
+
+                {/* Total return amount */}
+                <div>
+                  <label style={sheetLabelStyle}>Total return amount (₦)</label>
+                  <input
+                    type="number"
+                    value={editTotal}
+                    onChange={e => setEditTotal(e.target.value)}
+                    placeholder="e.g. 600000"
+                    style={sheetFieldStyle}
+                  />
+                </div>
+
+                {/* Reporting frequency */}
+                <div>
+                  <label style={sheetLabelStyle}>Reporting frequency</label>
+                  <select
+                    value={editReporting}
+                    onChange={e => setEditReporting(e.target.value)}
+                    style={{...sheetFieldStyle, appearance:'none'}}
+                  >
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                  </select>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label style={sheetLabelStyle}>Notes</label>
+                  <textarea
+                    value={editNotes}
+                    onChange={e => setEditNotes(e.target.value)}
+                    placeholder="Any additional terms or notes…"
+                    rows={3}
+                    style={{...sheetFieldStyle, resize:'vertical'}}
+                  />
+                </div>
+
+                {/* Error */}
+                {editError && (
+                  <div style={{background:'#fef2f2', border:'1px solid #fecaca',
+                    borderRadius:12, padding:'10px 14px', fontSize:13, color:'#7f1d1d'}}>
+                    {editError}
+                  </div>
+                )}
+
+                {/* Save button */}
+                <button
+                  onClick={handleEditSave}
+                  disabled={editSaving}
+                  style={{width:'100%', padding:'15px', borderRadius:14, border:'none',
+                    background:'var(--forest)', color:'#fff', fontSize:15, fontWeight:700,
+                    cursor:editSaving ? 'default' : 'pointer',
+                    fontFamily:'var(--font-body)', opacity:editSaving ? 0.7 : 1}}
+                >
+                  {editSaving ? 'Saving…' : 'Save changes'}
+                </button>
+
+                {/* Delete button */}
+                <button
+                  onClick={handleEditDelete}
+                  disabled={editDeleting}
+                  style={{width:'100%', padding:'15px', borderRadius:14,
+                    border: confirmDelete ? 'none' : '1.5px solid var(--clay)',
+                    background: confirmDelete ? 'var(--clay)' : 'transparent',
+                    color: confirmDelete ? '#fff' : 'var(--clay)',
+                    fontSize:15, fontWeight:600,
+                    cursor:editDeleting ? 'default' : 'pointer',
+                    fontFamily:'var(--font-body)', opacity:editDeleting ? 0.7 : 1}}
+                >
+                  {editDeleting
+                    ? 'Deleting…'
+                    : confirmDelete
+                      ? 'Confirm delete'
+                      : 'Delete template'}
+                </button>
+
+                {confirmDelete && (
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    style={{width:'100%', padding:'10px', borderRadius:14, border:'none',
+                      background:'transparent', fontSize:14, color:'var(--ink-3)',
+                      cursor:'pointer', fontFamily:'var(--font-body)'}}
+                  >
+                    Cancel
+                  </button>
+                )}
+
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

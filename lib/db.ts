@@ -278,7 +278,7 @@ export async function getInterestedInvestors(): Promise<Investor[]> {
     .eq('business_id', biz.id)
     .in('status', ['pending', 'viewed', 'interested', 'negotiating'])
     .order('compatibility_score', { ascending: false })
-    .limit(20)
+    .limit(50)
 
   if (!matches) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
