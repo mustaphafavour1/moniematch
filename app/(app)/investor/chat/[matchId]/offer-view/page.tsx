@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { acceptOffer, sendCounterOffer } from '@/lib/db'
+import { acceptOffer, sendCounterOffer, getDealForOffer } from '@/lib/db'
 import type { OfferTerms } from '@/lib/db'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 import { AppHeader } from '@/components/app/AppHeader'
@@ -217,6 +217,7 @@ export default function InvOfferViewPage() {
   const [accepted,    setAccepted]    = useState(false)
   const [counterSent, setCounterSent] = useState(false)
   const [accepting,   setAccepting]   = useState(false)
+  const [dealInfo,    setDealInfo]    = useState<{ dealId: string; contractId: string | null; invSignedAt: string | null; paymentConfirmedAt: string | null } | null>(null)
 
   useEffect(() => {
     if (!offerId) return
@@ -229,6 +230,12 @@ export default function InvOfferViewPage() {
     ]).then(([{ data }, { data: { user } }]) => {
       setOffer(data as OfferData)
       setMyId(user?.id ?? '')
+      const statusKey = (data as OfferData | null)?.status
+      if (statusKey === 'accepted' || statusKey === 'offer_accepted') {
+        getDealForOffer(offerId).then(d => {
+          if (d) setDealInfo({ dealId: d.dealId, contractId: d.contractId, invSignedAt: d.invSignedAt, paymentConfirmedAt: d.paymentConfirmedAt })
+        })
+      }
       setLoading(false)
     })
   }, [offerId])
@@ -291,16 +298,34 @@ export default function InvOfferViewPage() {
   if (mode === 'view') {
     if (isAccepted) {
       bottomContent = (
-        <>
-          <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12,
-            padding: '12px 14px', marginBottom: 12, fontSize: 13, color: '#065f46', lineHeight: 1.55 }}>
-            Offer accepted! Proceed to make payment to the business.
-          </div>
-          <button className="btn btn-forest btn-block"
-            onClick={() => router.push(`/investor/chat/${matchId}/payment?offerId=${offerId}`)}>
-            Proceed to payment →
-          </button>
-        </>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {dealInfo?.invSignedAt ? (
+            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: '#065f46' }}>
+              ✓ Deal complete — agreement signed by both parties.
+            </div>
+          ) : dealInfo?.paymentConfirmedAt ? (
+            <button onClick={() => router.push(`/investor/chat/${matchId}/sign?contractId=${dealInfo.contractId}&offerId=${offerId}`)}
+              className="btn btn-forest btn-block">
+              Sign the agreement →
+            </button>
+          ) : (
+            <>
+              {dealInfo?.contractId && (
+                <button onClick={() => router.push(`/investor/chat/${matchId}/contract?contractId=${dealInfo.contractId}`)}
+                  style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                  View agreement
+                </button>
+              )}
+              <button onClick={() => router.push(`/investor/chat/${matchId}/pay?offerId=${offerId}`)}
+                className="btn btn-forest btn-block">
+                Proceed to payment →
+              </button>
+              <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-3)' }}>
+                1% service fee (max ₦5,000) applies
+              </div>
+            </>
+          )}
+        </div>
       )
     } else if (canRespond) {
       bottomContent = (

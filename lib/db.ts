@@ -912,3 +912,210 @@ export async function addBusinessLink(url: string, title: string, docType: strin
 export async function deleteBusinessDocument(docId: string): Promise<void> {
   await supabase.from('business_documents').delete().eq('id', docId)
 }
+
+// ─── Contract readiness check ────────────────────────────────────────────────
+
+export async function checkBizContractReadiness(): Promise<{ ready: boolean; missing: string[] }> {
+  const ids = await getProfileId()
+  if (!ids) return { ready: false, missing: ['Not authenticated'] }
+  const [{ data: user }, { data: biz }] = await Promise.all([
+    supabase.from('users').select('legal_name, signature_url')
+      .or(`id.eq.${ids.authId},auth_uid.eq.${ids.authId}`).maybeSingle(),
+    supabase.from('businesses').select('legal_biz_name, account_number')
+      .eq('owner_id', ids.profileId).maybeSingle(),
+  ])
+  const missing: string[] = []
+  if (!user?.legal_name?.trim())    missing.push('your legal name')
+  if (!biz?.legal_biz_name?.trim()) missing.push('business legal name')
+  if (!biz?.account_number?.trim()) missing.push('bank account details')
+  if (!user?.signature_url)         missing.push('your signature')
+  return { ready: missing.length === 0, missing }
+}
+
+// ─── Default contract HTML ────────────────────────────────────────────────────
+
+const DEFAULT_CONTRACT_HTML = `<div style="font-family:Georgia,serif;max-width:700px;margin:0 auto;padding:40px;line-height:1.8;color:#111">
+<h1 style="text-align:center;font-size:22px;margin-bottom:4px">Investment Agreement</h1>
+<p style="text-align:center;color:#6b7280;font-size:13px;margin-bottom:36px">{{date}}</p>
+<p>This Investment Agreement is entered into as of <strong>{{date}}</strong> between:</p>
+<p><strong>Investor:</strong> {{investor_legal_name}}<br><span style="color:#6b7280">{{investor_address}}</span></p>
+<p><strong>Business:</strong> {{legal_biz_name}}, represented by {{owner_name}}<br><span style="color:#6b7280">{{biz_address}}</span></p>
+<h2 style="margin-top:28px;font-size:16px;border-bottom:1px solid #e5e7eb;padding-bottom:6px">Investment Terms</h2>
+<ul style="padding-left:20px">
+  <li>Investment amount: <strong>{{amount}}</strong></li>
+  <li>Return structure: <strong>{{return_type}}</strong></li>
+  <li>Expected total return: <strong>{{total_return_amount}}</strong></li>
+  <li>ROI: <strong>{{roi_percent}}</strong></li>
+  <li>Reporting frequency: <strong>{{reporting_frequency}}</strong></li>
+</ul>
+{{notes_section}}
+<h2 style="margin-top:36px;font-size:16px;border-bottom:1px solid #e5e7eb;padding-bottom:6px">Signatures</h2>
+<div style="display:flex;gap:60px;margin-top:24px;flex-wrap:wrap">
+  <div style="min-width:200px">
+    <div style="font-size:12px;color:#9ca3af;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Business Owner</div>
+    {{biz_signature}}
+    <div style="border-top:1px solid #d1d5db;margin-top:10px;padding-top:6px;font-size:13px">{{owner_name}} · {{biz_signed_date}}</div>
+  </div>
+  <div style="min-width:200px">
+    <div style="font-size:12px;color:#9ca3af;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Investor</div>
+    {{inv_signature}}
+    <div style="border-top:1px solid #d1d5db;margin-top:10px;padding-top:6px;font-size:13px">{{investor_legal_name}} · {{inv_signed_date}}</div>
+  </div>
+</div>
+</div>`
+
+function fillContract(html: string, vars: Record<string, string>): string {
+  return html.replace(/\{\{(\w+)\}\}/g, (_, k: string) => vars[k] ?? '')
+}
+
+// ─── Accept offer + create deal + create contract ─────────────────────────────
+
+export async function acceptOfferWithContract(
+  offerId: string,
+  matchId: string,
+  bizSigBase64: string,
+): Promise<{ dealId: string; contractId: string }> {
+  const ids = await getProfileId()
+  if (!ids) throw new Error('Not authenticated')
+
+  const { data: offer } = await supabase
+    .from('offers')
+    .select(`*, matches(
+      businesses(name, legal_biz_name, legal_biz_address),
+      investors(users(name, legal_name, legal_address))
+    )`)
+    .eq('id', offerId).maybeSingle()
+  if (!offer) throw new Error('Offer not found')
+
+  const { data: bizUser } = await supabase.from('users').select('name, legal_name')
+    .or(`id.eq.${ids.authId},auth_uid.eq.${ids.authId}`).maybeSingle()
+
+  const { data: templates } = await supabase.from('contract_templates')
+    .select('id, body_html, category').eq('is_active', true).limit(10)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tpl = (templates as any[] || []).find((t: any) => t.category === offer.return_type)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    || (templates as any[] || [])[0]
+
+  const today = new Date().toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const invUser = (offer.matches as any)?.investors?.users
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const biz     = (offer.matches as any)?.businesses
+
+  const bizSigHtml = bizSigBase64
+    ? `<img src="${bizSigBase64}" style="height:60px;max-width:220px;display:block" />`
+    : '<span style="color:#6b7280">[Signed]</span>'
+
+  const vars: Record<string, string> = {
+    investor_name:       invUser?.name          || 'Investor',
+    investor_legal_name: invUser?.legal_name    || invUser?.name || 'Investor',
+    investor_address:    invUser?.legal_address || '',
+    business_name:       biz?.name              || 'Business',
+    legal_biz_name:      biz?.legal_biz_name    || biz?.name || 'Business',
+    biz_address:         biz?.legal_biz_address || '',
+    owner_name:          bizUser?.legal_name    || bizUser?.name || '',
+    amount:              offer.amount != null ? `₦${Number(offer.amount).toLocaleString('en-NG')}` : '',
+    return_type:         ({ fixed: 'Fixed Returns', revenue_share: 'Revenue Share', equity: 'Equity' } as Record<string,string>)[offer.return_type as string] || offer.return_type || '',
+    roi_percent:         offer.return_rate         != null ? `${offer.return_rate}%`         : '',
+    total_return_amount: offer.total_return_amount != null ? `₦${Number(offer.total_return_amount).toLocaleString('en-NG')}` : '',
+    revenue_percent:     offer.revenue_percent     != null ? `${offer.revenue_percent}%`     : '',
+    equity_percent:      offer.equity_percent      != null ? `${offer.equity_percent}%`      : '',
+    reporting_frequency: offer.reporting_frequency || '',
+    notes:               offer.notes || '',
+    notes_section:       offer.notes ? `<h2 style="margin-top:28px;font-size:16px">Additional Notes</h2><p>${offer.notes}</p>` : '',
+    date:                today,
+    biz_signature:       bizSigHtml,
+    biz_signed_date:     today,
+    inv_signature:       '<span id="inv-sig-placeholder" style="color:#d1d5db;font-style:italic;font-size:13px">[Awaiting investor signature]</span>',
+    inv_signed_date:     '',
+  }
+
+  const filledHtml = fillContract(tpl?.body_html || DEFAULT_CONTRACT_HTML, vars)
+
+  const dealId = crypto.randomUUID()
+  const { error: dealErr } = await supabase.from('deals').insert({
+    id: dealId, match_id: matchId,
+    amount: offer.amount, return_type: offer.return_type, status: 'proposed',
+  })
+  if (dealErr) throw dealErr
+
+  const contractId = crypto.randomUUID()
+  const { error: cErr } = await supabase.from('signed_contracts').insert({
+    id: contractId, deal_id: dealId,
+    template_id: tpl?.id || null,
+    body_html: filledHtml,
+    biz_signed_at: new Date().toISOString(),
+  })
+  if (cErr) throw cErr
+
+  await supabase.from('offers').update({ status: 'accepted' }).eq('id', offerId)
+
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (authUser) {
+    await supabase.from('messages').insert({
+      id: crypto.randomUUID(), match_id: matchId,
+      sender_id: authUser.id, content: '✅ Offer accepted',
+      content_type: 'offer_accepted', ref_id: offerId,
+    })
+  }
+
+  return { dealId, contractId }
+}
+
+// ─── Get deal + contract for offer ───────────────────────────────────────────
+
+export async function getDealForOffer(offerId: string): Promise<{
+  dealId: string; dealStatus: string;
+  contractId: string | null; bizSignedAt: string | null;
+  invSignedAt: string | null; paymentConfirmedAt: string | null;
+} | null> {
+  const { data: offer } = await supabase.from('offers').select('match_id').eq('id', offerId).maybeSingle()
+  if (!offer?.match_id) return null
+  const { data: deal } = await supabase.from('deals').select('id, status')
+    .eq('match_id', offer.match_id).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (!deal) return null
+  const { data: contract } = await supabase.from('signed_contracts')
+    .select('id, biz_signed_at, inv_signed_at, payment_confirmed_at').eq('deal_id', deal.id).maybeSingle()
+  return {
+    dealId: deal.id, dealStatus: deal.status,
+    contractId: contract?.id || null,
+    bizSignedAt: contract?.biz_signed_at || null,
+    invSignedAt: contract?.inv_signed_at || null,
+    paymentConfirmedAt: contract?.payment_confirmed_at || null,
+  }
+}
+
+// ─── Get contract HTML ────────────────────────────────────────────────────────
+
+export async function getContractHtml(contractId: string): Promise<string | null> {
+  const { data } = await supabase.from('signed_contracts').select('body_html').eq('id', contractId).maybeSingle()
+  return data?.body_html || null
+}
+
+// ─── Investor sign contract ───────────────────────────────────────────────────
+
+export async function investorSignContract(contractId: string, sigBase64: string, dealId: string): Promise<void> {
+  const { data: contract } = await supabase.from('signed_contracts').select('body_html').eq('id', contractId).maybeSingle()
+  if (!contract) throw new Error('Contract not found')
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: u } = user ? await supabase.from('users').select('legal_name, name')
+    .or(`id.eq.${user.id},auth_uid.eq.${user.id}`).maybeSingle() : { data: null }
+  const invName = u?.legal_name || u?.name || 'Investor'
+  const today = new Date().toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  const sigHtml = `<img src="${sigBase64}" style="height:60px;max-width:220px;display:block" />`
+  const updatedHtml = contract.body_html
+    .replace('<span id="inv-sig-placeholder" style="color:#d1d5db;font-style:italic;font-size:13px">[Awaiting investor signature]</span>', sigHtml)
+    .replace('{{inv_signed_date}}', today)
+    .replace(invName + ' · ', invName + ' · ')
+
+  await supabase.from('signed_contracts').update({
+    inv_signed_at: new Date().toISOString(),
+    inv_signature_url: 'base64_embedded',
+    body_html: updatedHtml,
+  }).eq('id', contractId)
+
+  await supabase.from('deals').update({ status: 'signed' }).eq('id', dealId)
+}
