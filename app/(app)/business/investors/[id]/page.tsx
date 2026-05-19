@@ -115,11 +115,24 @@ export default function BizInvestorDetailPage() {
       {/* CTA */}
       <div style={{position:'absolute', left:0, right:0, bottom:0, padding:'14px 16px 22px',
         background:'linear-gradient(180deg, rgba(247,241,232,0) 0%, var(--cream) 30%)'}}>
-        <button className="btn btn-forest btn-block"
-          onClick={handleStartConversation}
-          disabled={starting}>
-          {starting ? 'Opening chat…' : 'Start conversation'}
-        </button>
+        {inv.allowContact === false ? (
+          <>
+            <button className="btn btn-block" disabled style={{
+              background: 'var(--linen)', color: 'var(--ink-3)', cursor: 'default', marginBottom: 6,
+            }}>
+              Start conversation
+            </button>
+            <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+              This investor has to be the first to reach out to start conversations.
+            </div>
+          </>
+        ) : (
+          <button className="btn btn-forest btn-block"
+            onClick={handleStartConversation}
+            disabled={starting}>
+            {starting ? 'Opening chat…' : 'Start conversation'}
+          </button>
+        )}
       </div>
     </div>
   )

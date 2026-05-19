@@ -34,8 +34,12 @@ export default function ActivatePage() {
       .eq('phone', normalised)
       .maybeSingle()
     setLoading(false)
-    if (dbErr || !data) {
-      setError('We could not find an account with that phone number. Please check and try again, or contact support.')
+    if (dbErr) {
+      setError(`Lookup error: ${dbErr.message}. If this persists, contact support.`)
+      return
+    }
+    if (!data) {
+      setError('We could not find an account with that phone number. Please check and try again (no leading zero needed), or contact support.')
       return
     }
     if (data.auth_uid) {

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { clearProfileCache } from './db'
 
 export async function signUp(email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({ email: email.trim().toLowerCase(), password })
@@ -42,6 +43,7 @@ export async function saveProfile(updates: Record<string, unknown>) {
   const { error } = await supabase.from('users')
     .upsert({ id: user.id, email: user.email || null, ...updates }, { onConflict: 'id' })
   if (error) throw error
+  clearProfileCache()
 
   // Keep city/state in sync with role-specific tables so matches show correct location
   if (updates.city !== undefined || updates.state !== undefined) {
@@ -63,6 +65,7 @@ export async function saveInvestorProfile(data: Record<string, unknown>) {
   const { error } = await supabase.from('investors')
     .upsert({ user_id: user.id, ...data }, { onConflict: 'user_id' })
   if (error) throw error
+  clearProfileCache()
 }
 
 export async function saveBusinessProfile(data: Record<string, unknown>) {
@@ -71,6 +74,7 @@ export async function saveBusinessProfile(data: Record<string, unknown>) {
   const { error } = await supabase.from('businesses')
     .upsert({ owner_id: user.id, ...data }, { onConflict: 'owner_id' })
   if (error) throw error
+  clearProfileCache()
 }
 
 export async function changePassword(newPassword: string) {
