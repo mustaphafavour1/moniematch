@@ -28,26 +28,25 @@ export default function ActivatePage() {
     if (!phone.trim()) { setError('Please enter your phone number.'); return }
     setLoading(true); setError('')
     const normalised = normalisePhone(phone)
-    const { data, error: dbErr } = await supabase
-      .from('users')
-      .select('id, name, role, auth_uid')
-      .eq('phone', normalised)
-      .maybeSingle()
+    // Use RPC with SECURITY DEFINER to bypass RLS on unauthenticated lookup
+    const { data, error: rpcErr } = await supabase
+      .rpc('find_user_by_phone', { p_phone: normalised })
     setLoading(false)
-    if (dbErr) {
-      setError(`Lookup error: ${dbErr.message}. If this persists, contact support.`)
+    if (rpcErr) {
+      setError(`Lookup error: ${rpcErr.message}. Please contact support.`)
       return
     }
-    if (!data) {
+    const found = Array.isArray(data) ? data[0] : data
+    if (!found) {
       setError('We could not find an account with that phone number. Please check and try again (no leading zero needed), or contact support.')
       return
     }
-    if (data.auth_uid) {
+    if (found.auth_uid) {
       setError('This account has already been activated. Please sign in instead.')
       return
     }
-    setUserName(data.name || '')
-    setRole(data.role || '')
+    setUserName(found.name || '')
+    setRole(found.role || '')
     setStep('details')
   }
 
