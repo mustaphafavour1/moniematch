@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { acceptOffer, sendCounterOffer } from '@/lib/db'
+import { checkBizContractReadiness, acceptOfferWithContract, getDealForOffer, sendCounterOffer } from '@/lib/db'
 import type { OfferTerms } from '@/lib/db'
 import { Icon, RoundBtn } from '@/components/app/Icon'
 import { AppHeader } from '@/components/app/AppHeader'
@@ -221,12 +221,14 @@ export default function BizOfferViewPage() {
   const offerId      = searchParams.get('offerId') ?? ''
   const mode         = searchParams.get('mode') ?? 'view'
 
-  const [offer,       setOffer]       = useState<OfferData | null>(null)
-  const [myId,        setMyId]        = useState('')
-  const [loading,     setLoading]     = useState(true)
-  const [accepted,    setAccepted]    = useState(false)
-  const [counterSent, setCounterSent] = useState(false)
-  const [accepting,   setAccepting]   = useState(false)
+  const [offer,              setOffer]              = useState<OfferData | null>(null)
+  const [myId,               setMyId]               = useState('')
+  const [loading,            setLoading]            = useState(true)
+  const [accepted,           setAccepted]           = useState(false)
+  const [counterSent,        setCounterSent]        = useState(false)
+  const [accepting,          setAccepting]          = useState(false)
+  const [readinessErr,       setReadinessErr]       = useState<string[]>([])
+  const [dealInfo,           setDealInfo]           = useState<{ dealId: string; contractId: string | null; paymentConfirmedAt: string | null; invSignedAt: string | null } | null>(null)
 
   useEffect(() => {
     if (!offerId) return
@@ -239,6 +241,12 @@ export default function BizOfferViewPage() {
     ]).then(([{ data }, { data: { user } }]) => {
       setOffer(data as OfferData)
       setMyId(user?.id ?? '')
+      const statusKey = (data as OfferData | null)?.status
+      if (statusKey === 'accepted' || statusKey === 'offer_accepted') {
+        getDealForOffer(offerId).then(d => {
+          if (d) setDealInfo({ dealId: d.dealId, contractId: d.contractId, paymentConfirmedAt: d.paymentConfirmedAt, invSignedAt: d.invSignedAt })
+        })
+      }
       setLoading(false)
     })
   }, [offerId])
@@ -283,8 +291,39 @@ export default function BizOfferViewPage() {
 
   async function handleAccept() {
     setAccepting(true)
-    try { await acceptOffer(offerId, matchId); setAccepted(true) }
-    finally { setAccepting(false) }
+    try {
+      const { ready, missing } = await checkBizContractReadiness()
+      if (!ready) {
+        setReadinessErr(missing)
+        setAccepting(false)
+        return
+      }
+      // Get business user signature from storage
+      const { data: { user } } = await supabase.auth.getUser()
+      let bizSigBase64 = ''
+      if (user) {
+        try {
+          const { data: sigUrl } = await supabase.storage.from('signatures').createSignedUrl(`${user.id}/signature.png`, 60)
+          if (sigUrl?.signedUrl) {
+            const resp = await fetch(sigUrl.signedUrl)
+            const blob = await resp.blob()
+            bizSigBase64 = await new Promise<string>((res, rej) => {
+              const reader = new FileReader()
+              reader.onloadend = () => res(reader.result as string)
+              reader.onerror = rej
+              reader.readAsDataURL(blob)
+            })
+          }
+        } catch { /* sig fetch failed; proceed without */ }
+      }
+      const result = await acceptOfferWithContract(offerId, matchId, bizSigBase64)
+      setDealInfo({ dealId: result.dealId, contractId: result.contractId, paymentConfirmedAt: null, invSignedAt: null })
+      setAccepted(true)
+    } catch (e: unknown) {
+      setReadinessErr([e instanceof Error ? e.message : 'Something went wrong. Please try again.'])
+    } finally {
+      setAccepting(false)
+    }
   }
 
   const openConvLink = (
@@ -300,9 +339,21 @@ export default function BizOfferViewPage() {
   if (mode === 'view') {
     if (isAccepted) {
       bottomContent = (
-        <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12,
-          padding: '12px 14px', fontSize: 13, color: '#065f46', lineHeight: 1.55 }}>
-          Offer accepted! The investor will be notified to proceed to payment.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: '#065f46', lineHeight: 1.55 }}>
+            Offer accepted! You have signed the agreement. Waiting for investor to pay and sign.
+          </div>
+          {dealInfo?.contractId && (
+            <button onClick={() => router.push(`/business/chat/${matchId}/contract?contractId=${dealInfo.contractId}`)}
+              style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              View agreement
+            </button>
+          )}
+          {dealInfo?.paymentConfirmedAt && (
+            <div style={{ padding: '10px 14px', background: '#ecfdf5', borderRadius: 10, fontSize: 13, color: '#065f46' }}>
+              ✓ Payment received
+            </div>
+          )}
         </div>
       )
     } else if (!isProposer && (statusKey === 'pending' || statusKey === 'countered')) {
@@ -414,6 +465,23 @@ export default function BizOfferViewPage() {
           </div>
         ) : null}
       </div>
+
+      {readinessErr.length > 0 && (
+        <div style={{ padding: '0 20px 12px' }}>
+          <div style={{ background: '#fef9ec', border: '1px solid #fde68a', borderRadius: 12, padding: '12px 14px' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#78350f', marginBottom: 6 }}>
+              Complete your contract information first
+            </div>
+            <ul style={{ margin: '0 0 10px 16px', padding: 0, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+              {readinessErr.map(m => <li key={m}>{m}</li>)}
+            </ul>
+            <button onClick={() => router.push('/business/contracts')}
+              style={{ fontSize: 13, color: '#78350f', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-body)' }}>
+              Go to Contract Information →
+            </button>
+          </div>
+        </div>
+      )}
 
       {showBottomBar ? (
         <div style={{ padding: '12px 20px 32px', borderTop: '1px solid var(--line)', background: 'var(--cream)' }}>
