@@ -140,14 +140,17 @@ export default function InvContractsPage() {
           <div className="eyebrow">Legal identity</div>
           <div>
             <p className="eyebrow" style={{ marginBottom: 8, textTransform: 'none', fontSize: 13, color: 'var(--ink-2)' }}>Title</p>
-            <div style={fieldWrap}>
+            <div style={{ ...fieldWrap, position: 'relative' }}>
               <select value={title} onChange={e => setTitle(e.target.value)}
-                style={{ ...inputStyle, appearance: 'none', WebkitAppearance: 'none' }}>
+                style={{ ...inputStyle, appearance: 'none', WebkitAppearance: 'none', paddingRight: 36 }}>
                 <option value="">Select title</option>
                 {['Mr.', 'Mrs.', 'Miss.', 'Ms.', 'Dr.', 'Prof.', 'Engr.', 'Barr.', 'Hon.'].map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
+              <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--ink-3)' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.5 6L8 10.5L12.5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
             </div>
           </div>
           <div>
