@@ -574,14 +574,18 @@ export async function saveOffer(matchId: string, terms: OfferTerms): Promise<str
   // Create a chat message so the offer appears in the conversation
   if (!terms.is_template) {
     const amtStr = terms.amount ? `₦${Number(terms.amount).toLocaleString('en-NG')}` : ''
-    await supabase.from('messages').insert({
-      id:           crypto.randomUUID(),
-      match_id:     matchId,
-      sender_id:    authUser.id,
-      content:      `💰 Offer${amtStr ? `: ${amtStr}` : ''}`,
-      content_type: 'offer',
-      ref_id:       id,
-    })
+    // Use server API to bypass RLS (seeded users have profile id ≠ auth uid)
+    await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        match_id:     matchId,
+        sender_id:    authUser.id,
+        content:      `💰 Offer${amtStr ? `: ${amtStr}` : ''}`,
+        content_type: 'offer',
+        ref_id:       id,
+      }),
+    }).catch(() => {/* non-fatal */})
   }
 
   return id
@@ -1053,11 +1057,15 @@ export async function acceptOfferWithContract(
 
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (authUser) {
-    await supabase.from('messages').insert({
-      id: crypto.randomUUID(), match_id: matchId,
-      sender_id: authUser.id, content: '✅ Offer accepted',
-      content_type: 'offer_accepted', ref_id: offerId,
-    })
+    await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        match_id: matchId, sender_id: authUser.id,
+        content: '✅ Offer accepted',
+        content_type: 'offer_accepted', ref_id: offerId,
+      }),
+    }).catch(() => {/* non-fatal */})
   }
 
   return { dealId, contractId }

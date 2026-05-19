@@ -337,7 +337,19 @@ export default function BizOfferViewPage() {
 
   let bottomContent: React.ReactNode = openConvLink
   if (mode === 'view') {
-    if (isAccepted) {
+    if (isAccepted && !dealInfo) {
+      // Accepted with old code — no deal/contract row yet; business must generate it
+      bottomContent = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ background: '#fef9ec', border: '1px solid #fde68a', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: '#78350f', lineHeight: 1.55 }}>
+            Agreement not generated yet. Please sign and generate the agreement document so the investor can proceed to payment.
+          </div>
+          <button className="btn btn-forest btn-block" onClick={handleAccept} disabled={accepting}>
+            {accepting ? 'Generating…' : 'Sign & generate agreement →'}
+          </button>
+        </div>
+      )
+    } else if (isAccepted) {
       bottomContent = (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: '#065f46', lineHeight: 1.55 }}>
