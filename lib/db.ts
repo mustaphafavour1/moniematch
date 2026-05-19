@@ -495,7 +495,7 @@ export async function getMyChats(): Promise<ChatThread[]> {
         counterpartyColor:    colorFor(name),
         lastMessage:          lastMsg?.content || '',
         lastMessageTime:      lastMsg?.created_at || '',
-        isMine:               lastMsg?.sender_id === authUser.id,
+        isMine:               lastMsg?.sender_id === ids.authId,
       }
     })
     .sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime))
