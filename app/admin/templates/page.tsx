@@ -75,8 +75,9 @@ export default function AdminTemplatesPage() {
     if (!name.trim()) { setSaveErr('Template name is required.'); return }
     if (!bodyHtml.trim()) { setSaveErr('Template body is required.'); return }
     setSaving(true); setSaveErr('')
-    const placeholders = [...bodyHtml.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1])
-    const payload = { name: name.trim(), category, body_html: bodyHtml, placeholders: JSON.stringify([...new Set(placeholders)]), is_active: true }
+    const placeholders = Array.from(bodyHtml.matchAll(/\{\{(\w+)\}\}/g)).map(m => m[1])
+    const unique = placeholders.filter((v, i, a) => a.indexOf(v) === i)
+    const payload = { name: name.trim(), category, body_html: bodyHtml, placeholders: JSON.stringify(unique), is_active: true }
     let error: { message?: string } | null = null
     if (editing) {
       ;({ error } = await supabase.from('contract_templates').update(payload).eq('id', editing.id))
